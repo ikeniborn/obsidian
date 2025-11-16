@@ -97,6 +97,22 @@ check_existing_env() {
     fi
 }
 
+validate_network_config() {
+    if [ "$NETWORK_MODE" = "custom" ] && [ -z "$NETWORK_NAME" ]; then
+        error "NETWORK_NAME required for custom mode"
+        exit 1
+    fi
+
+    if [ -n "${NETWORK_SUBNET:-}" ]; then
+        if ! echo "$NETWORK_SUBNET" | grep -qE '^172\.(2[4-9]|3[0-1])\.0\.0/16$'; then
+            error "Invalid subnet format. Use 172.24-31.0.0/16"
+            exit 1
+        fi
+    fi
+
+    success "Network configuration validated"
+}
+
 validate_config() {
     info "Validating configuration..."
 
@@ -127,6 +143,8 @@ validate_config() {
     if [[ "$has_errors" == true ]]; then
         error "Configuration validation failed"
     fi
+
+    validate_network_config
 
     success "Configuration validation passed"
 }
@@ -259,6 +277,50 @@ prompt_notes_domain() {
     done
 }
 
+configure_network() {
+    echo ""
+    info "Docker Network Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configure Docker network for CouchDB container"
+    echo ""
+
+    source "${SCRIPT_DIR}/scripts/network-manager.sh"
+
+    mapfile -t available_networks < <(list_available_networks)
+
+    if [ ${#available_networks[@]} -eq 0 ]; then
+        info "No existing Docker networks found"
+        info "Will create new isolated network: obsidian_network"
+        NETWORK_MODE="isolated"
+        NETWORK_NAME="obsidian_network"
+    else
+        info "Available Docker networks:"
+        echo ""
+        local i=1
+        for network in "${available_networks[@]}"; do
+            local subnet=$(docker network inspect "$network" --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || echo "N/A")
+            echo "  $i. Use existing: $network ($subnet)"
+            ((i++))
+        done
+        echo "  $i. Create new isolated network"
+        echo ""
+
+        read -p "Select option [1-$i]: " choice
+
+        if [ "$choice" -eq "$i" ]; then
+            NETWORK_MODE="isolated"
+            read -p "Enter new network name [obsidian_network]: " NETWORK_NAME
+            NETWORK_NAME=${NETWORK_NAME:-obsidian_network}
+
+            read -p "Enter custom subnet (leave empty for auto-selection): " NETWORK_SUBNET
+        else
+            NETWORK_MODE="shared"
+            NETWORK_NAME="${available_networks[$((choice-1))]}"
+            success "Selected existing network: $NETWORK_NAME"
+        fi
+    fi
+}
+
 prompt_s3_credentials() {
     echo ""
     info "S3 Backup Configuration (Optional)"
@@ -346,6 +408,11 @@ NOTES_LOG_DIR=/opt/notes/logs
 # =============================================================================
 # Network Configuration
 # =============================================================================
+
+NETWORK_MODE=$NETWORK_MODE
+NETWORK_NAME=$NETWORK_NAME
+NETWORK_EXTERNAL=true
+${NETWORK_SUBNET:+NETWORK_SUBNET=$NETWORK_SUBNET}
 
 COUCHDB_PORT=5984
 EOF
@@ -464,6 +531,7 @@ main() {
 
     prompt_certbot_email
     prompt_notes_domain
+    configure_network
     prompt_s3_credentials
 
     echo ""

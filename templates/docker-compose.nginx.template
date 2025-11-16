@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: notes-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/notes/nginx/notes.conf:/etc/nginx/conf.d/notes.conf:ro
+      - /opt/notes/nginx/ssl:/etc/nginx/ssl:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    networks:
+      - notes-network
+    depends_on:
+      - couchdb
+
+networks:
+  notes-network:
+    external: ${NETWORK_EXTERNAL}
+    name: ${NETWORK_NAME}

@@ -26,9 +26,9 @@ services:
     ports:
       - "127.0.0.1:5984:5984"
 
-    # Connect to Family Budget network (external)
+    # Connect to notes network (configurable via NETWORK_NAME)
     networks:
-      - familybudget
+      - notes-network
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5984/_up"]
@@ -47,6 +47,10 @@ services:
           memory: 128M
 
 networks:
-  familybudget:
-    external: true
-    name: familybudget_familybudget  # External network from Family Budget
+  notes-network:
+    # Network mode configured via NETWORK_MODE in .env:
+    # - shared: use existing familybudget_familybudget (default)
+    # - isolated: use obsidian_network
+    # - custom: use custom NETWORK_NAME
+    external: ${NETWORK_EXTERNAL:-true}
+    name: ${NETWORK_NAME:-familybudget_familybudget}
