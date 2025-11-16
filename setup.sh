@@ -371,6 +371,54 @@ EOF
     success "Configuration file created: $ENV_FILE"
 }
 
+setup_backup_cron() {
+    info "Setting up automatic backups..."
+
+    echo ""
+    echo "Automatic backups configuration:"
+    echo "  Schedule: Daily at 3:00 AM"
+    echo "  Target: S3 (if configured) + local /opt/notes/backups/"
+    echo ""
+    read -p "Enable automatic backups? (Y/n): " -n 1 -r
+    echo ""
+
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        CRON_JOB="0 3 * * * cd /opt/notes && bash couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+
+        if crontab -l 2>/dev/null | grep -q "couchdb-backup.sh"; then
+            warning "Backup cron job already exists, skipping"
+        else
+            (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+            success "Backup cron job created (daily at 3:00 AM)"
+        fi
+
+        touch /opt/notes/logs/backup.log
+        chmod 644 /opt/notes/logs/backup.log
+    else
+        info "Automatic backups not configured"
+        info "You can run backups manually: bash /opt/notes/couchdb-backup.sh"
+    fi
+}
+
+setup_systemd_timer() {
+    info "Setting up systemd timer for backups..."
+
+    if [[ ! -f "$SCRIPT_DIR/systemd/couchdb-backup.service" ]]; then
+        warning "Systemd service file not found, skipping"
+        return 1
+    fi
+
+    sudo cp "$SCRIPT_DIR/systemd/couchdb-backup.service" /etc/systemd/system/
+    sudo cp "$SCRIPT_DIR/systemd/couchdb-backup.timer" /etc/systemd/system/
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable couchdb-backup.timer
+    sudo systemctl start couchdb-backup.timer
+
+    success "Systemd timer configured (daily at 3:00 AM)"
+    info "Check status: systemctl status couchdb-backup.timer"
+}
+
 display_summary() {
     echo ""
     success "========================================"
@@ -425,6 +473,19 @@ main() {
     echo ""
     create_env_file
     display_summary
+
+    echo ""
+    info "Backup scheduler:"
+    echo "  1) Cron (traditional)"
+    echo "  2) Systemd timer (modern)"
+    read -p "Choose [1]: " SCHEDULER_CHOICE
+    SCHEDULER_CHOICE=${SCHEDULER_CHOICE:-1}
+
+    if [[ "$SCHEDULER_CHOICE" == "2" ]]; then
+        setup_systemd_timer
+    else
+        setup_backup_cron
+    fi
 
     success "Setup completed successfully!"
     echo ""

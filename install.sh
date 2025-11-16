@@ -238,6 +238,23 @@ create_directories() {
     └── logs/     (Application logs)"
 }
 
+install_python_deps() {
+    info "Installing Python dependencies for S3 backup..."
+
+    if ! command_exists python3; then
+        info "Installing Python 3..."
+        apt-get update -qq
+        apt-get install -y python3 python3-pip
+    fi
+
+    if ! python3 -c "import boto3" 2>/dev/null; then
+        info "Installing boto3..."
+        pip3 install boto3 --quiet
+    fi
+
+    success "Python dependencies installed"
+}
+
 # =============================================================================
 # MAIN INSTALLATION
 # =============================================================================
@@ -260,6 +277,9 @@ main() {
 
     echo ""
     create_directories
+
+    echo ""
+    install_python_deps
 
     echo ""
     if [[ ! -f "$SCRIPT_DIR/scripts/ufw-setup.sh" ]]; then

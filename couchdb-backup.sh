@@ -20,7 +20,14 @@ set -uo pipefail
 #
 
 # Load environment variables from .env
-ENV_FILE="/opt/budget/.env"
+ENV_FILE="/opt/notes/.env"
+
+# Fallback на /opt/budget/.env для обратной совместимости
+if [[ ! -f "$ENV_FILE" ]] && [[ -f "/opt/budget/.env" ]]; then
+    ENV_FILE="/opt/budget/.env"
+    echo "WARNING: Using fallback .env from /opt/budget/"
+fi
+
 if [[ -f "$ENV_FILE" ]]; then
     # Export variables from .env (excluding comments and empty lines)
     set -a
@@ -40,7 +47,13 @@ BACKUP_NAME="couchdb-$(date -u ${DATE_FORMAT}).tar.gz"
 OLD_BACKUP_NAME="couchdb-$(date -d "${RETENTION_DAYS} days ago" ${DATE_FORMAT}).tar.gz"
 
 # Docker configuration
-COUCHDB_CONTAINER="familybudget-couchdb"
+# Поддержка обоих имен контейнеров
+COUCHDB_CONTAINER="familybudget-couchdb-notes"
+
+# Fallback на старое имя
+if ! docker ps --format '{{.Names}}' | grep -q "^${COUCHDB_CONTAINER}$"; then
+    COUCHDB_CONTAINER="familybudget-couchdb"
+fi
 
 # CouchDB credentials (from .env)
 COUCHDB_USER="${COUCHDB_USER:-admin}"
@@ -49,8 +62,21 @@ COUCHDB_URL="http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@localhost:5984"
 COUCHDB_HOST_URL="http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@localhost:5984"
 
 # S3 configuration (from .env)
-S3_UPLOAD_SCRIPT="/opt/budget/scripts/s3_upload.py"
-S3_PREFIX="couchdb-backups/"  # Prefix in S3 bucket
+S3_ACCESS_KEY_ID="${S3_ACCESS_KEY_ID:-}"
+S3_SECRET_ACCESS_KEY="${S3_SECRET_ACCESS_KEY:-}"
+S3_BUCKET_NAME="${S3_BUCKET_NAME:-}"
+S3_ENDPOINT_URL="${S3_ENDPOINT_URL:-https://storage.yandexcloud.net}"
+S3_REGION="${S3_REGION:-ru-central1}"
+S3_BACKUP_PREFIX="${S3_BACKUP_PREFIX:-couchdb-backups/}"
+
+S3_UPLOAD_SCRIPT="/opt/notes/scripts/s3_upload.py"
+
+# Fallback
+if [[ ! -f "$S3_UPLOAD_SCRIPT" ]] && [[ -f "/opt/budget/scripts/s3_upload.py" ]]; then
+    S3_UPLOAD_SCRIPT="/opt/budget/scripts/s3_upload.py"
+fi
+
+S3_PREFIX="${S3_BACKUP_PREFIX}"
 
 # Resource limits
 CPU_LIMIT="0.5"  # 50% of one CPU
@@ -169,8 +195,12 @@ if ! command -v python3 >/dev/null 2>&1; then
     error_exit "python3 is not installed (required for S3 upload)"
 fi
 
-# Check if S3 upload script exists
-if [[ ! -f "${S3_UPLOAD_SCRIPT}" ]]; then
+# Проверка что S3 credentials заданы
+if [[ -z "$S3_ACCESS_KEY_ID" ]] || [[ -z "$S3_SECRET_ACCESS_KEY" ]]; then
+    log "WARNING: S3 credentials not configured"
+    log "Backup will be local only (no S3 upload)"
+    S3_UPLOAD_ENABLED=false
+elif [[ ! -f "${S3_UPLOAD_SCRIPT}" ]]; then
     log "WARNING: S3 upload script not found: ${S3_UPLOAD_SCRIPT}"
     log "S3 upload will be skipped. Backup will be local only."
     S3_UPLOAD_ENABLED=false
