@@ -91,10 +91,87 @@ check_existing_env() {
             exit 0
         fi
 
-        # Backup existing .env
         local backup_file="$ENV_FILE.backup.$(date +%Y%m%d_%H%M%S)"
         cp "$ENV_FILE" "$backup_file"
         success "Backed up existing configuration to: $backup_file"
+    fi
+}
+
+validate_config() {
+    info "Validating configuration..."
+
+    local has_errors=false
+
+    if [[ -z "${CERTBOT_EMAIL:-}" ]]; then
+        error "CERTBOT_EMAIL is required"
+        has_errors=true
+    fi
+
+    if [[ -z "${NOTES_DOMAIN:-}" ]]; then
+        error "NOTES_DOMAIN is required"
+        has_errors=true
+    fi
+
+    if [[ -n "${S3_ACCESS_KEY_ID:-}" ]]; then
+        if [[ -z "${S3_SECRET_ACCESS_KEY:-}" ]]; then
+            warning "S3_ACCESS_KEY_ID is set but S3_SECRET_ACCESS_KEY is missing"
+            has_errors=true
+        fi
+
+        if [[ -z "${S3_BUCKET_NAME:-}" ]]; then
+            warning "S3_ACCESS_KEY_ID is set but S3_BUCKET_NAME is missing"
+            has_errors=true
+        fi
+    fi
+
+    if [[ "$has_errors" == true ]]; then
+        error "Configuration validation failed"
+    fi
+
+    success "Configuration validation passed"
+}
+
+test_dns_resolution() {
+    info "Testing DNS resolution for $NOTES_DOMAIN..."
+
+    if [[ "$NOTES_DOMAIN" == "notes.localhost" ]]; then
+        info "Development domain detected, skipping DNS check"
+        return 0
+    fi
+
+    if ! command_exists host && ! command_exists dig && ! command_exists nslookup; then
+        warning "DNS tools not available, skipping DNS check"
+        return 0
+    fi
+
+    local resolved_ip=""
+
+    if command_exists host; then
+        resolved_ip=$(host "$NOTES_DOMAIN" 2>/dev/null | grep "has address" | awk '{print $4}' | head -1)
+    elif command_exists dig; then
+        resolved_ip=$(dig +short "$NOTES_DOMAIN" 2>/dev/null | head -1)
+    elif command_exists nslookup; then
+        resolved_ip=$(nslookup "$NOTES_DOMAIN" 2>/dev/null | grep -A1 "Name:" | tail -1 | awk '{print $2}')
+    fi
+
+    if [[ -z "$resolved_ip" ]]; then
+        warning "DNS resolution failed for $NOTES_DOMAIN"
+        warning "Make sure the domain is configured in DNS before deploying"
+        echo ""
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            info "Setup cancelled. Configure DNS first."
+            exit 0
+        fi
+    else
+        success "Domain resolves to: $resolved_ip"
+
+        local server_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        if [[ -n "$server_ip" && "$resolved_ip" != "$server_ip" ]]; then
+            warning "Domain resolves to $resolved_ip, but server IP is $server_ip"
+            warning "Make sure DNS points to this server"
+        fi
     fi
 }
 
@@ -108,8 +185,18 @@ generate_password() {
     if command_exists openssl; then
         openssl rand -hex "$length"
     else
-        # Fallback to /dev/urandom
         tr -dc 'a-f0-9' < /dev/urandom | head -c $((length * 2))
+    fi
+}
+
+validate_email() {
+    local email=$1
+    local email_regex='^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+    if [[ $email =~ $email_regex ]]; then
+        return 0
+    else
+        return 1
     fi
 }
 
@@ -117,29 +204,110 @@ generate_password() {
 # CONFIGURATION FUNCTIONS
 # =============================================================================
 
+prompt_certbot_email() {
+    echo ""
+    info "Let's Encrypt Email Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Email for Let's Encrypt SSL certificate notifications:"
+    echo "(Required for production HTTPS certificates)"
+    echo ""
+
+    while true; do
+        read -p "Email: " CERTBOT_EMAIL
+
+        if [[ -z "$CERTBOT_EMAIL" ]]; then
+            warning "Email is required for SSL certificates"
+            continue
+        fi
+
+        if validate_email "$CERTBOT_EMAIL"; then
+            success "Email set to: $CERTBOT_EMAIL"
+            break
+        else
+            warning "Invalid email format. Please try again."
+        fi
+    done
+}
+
 prompt_notes_domain() {
     echo ""
     info "Notes Domain Configuration"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "Enter the domain for Notes access:"
+    echo "Enter the domain for Obsidian Sync access:"
     echo ""
     echo "  Development:  notes.localhost"
     echo "  Production:   notes.example.com"
     echo ""
-    read -p "Notes domain [notes.localhost]: " NOTES_DOMAIN
-    NOTES_DOMAIN=${NOTES_DOMAIN:-notes.localhost}
+    warning "IMPORTANT: Domain must be configured in DNS and point to this server"
+    echo ""
 
-    success "Domain set to: $NOTES_DOMAIN"
+    while true; do
+        read -p "Domain: " NOTES_DOMAIN
+
+        if [[ -z "$NOTES_DOMAIN" ]]; then
+            NOTES_DOMAIN="notes.localhost"
+            warning "Using default: notes.localhost (development mode)"
+            break
+        fi
+
+        if [[ "$NOTES_DOMAIN" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]] || [[ "$NOTES_DOMAIN" == "notes.localhost" ]]; then
+            success "Domain set to: $NOTES_DOMAIN"
+            break
+        else
+            warning "Invalid domain format. Please try again."
+        fi
+    done
+}
+
+prompt_s3_credentials() {
+    echo ""
+    info "S3 Backup Configuration (Optional)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configure S3-compatible storage for automatic backups"
+    echo "(Supports: AWS S3, Yandex Object Storage, MinIO, etc.)"
+    echo ""
+    echo "Press Enter to skip S3 configuration"
+    echo ""
+
+    read -p "S3 Access Key ID [skip]: " S3_ACCESS_KEY_ID
+
+    if [[ -n "$S3_ACCESS_KEY_ID" ]]; then
+        read -p "S3 Secret Access Key: " S3_SECRET_ACCESS_KEY
+
+        if [[ -z "$S3_SECRET_ACCESS_KEY" ]]; then
+            warning "S3 Secret Access Key is required. Skipping S3 configuration."
+            S3_ACCESS_KEY_ID=""
+            return
+        fi
+
+        read -p "S3 Bucket Name: " S3_BUCKET_NAME
+        if [[ -z "$S3_BUCKET_NAME" ]]; then
+            warning "S3 Bucket Name is required. Skipping S3 configuration."
+            S3_ACCESS_KEY_ID=""
+            return
+        fi
+
+        read -p "S3 Endpoint URL [https://storage.yandexcloud.net]: " S3_ENDPOINT_URL
+        S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-https://storage.yandexcloud.net}
+
+        read -p "S3 Region [ru-central1]: " S3_REGION
+        S3_REGION=${S3_REGION:-ru-central1}
+
+        read -p "S3 Backup Prefix [couchdb-backups/]: " S3_BACKUP_PREFIX
+        S3_BACKUP_PREFIX=${S3_BACKUP_PREFIX:-couchdb-backups/}
+
+        success "S3 configuration saved"
+    else
+        info "Skipping S3 configuration. Backups will be stored locally."
+    fi
 }
 
 create_env_file() {
     info "Creating configuration file: $ENV_FILE"
 
-    # Generate secure password
     local couchdb_password
     couchdb_password=$(generate_password 32)
 
-    # Create .env file
     cat > "$ENV_FILE" << EOF
 # =============================================================================
 # Notes CouchDB Environment Configuration
@@ -161,6 +329,13 @@ COUCHDB_PASSWORD=$couchdb_password
 NOTES_DOMAIN=$NOTES_DOMAIN
 
 # =============================================================================
+# SSL/TLS Configuration (Let's Encrypt)
+# =============================================================================
+
+CERTBOT_EMAIL=$CERTBOT_EMAIL
+CERTBOT_STAGING=false
+
+# =============================================================================
 # Data Directories
 # =============================================================================
 
@@ -175,10 +350,73 @@ NOTES_LOG_DIR=/opt/notes/logs
 COUCHDB_PORT=5984
 EOF
 
-    # Set secure permissions
+    if [[ -n "${S3_ACCESS_KEY_ID:-}" ]]; then
+        cat >> "$ENV_FILE" << EOF
+
+# =============================================================================
+# S3 Backup Configuration
+# =============================================================================
+
+S3_ACCESS_KEY_ID=$S3_ACCESS_KEY_ID
+S3_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY
+S3_BUCKET_NAME=$S3_BUCKET_NAME
+S3_ENDPOINT_URL=$S3_ENDPOINT_URL
+S3_REGION=$S3_REGION
+S3_BACKUP_PREFIX=$S3_BACKUP_PREFIX
+EOF
+    fi
+
     chmod 600 "$ENV_FILE"
 
     success "Configuration file created: $ENV_FILE"
+}
+
+setup_backup_cron() {
+    info "Setting up automatic backups..."
+
+    echo ""
+    echo "Automatic backups configuration:"
+    echo "  Schedule: Daily at 3:00 AM"
+    echo "  Target: S3 (if configured) + local /opt/notes/backups/"
+    echo ""
+    read -p "Enable automatic backups? (Y/n): " -n 1 -r
+    echo ""
+
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        CRON_JOB="0 3 * * * cd /opt/notes && bash couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+
+        if crontab -l 2>/dev/null | grep -q "couchdb-backup.sh"; then
+            warning "Backup cron job already exists, skipping"
+        else
+            (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+            success "Backup cron job created (daily at 3:00 AM)"
+        fi
+
+        touch /opt/notes/logs/backup.log
+        chmod 644 /opt/notes/logs/backup.log
+    else
+        info "Automatic backups not configured"
+        info "You can run backups manually: bash /opt/notes/couchdb-backup.sh"
+    fi
+}
+
+setup_systemd_timer() {
+    info "Setting up systemd timer for backups..."
+
+    if [[ ! -f "$SCRIPT_DIR/systemd/couchdb-backup.service" ]]; then
+        warning "Systemd service file not found, skipping"
+        return 1
+    fi
+
+    sudo cp "$SCRIPT_DIR/systemd/couchdb-backup.service" /etc/systemd/system/
+    sudo cp "$SCRIPT_DIR/systemd/couchdb-backup.timer" /etc/systemd/system/
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable couchdb-backup.timer
+    sudo systemctl start couchdb-backup.timer
+
+    success "Systemd timer configured (daily at 3:00 AM)"
+    info "Check status: systemctl status couchdb-backup.timer"
 }
 
 display_summary() {
@@ -191,7 +429,20 @@ display_summary() {
     echo "  CouchDB user:       admin"
     echo "  CouchDB password:   [generated - 64 chars]"
     echo "  Notes domain:       $NOTES_DOMAIN"
+    echo "  Certbot email:      $CERTBOT_EMAIL"
     echo "  Data directory:     /opt/notes/data"
+
+    if [[ -n "${S3_ACCESS_KEY_ID:-}" ]]; then
+        echo ""
+        echo "  S3 Backup:"
+        echo "    Bucket:           $S3_BUCKET_NAME"
+        echo "    Endpoint:         $S3_ENDPOINT_URL"
+        echo "    Region:           $S3_REGION"
+    else
+        echo ""
+        echo "  S3 Backup:          Not configured (local backups only)"
+    fi
+
     echo ""
     info "IMPORTANT: Keep $ENV_FILE secure!"
     info "           This file contains sensitive credentials."
@@ -211,9 +462,30 @@ main() {
     check_notes_directory
     check_existing_env
 
+    prompt_certbot_email
     prompt_notes_domain
+    prompt_s3_credentials
+
+    echo ""
+    validate_config
+    test_dns_resolution
+
+    echo ""
     create_env_file
     display_summary
+
+    echo ""
+    info "Backup scheduler:"
+    echo "  1) Cron (traditional)"
+    echo "  2) Systemd timer (modern)"
+    read -p "Choose [1]: " SCHEDULER_CHOICE
+    SCHEDULER_CHOICE=${SCHEDULER_CHOICE:-1}
+
+    if [[ "$SCHEDULER_CHOICE" == "2" ]]; then
+        setup_systemd_timer
+    else
+        setup_backup_cron
+    fi
 
     success "Setup completed successfully!"
     echo ""

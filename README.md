@@ -36,6 +36,48 @@ Notes (изолированное приложение)
 
 ## 🚀 Быстрый старт
 
+### Production (Рекомендуется)
+
+**Шаг 1: Установка зависимостей и UFW**
+```bash
+cd ~/obsidian-sync
+sudo ./install.sh
+```
+
+Установит:
+- Docker и Docker Compose (если не установлены)
+- UFW firewall (разрешены только SSH:22 и HTTPS:443)
+- Python 3 и boto3 (для S3 backups)
+- Проверит nginx (детекция существующего)
+
+**Шаг 2: Конфигурация**
+```bash
+./setup.sh
+```
+
+Настроит:
+- Генерация безопасного COUCHDB_PASSWORD
+- Запрос NOTES_DOMAIN (например: notes.example.com)
+- Запрос CERTBOT_EMAIL (для Let's Encrypt уведомлений)
+- Запрос S3 credentials (опционально)
+- Создание cron job для автоматических backups (3:00 AM)
+
+**Шаг 3: Deployment**
+```bash
+./deploy.sh
+```
+
+Выполнит:
+- Nginx setup (детекция/интеграция или запуск своего)
+- SSL сертификаты (Let's Encrypt через certbot)
+- CouchDB deployment
+- Валидация всех компонентов
+
+**Доступ:**
+- HTTPS: https://notes.example.com
+- HTTP: Автоматический редирект на HTTPS
+- Credentials: `admin` / [пароль из /opt/notes/.env]
+
 ### Development
 
 **Шаг 1: Одноразовая настройка**
@@ -63,41 +105,6 @@ docker compose -f docker-compose.notes.yml up -d
 **Доступ:**
 - CouchDB: http://notes.localhost
 - Credentials: `admin` / `dev_password_insecure`
-
-### Production
-
-**Шаг 1: Установка**
-```bash
-cd ~/familyBudget/notes
-sudo ./install.sh
-```
-
-Установит:
-- Проверку Docker
-- Создание директорий `/opt/notes/{data,backups,logs}`
-
-**Шаг 2: Конфигурация**
-```bash
-cd ~/familyBudget/notes
-./setup.sh
-```
-
-Настроит:
-- Создание `/opt/notes/.env` с генерацией `COUCHDB_PASSWORD`
-- Запрос `NOTES_DOMAIN` (например: `notes.example.com`)
-
-**Шаг 3: Deployment**
-```bash
-cd ~/familyBudget/notes
-./deploy.sh
-```
-
-Выполнит:
-- Проверку Family Budget nginx running
-- Rsync `notes/` → `/opt/notes/`
-- `docker compose up` для CouchDB
-- Обновление nginx конфигурации `notes.conf`
-- Reload nginx
 
 ## 📂 Структура файлов
 
@@ -208,14 +215,24 @@ origins = app://obsidian.md,capacitor://localhost,http://localhost
 
 ## 🔐 Security
 
-### Port Binding
-CouchDB порт `5984` bind к `127.0.0.1` **ТОЛЬКО**:
-```yaml
-ports:
-  - "127.0.0.1:5984:5984"  # Localhost only
-```
+### Firewall (UFW)
+Настроен автоматически через `install.sh`:
+- ✅ SSH (22) - разрешен
+- ✅ HTTPS (443) - разрешен
+- ❌ HTTP (80) - **закрыт** (открывается только для certbot renewal)
+- ❌ Все остальные порты - закрыты
 
-Внешний доступ **ТОЛЬКО** через nginx reverse proxy.
+### SSL/TLS
+- Автоматическое получение сертификатов через Let's Encrypt
+- Auto-renewal с UFW hooks (безопасное управление портом 80)
+- Современные TLS настройки (TLSv1.2+, HSTS)
+- HTTP → HTTPS редирект
+
+### CouchDB
+- Порт 5984 bind только к 127.0.0.1 (не доступен извне)
+- Доступ **только** через nginx reverse proxy
+- Безопасный пароль (генерируется автоматически)
+- Authentication required
 
 ### Password Generation
 `setup.sh` автоматически генерирует безопасный пароль:
@@ -223,8 +240,30 @@ ports:
 openssl rand -hex 32  # 64 characters (256 bits)
 ```
 
-### HTTPS
-В production nginx автоматически настроит HTTPS через Let's Encrypt (scripts/lib/couchdb.sh).
+## 💾 Automatic Backups
+
+Настраиваются через `setup.sh` (опционально):
+- **Расписание:** Ежедневно в 3:00 AM
+- **Локально:** /opt/notes/backups/ (хранится 7 дней)
+- **S3:** Загрузка в S3-compatible storage (опционально)
+- **Логи:** /opt/notes/logs/backup.log
+
+### Ручной запуск backup
+```bash
+bash /opt/notes/couchdb-backup.sh
+```
+
+### Проверка статуса backups
+```bash
+# Локальные backups
+ls -lh /opt/notes/backups/
+
+# Последний лог
+tail -f /opt/notes/logs/backup.log
+
+# Cron job
+crontab -l | grep couchdb-backup
+```
 
 ## 🐛 Troubleshooting
 

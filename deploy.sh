@@ -1,25 +1,25 @@
 #!/bin/bash
 #
-# Notes CouchDB - Deployment Script
+# Obsidian Sync Server - Deployment Script
 #
-# This script deploys Notes application:
-# - Checks Family Budget nginx is running (dependency)
-# - Checks external network exists
-# - Syncs notes/ to /opt/notes/
+# This script deploys Obsidian Sync Server:
+# - Validates .env configuration
+# - Sets up Nginx (detects existing or deploys own)
+# - Obtains SSL certificates via Let's Encrypt
 # - Deploys CouchDB via docker compose
-# - Updates nginx configuration
-# - Reloads nginx
+# - Applies Nginx configuration with SSL
+# - Verifies deployment
 #
 # Usage:
 #   ./deploy.sh
 #
 # Requirements:
-#   - notes/install.sh and notes/setup.sh must be run first
-#   - Family Budget nginx must be running
+#   - install.sh and setup.sh must be run first
 #   - /opt/notes/.env must exist
+#   - UFW configured (ports 22, 443 open)
 #
-# Author: Family Budget Team
-# Version: 1.0.0
+# Author: Obsidian Sync Server Team
+# Version: 2.0.0
 # Date: 2025-11-16
 #
 
@@ -31,8 +31,8 @@ set -u  # Exit on undefined variable
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"  # Parent directory (familyBudget)
 NOTES_DEPLOY_DIR="/opt/notes"
+SCRIPTS_DIR="${SCRIPT_DIR}/scripts"
 
 # Colors for output
 RED='\033[0;31m'
@@ -76,39 +76,6 @@ command_exists() {
 # VALIDATION FUNCTIONS
 # =============================================================================
 
-check_family_budget_nginx() {
-    info "Checking Family Budget nginx..."
-
-    if ! docker ps --format '{{.Names}}' | grep -q '^familybudget-nginx$'; then
-        error "Family Budget nginx is NOT running.
-
-Notes requires Family Budget nginx for reverse proxy.
-
-Please start Family Budget first:
-  cd ~/familyBudget && ./deploy.sh --profile full
-
-Or start just nginx:
-  cd ~/familyBudget && docker compose up -d nginx"
-    fi
-
-    success "Family Budget nginx is running"
-}
-
-check_external_network() {
-    info "Checking external network..."
-
-    if ! docker network ls --format '{{.Name}}' | grep -q '^familybudget_familybudget$'; then
-        error "Docker network 'familybudget_familybudget' NOT found.
-
-This network is created by Family Budget deployment.
-
-Please deploy Family Budget first:
-  cd ~/familyBudget && ./deploy.sh --profile full"
-    fi
-
-    success "External network 'familybudget_familybudget' exists"
-}
-
 check_env_file() {
     info "Checking configuration file..."
 
@@ -116,10 +83,45 @@ check_env_file() {
         error "Configuration file not found: $NOTES_DEPLOY_DIR/.env
 
 Please run setup first:
-  ./setup.sh"
+  sudo bash setup.sh"
     fi
 
-    success "Configuration file exists"
+    source "$NOTES_DEPLOY_DIR/.env"
+
+    local required_vars=("NOTES_DOMAIN" "COUCHDB_PORT" "COUCHDB_USER" "COUCHDB_PASSWORD" "CERTBOT_EMAIL")
+    local missing_vars=()
+
+    for var in "${required_vars[@]}"; do
+        if [[ -z "${!var:-}" ]]; then
+            missing_vars+=("$var")
+        fi
+    done
+
+    if [[ ${#missing_vars[@]} -gt 0 ]]; then
+        error "Missing required variables in .env: ${missing_vars[*]}
+
+Please run setup.sh again"
+    fi
+
+    success "Configuration file valid"
+}
+
+check_ufw_configured() {
+    info "Checking UFW firewall configuration..."
+
+    if ! command -v ufw >/dev/null 2>&1; then
+        error "UFW not found. Please run install.sh first"
+    fi
+
+    if ! sudo ufw status | grep -q "Status: active"; then
+        error "UFW is not active. Please run install.sh first"
+    fi
+
+    if ! sudo ufw status | grep -q "443/tcp.*ALLOW"; then
+        warning "Port 443 not open in UFW. This may cause SSL verification issues"
+    fi
+
+    success "UFW is configured"
 }
 
 check_rsync() {
@@ -134,33 +136,71 @@ check_rsync() {
 # DEPLOYMENT FUNCTIONS
 # =============================================================================
 
-sync_files() {
-    info "Syncing notes files to $NOTES_DEPLOY_DIR..."
+setup_nginx() {
+    info "Setting up Nginx..."
 
-    check_rsync
+    if [[ ! -f "$SCRIPTS_DIR/nginx-setup.sh" ]]; then
+        error "nginx-setup.sh not found at $SCRIPTS_DIR/nginx-setup.sh"
+    fi
 
-    # Sync notes/ directory to /opt/notes/
-    # Exclude: data/, .env (runtime files), dev-setup.sh (dev only)
-    rsync -av --delete \
-        --exclude 'data/' \
-        --exclude '.env' \
-        --exclude 'dev-setup.sh' \
-        --exclude '.git/' \
-        "$SCRIPT_DIR/" "$NOTES_DEPLOY_DIR/"
+    bash "$SCRIPTS_DIR/nginx-setup.sh" || error "Nginx setup failed"
 
-    success "Files synced successfully"
+    success "Nginx setup completed"
+}
+
+setup_ssl() {
+    info "Setting up SSL certificates..."
+
+    if [[ ! -f "$SCRIPTS_DIR/ssl-setup.sh" ]]; then
+        error "ssl-setup.sh not found at $SCRIPTS_DIR/ssl-setup.sh"
+    fi
+
+    bash "$SCRIPTS_DIR/ssl-setup.sh" || error "SSL setup failed"
+
+    success "SSL setup completed"
+}
+
+verify_ssl() {
+    info "Verifying SSL certificate..."
+
+    source "$NOTES_DEPLOY_DIR/.env"
+
+    local cert_file="/etc/letsencrypt/live/${NOTES_DOMAIN}/fullchain.pem"
+
+    if [[ ! -f "$cert_file" ]]; then
+        error "SSL certificate not found at $cert_file"
+    fi
+
+    if sudo openssl x509 -in "$cert_file" -noout -checkend 86400; then
+        success "SSL certificate is valid"
+    else
+        warning "SSL certificate expires in less than 24 hours"
+    fi
+}
+
+apply_nginx_config() {
+    info "Applying Nginx configuration with SSL..."
+
+    if [[ ! -f "$SCRIPTS_DIR/nginx-setup.sh" ]]; then
+        error "nginx-setup.sh not found"
+    fi
+
+    bash "$SCRIPTS_DIR/nginx-setup.sh" --apply-config || error "Failed to apply Nginx config"
+
+    success "Nginx configuration applied"
 }
 
 deploy_couchdb() {
     info "Deploying CouchDB..."
 
-    cd "$NOTES_DEPLOY_DIR"
+    local compose_file="$SCRIPT_DIR/docker-compose.notes.yml"
 
-    # Pull latest images
-    docker compose -f docker-compose.notes.yml pull
+    if [[ ! -f "$compose_file" ]]; then
+        error "docker-compose.notes.yml not found at $compose_file"
+    fi
 
-    # Start CouchDB
-    docker compose -f docker-compose.notes.yml up -d --remove-orphans
+    docker compose -f "$compose_file" pull
+    docker compose -f "$compose_file" up -d --remove-orphans
 
     success "CouchDB deployed"
 }
@@ -170,9 +210,10 @@ wait_for_couchdb_healthy() {
 
     local max_attempts=30
     local attempt=1
+    local container_name="obsidian-couchdb"
 
     while [[ $attempt -le $max_attempts ]]; do
-        if docker inspect familybudget-couchdb-notes | grep -q '"Health".*"healthy"'; then
+        if docker ps --filter "name=$container_name" --filter "health=healthy" | grep -q "$container_name"; then
             success "CouchDB is healthy"
             return 0
         fi
@@ -184,72 +225,34 @@ wait_for_couchdb_healthy() {
 
     echo ""
     warning "CouchDB health check timeout (not critical)"
-    warning "Check logs: docker logs familybudget-couchdb-notes"
-}
-
-update_nginx_config() {
-    info "Updating nginx configuration..."
-
-    # Check if couchdb.sh module exists
-    if [[ -f "/opt/budget/scripts/lib/couchdb.sh" ]]; then
-        # Use existing couchdb.sh to generate nginx config
-        source "/opt/budget/scripts/lib/couchdb.sh"
-
-        if declare -f generate_nginx_notes_config >/dev/null 2>&1; then
-            generate_nginx_notes_config
-        else
-            warning "generate_nginx_notes_config function not found in couchdb.sh"
-            warning "Nginx config must be updated manually"
-            return 0
-        fi
-    else
-        warning "scripts/lib/couchdb.sh not found"
-        warning "Nginx config must be updated manually"
-        return 0
-    fi
-
-    success "Nginx configuration updated"
-}
-
-reload_nginx() {
-    info "Reloading nginx..."
-
-    if docker exec familybudget-nginx nginx -t >/dev/null 2>&1; then
-        docker exec familybudget-nginx nginx -s reload
-        success "Nginx reloaded successfully"
-    else
-        error "Nginx configuration test failed. Please check nginx config:
-    docker exec familybudget-nginx nginx -t"
-    fi
+    warning "Check logs: docker logs $container_name"
 }
 
 display_summary() {
     echo ""
     success "========================================"
-    success "Notes Deployment Summary"
+    success "Obsidian Sync Server Deployment Summary"
     success "========================================"
     echo ""
 
-    # Get CouchDB container status
-    local couchdb_status=$(docker ps --filter name=familybudget-couchdb-notes --format "{{.Status}}")
+    source "$NOTES_DEPLOY_DIR/.env"
 
+    local couchdb_status=$(docker ps --filter name=obsidian-couchdb --format "{{.Status}}")
+    local nginx_type=$(bash "$SCRIPTS_DIR/nginx-setup.sh" --detect-only)
+
+    echo "  Domain:             https://${NOTES_DOMAIN}"
     echo "  CouchDB Status:     $couchdb_status"
-    echo "  Configuration:      /opt/notes/.env"
-    echo "  Data Directory:     /opt/notes/data"
+    echo "  Nginx:              $nginx_type"
+    echo "  SSL Certificate:    /etc/letsencrypt/live/${NOTES_DOMAIN}/"
+    echo "  Configuration:      $NOTES_DEPLOY_DIR/.env"
     echo ""
 
-    # Get NOTES_DOMAIN from .env
-    if [[ -f "$NOTES_DEPLOY_DIR/.env" ]]; then
-        local notes_domain=$(grep NOTES_DOMAIN "$NOTES_DEPLOY_DIR/.env" | cut -d'=' -f2)
-        echo "  Access URL:         http://$notes_domain"
-        echo "  CouchDB Direct:     http://localhost:5984 (localhost only)"
-    fi
-
-    echo ""
     info "Useful commands:"
-    echo "  Logs:     docker logs familybudget-couchdb-notes"
-    echo "  Restart:  cd /opt/notes && docker compose -f docker-compose.notes.yml restart"
-    echo "  Stop:     cd /opt/notes && docker compose -f docker-compose.notes.yml down"
+    echo "  CouchDB logs:       docker logs obsidian-couchdb"
+    echo "  Check SSL:          bash scripts/check-ssl-expiration.sh"
+    echo "  Test SSL renewal:   bash scripts/test-ssl-renewal.sh"
+    echo "  Restart CouchDB:    docker compose -f docker-compose.notes.yml restart"
+    echo "  Stop:               docker compose -f docker-compose.notes.yml down"
     echo ""
 }
 
@@ -259,23 +262,21 @@ display_summary() {
 
 main() {
     info "========================================"
-    info "Notes CouchDB - Deployment"
+    info "Obsidian Sync Server - Deployment"
     info "========================================"
     echo ""
 
-    # Validation
-    check_family_budget_nginx
-    check_external_network
     check_env_file
+    check_ufw_configured
 
-    # Deployment
-    sync_files
+    setup_nginx
+    setup_ssl
+    verify_ssl
+    apply_nginx_config
+
     deploy_couchdb
     wait_for_couchdb_healthy
-    update_nginx_config
-    reload_nginx
 
-    # Summary
     display_summary
 
     success "Deployment completed successfully!"
