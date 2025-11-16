@@ -1,162 +1,337 @@
-# Obsidian + CouchDB Services Installation Scripts
+# Notes - CouchDB Obsidian Sync
 
-Набор bash-скриптов для развертывания CouchDB и Obsidian LiveSync сервера с использованием Docker и Traefik.
+Изолированное приложение для синхронизации заметок Obsidian через CouchDB.
 
-## Структура проекта
+## 📋 Описание
+
+Notes - это **полностью изолированное** приложение для хранения и синхронизации заметок Obsidian. Использует:
+- **CouchDB** - база данных для хранения заметок
+- **Nginx** - reverse proxy (из основного приложения Family Budget)
+- **Docker Compose** - изолированное развертывание
+
+## 🏗️ Архитектура
 
 ```
-├── install.sh                 # Главный скрипт установки
-├── install-couchdb.sh         # Установка CouchDB
-├── install-obsidian-sync.sh   # Установка Obsidian LiveSync сервера
-├── backup-couchdb.sh          # Настройка бэкапов CouchDB в S3
-├── setup-firewall.sh          # Настройка UFW firewall
-└── README.md                  # Этот файл
+Family Budget (основное приложение)
+├── nginx (reverse proxy для budget + notes)
+├── backend, bot, postgres
+└── Docker network: familybudget_familybudget
+
+Notes (изолированное приложение)
+└── CouchDB
+    ├── Подключается к Family Budget network
+    ├── Доступно через Family Budget nginx
+    └── Данные: /opt/notes/data (изолированы)
 ```
 
-## Быстрый старт
+**Зависимости:**
+- ✅ **Требуется:** Family Budget nginx ДОЛЖЕН быть запущен
+- ✅ **Требуется:** Docker network `familybudget_familybudget` ДОЛЖНА существовать
 
-1. **Скачайте все скрипты** в одну директорию
-2. **Запустите главный скрипт** от имени root:
-   ```bash
-   sudo chmod +x install.sh
-   sudo ./install.sh
-   ```
+**Изоляция:**
+- Отдельный `docker-compose.notes.yml`
+- Отдельные deployment скрипты (`install.sh`, `setup.sh`, `deploy.sh`)
+- Изолированные данные в `/opt/notes/`
+- Может запускаться/останавливаться независимо (но требует nginx)
 
-## Что будет установлено
+## 🚀 Быстрый старт
 
-### После установки в `/opt/` будут созданы:
+### Development
 
-- **`/opt/couchdb/`** - CouchDB с Traefik интеграцией
-- **`/opt/obsidian-sync/`** - Obsidian LiveSync сервер  
-
-### Сервисы будут доступны по адресам:
-- **CouchDB**: `https://couchdb.ваш-домен.com`
-- **Obsidian**: `https://obsidian.ваш-домен.com`
-
-## Подробное описание скриптов
-
-### 1. `install.sh`
-Главный скрипт, который:
-- Проверяет и устанавливает зависимости (Docker, Docker Compose, Git)
-- Создает сеть Traefik
-- Предлагает выбор установки (отдельные сервисы или всё сразу)
-
-### 2. `install-couchdb.sh`
-Устанавливает CouchDB:
-- Запрашивает домен и учетные данные
-- Создает docker-compose.yml с настройками Traefik
-- Настраивает UFW правила
-- Создает конфигурацию для single-node режима
-
-### 3. `install-obsidian-sync.sh`
-Устанавливает Obsidian LiveSync сервер:
-- Клонирует репозиторий `vrtmrz/livesync-serverpeer`
-- Создает Dockerfile для продакшена
-- Настраивает docker-compose.yml с Traefik
-- Создает скрипты управления (start.sh, stop.sh, update.sh)
-
-### 4. `backup-couchdb.sh`
-Настраивает систему бэкапов:
-- Настройка MinIO клиента для Yandex Cloud S3
-- Создание cron задачи (по умолчанию в 3:00 UTC)
-- Автоматическая очистка старых локальных бэкапов
-- Загрузка в S3 облачное хранилище
-
-### 5. `setup-firewall.sh`
-Настраивает UFW firewall:
-- Базовые правила безопасности
-- Открытие портов для SSH, HTTP, HTTPS
-- Опционально: прямой доступ к CouchDB и Obsidian
-- Правила для Docker сетей
-
-## Управление сервисами
-
-### CouchDB
+**Шаг 1: Одноразовая настройка**
 ```bash
-# Запуск
-cd /opt/couchdb && docker-compose up -d
-
-# Остановка
-cd /opt/couchdb && docker-compose down
-
-# Логи
-cd /opt/couchdb && docker-compose logs -f
+cd ~/familyBudget/notes
+bash dev-setup.sh
 ```
 
-### Obsidian LiveSync
+Этот скрипт:
+- Создаст `/opt/notes/` структуру директорий
+- Создаст `/opt/notes/.env` с dev credentials
+- Проверит/создаст docker network `familybudget_familybudget`
+
+**Шаг 2: Запуск CouchDB**
 ```bash
-# Использование скриптов
-/opt/obsidian-sync/start.sh
-/opt/obsidian-sync/stop.sh
-/opt/obsidian-sync/update.sh
+# Сначала запустите Family Budget (для nginx)
+cd ~/familyBudget
+docker compose --profile full up -d
 
-# Или напрямую через docker-compose
-cd /opt/obsidian-sync && docker-compose up -d
+# Затем запустите notes
+cd ~/familyBudget/notes
+docker compose -f docker-compose.notes.yml up -d
 ```
 
-### Бэкапы CouchDB
+**Доступ:**
+- CouchDB: http://notes.localhost
+- Credentials: `admin` / `dev_password_insecure`
+
+### Production
+
+**Шаг 1: Установка**
 ```bash
-# Ручной запуск бэкапа
-/opt/couchdb/backup/backup-couchdb.sh backup
-
-# Настройка S3
-/opt/couchdb/backup/backup-couchdb.sh setup-s3
-
-# Настройка расписания
-/opt/couchdb/backup/backup-couchdb.sh setup-cron
+cd ~/familyBudget/notes
+sudo ./install.sh
 ```
 
-## Требования
+Установит:
+- Проверку Docker
+- Создание директорий `/opt/notes/{data,backups,logs}`
 
-- **ОС**: Ubuntu/Debian Linux
-- **Права**: root доступ
-- **Сеть**: доступ в интернет для скачивания образов
-- **Домен**: настроенный домен с DNS записями
-- **Traefik**: должен быть запущен отдельно (не входит в эти скрипты)
+**Шаг 2: Конфигурация**
+```bash
+cd ~/familyBudget/notes
+./setup.sh
+```
 
-## Настройка после установки
+Настроит:
+- Создание `/opt/notes/.env` с генерацией `COUCHDB_PASSWORD`
+- Запрос `NOTES_DOMAIN` (например: `notes.example.com`)
 
-1. **Настройте DNS записи** для ваших поддоменов:
-   - `couchdb.ваш-домен.com` → IP сервера
-   - `obsidian.ваш-домен.com` → IP сервера
+**Шаг 3: Deployment**
+```bash
+cd ~/familyBudget/notes
+./deploy.sh
+```
 
-2. **Проверьте работу Traefik** - он должен быть запущен и настроен
+Выполнит:
+- Проверку Family Budget nginx running
+- Rsync `notes/` → `/opt/notes/`
+- `docker compose up` для CouchDB
+- Обновление nginx конфигурации `notes.conf`
+- Reload nginx
 
-3. **Настройте аутентификацию** в файлах `.env`:
-   - `/opt/couchdb/.env` - пароли CouchDB
-   - `/opt/obsidian-sync/.env` - токены для Obsidian
+## 📂 Структура файлов
 
-4. **Настройте S3 бэкапы** (если используете):
-   ```bash
-   /opt/couchdb/backup/backup-couchdb.sh setup-s3
-   ```
+```
+notes/
+├── docker-compose.notes.yml  # Изолированный docker-compose
+├── .env.example              # Template переменных
+├── README.md                 # Эта документация
+├── install.sh                # Установка зависимостей
+├── setup.sh                  # Конфигурация (/opt/notes/.env)
+├── deploy.sh                 # Production deployment
+├── dev-setup.sh              # Development setup
+├── local.ini                 # CouchDB server config
+├── couchdb-backup.sh         # Backup script
+└── creds.json                # Credentials template
+```
 
-## Безопасность
+## 🔧 Требования
 
-- Все сервисы работают через Traefik с HTTPS
-- UFW firewall настраивается автоматически
-- Требуется аутентификация для доступа к CouchDB
-- Рекомендуется изменить дефолтные пароли и токены
+### Обязательные
+- Docker 20.10+
+- Docker Compose v2+
+- Family Budget nginx running (`familybudget-nginx` container)
+- Docker network `familybudget_familybudget` exists
 
-## Логи и мониторинг
+### Проверка зависимостей
+```bash
+# Проверить Family Budget nginx
+docker ps | grep familybudget-nginx
 
-- **CouchDB логи**: `docker-compose logs -f` в `/opt/couchdb/`
-- **Obsidian логи**: `docker-compose logs -f` в `/opt/obsidian-sync/`
-- **Логи бэкапов**: `/var/log/couchdb-backup.log`
-- **UFW статус**: `ufw status`
+# Проверить docker network
+docker network ls | grep familybudget_familybudget
 
-## Поддержка
+# Проверить CouchDB running
+docker ps | grep familybudget-couchdb-notes
+```
 
-Все скрипты содержат детальные сообщения об ошибках и инструкции. При проблемах:
+## 🛠️ Управление
 
-1. Проверьте логи сервисов
-2. Убедитесь, что Traefik запущен
-3. Проверьте DNS настройки
-4. Проверьте статус UFW: `ufw status`
+### Запуск
+```bash
+cd notes/
+docker compose -f docker-compose.notes.yml up -d
+```
 
-## Версии
+### Остановка
+```bash
+cd notes/
+docker compose -f docker-compose.notes.yml down
+```
 
-- **CouchDB**: 3.3
-- **Deno**: 2.2.10 (для Obsidian LiveSync)
-- **Docker Compose**: latest
-- **MinIO Client**: latest
+### Логи
+```bash
+docker logs familybudget-couchdb-notes
+docker logs -f familybudget-couchdb-notes  # Follow mode
+```
+
+### Health check
+```bash
+# CouchDB health endpoint
+curl http://localhost:5984/_up
+
+# Через nginx (требует настройки NOTES_DOMAIN в /etc/hosts)
+curl http://notes.localhost/_up
+```
+
+### Backup
+```bash
+# Manual backup
+cd /opt/notes
+bash couchdb-backup.sh
+
+# Backups сохраняются в: /opt/notes/backups/
+```
+
+## ⚙️ Конфигурация
+
+### CouchDB Settings (`local.ini`)
+
+```ini
+[couchdb]
+single_node=true                    # Single-node mode
+max_document_size = 50000000        # 50MB (для attachments)
+
+[chttpd]
+require_valid_user = true           # Authentication required
+max_http_request_size = 4294967296  # 4GB
+
+[httpd]
+enable_cors = true                  # CORS для Obsidian
+
+[cors]
+origins = app://obsidian.md,capacitor://localhost,http://localhost
+```
+
+### Environment Variables
+
+Все переменные в `/opt/notes/.env`:
+
+| Переменная | Описание | Пример |
+|------------|----------|--------|
+| `COUCHDB_USER` | CouchDB admin user | `admin` |
+| `COUCHDB_PASSWORD` | CouchDB admin password (auto-generated) | `abc123...` (32 hex) |
+| `NOTES_DOMAIN` | Subdomain for nginx | `notes.localhost` |
+| `NOTES_DATA_DIR` | Data directory | `/opt/notes/data` |
+| `NOTES_BACKUP_DIR` | Backups directory | `/opt/notes/backups` |
+| `COUCHDB_PORT` | CouchDB port | `5984` |
+
+## 🔐 Security
+
+### Port Binding
+CouchDB порт `5984` bind к `127.0.0.1` **ТОЛЬКО**:
+```yaml
+ports:
+  - "127.0.0.1:5984:5984"  # Localhost only
+```
+
+Внешний доступ **ТОЛЬКО** через nginx reverse proxy.
+
+### Password Generation
+`setup.sh` автоматически генерирует безопасный пароль:
+```bash
+openssl rand -hex 32  # 64 characters (256 bits)
+```
+
+### HTTPS
+В production nginx автоматически настроит HTTPS через Let's Encrypt (scripts/lib/couchdb.sh).
+
+## 🐛 Troubleshooting
+
+### Ошибка: "Family Budget nginx not running"
+```bash
+# Запустите основное приложение Family Budget
+cd ~/familyBudget
+./deploy.sh --profile full
+```
+
+### Ошибка: "Docker network familybudget_familybudget not found"
+```bash
+# Создайте network (делается автоматически при запуске Family Budget)
+docker network create familybudget_familybudget
+```
+
+### Ошибка: "env_file: /opt/notes/.env: no such file"
+```bash
+# Запустите setup для создания .env
+cd ~/familyBudget/notes
+bash setup.sh  # Production
+# ИЛИ
+bash dev-setup.sh  # Development
+```
+
+### CouchDB не отвечает на health check
+```bash
+# Проверить логи
+docker logs familybudget-couchdb-notes
+
+# Проверить порт
+netstat -tuln | grep 5984
+
+# Рестарт
+docker compose -f docker-compose.notes.yml restart
+```
+
+### Backup fails
+```bash
+# Проверить права доступа
+ls -la /opt/notes/backups/
+
+# Создать директорию если не существует
+sudo mkdir -p /opt/notes/backups
+sudo chown -R $(whoami):$(whoami) /opt/notes
+```
+
+## 📚 Интеграция с Obsidian
+
+### Установка плагина
+1. Obsidian → Settings → Community Plugins
+2. Поиск: "Self-hosted LiveSync"
+3. Install & Enable
+
+### Настройка синхронизации
+1. Plugin Settings → Setup wizard
+2. URI: `http://notes.localhost` (dev) или `https://notes.yourdomain.com` (prod)
+3. Username: `admin`
+4. Password: из `/opt/notes/.env` (`COUCHDB_PASSWORD`)
+5. Database name: `obsidian` (или custom)
+
+### Первая синхронизация
+1. Choose "Remote database to Local" или "Local to Remote"
+2. Sync → Start
+3. Wait for initial sync to complete
+
+## 🔄 Updates
+
+### Обновление Notes
+```bash
+# Pull latest changes
+cd ~/familyBudget
+git pull
+
+# Redeploy notes (production)
+cd notes/
+./deploy.sh
+
+# Redeploy notes (development)
+docker compose -f docker-compose.notes.yml pull
+docker compose -f docker-compose.notes.yml up -d
+```
+
+## 📊 Monitoring
+
+### Resource Usage
+```bash
+docker stats familybudget-couchdb-notes
+```
+
+**Лимиты:**
+- CPU: 0.5 cores max, 0.1 cores reserved
+- Memory: 512MB max, 128MB reserved
+
+### Disk Usage
+```bash
+du -sh /opt/notes/data
+du -sh /opt/notes/backups
+```
+
+## 🔗 Links
+
+- [CouchDB Documentation](https://docs.couchdb.org/)
+- [Obsidian Self-hosted LiveSync](https://github.com/vrtmrz/obsidian-livesync)
+- [Family Budget Main App](../README.md)
+
+---
+
+**Version:** 5.1.0
+**Last Updated:** 2025-11-16

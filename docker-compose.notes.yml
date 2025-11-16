@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  couchdb:
+    image: couchdb:3.3
+    container_name: familybudget-couchdb-notes
+    restart: unless-stopped
+    stop_grace_period: 30s
+    stop_signal: SIGTERM
+
+    env_file:
+      - /opt/notes/.env
+
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER:-admin}
+      # COUCHDB_PASSWORD загружается через env_file: /opt/notes/.env
+
+    volumes:
+      # CouchDB data isolated in /opt/notes
+      - ${NOTES_DATA_DIR:-/opt/notes/data}:/opt/couchdb/data
+      # CouchDB config from notes/ directory
+      - ./local.ini:/opt/couchdb/etc/local.ini:ro
+
+    # Port 5984 bound to localhost ONLY
+    # External access through Family Budget nginx reverse proxy
+    ports:
+      - "127.0.0.1:5984:5984"
+
+    # Connect to Family Budget network (external)
+    networks:
+      - familybudget
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5984/_up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+networks:
+  familybudget:
+    external: true
+    name: familybudget_familybudget  # External network from Family Budget
