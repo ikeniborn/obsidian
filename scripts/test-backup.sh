@@ -21,7 +21,7 @@ else
 fi
 
 info "Running backup..."
-bash /opt/notes/couchdb-backup.sh
+bash /opt/notes/scripts/couchdb-backup.sh
 
 BACKUP_FILE=$(ls -t /opt/notes/backups/couchdb-*.tar.gz 2>/dev/null | head -1)
 if [[ -z "$BACKUP_FILE" ]]; then

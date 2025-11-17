@@ -117,7 +117,7 @@ echo "BACKUP TESTS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Backup script exists
-run_test "Backup script exists" "test -x /opt/notes/couchdb-backup.sh"
+run_test "Backup script exists" "test -x /opt/notes/scripts/couchdb-backup.sh"
 
 # Cron job exists
 run_test "Backup cron job exists" "crontab -l | grep -q couchdb-backup"

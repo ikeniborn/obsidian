@@ -504,7 +504,7 @@ setup_backup_cron() {
     echo ""
 
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        CRON_JOB="0 3 * * * cd /opt/notes && bash couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+        CRON_JOB="0 3 * * * cd /opt/notes && bash scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
 
         if crontab -l 2>/dev/null | grep -q "couchdb-backup.sh"; then
             warning "Backup cron job already exists, skipping"
@@ -517,7 +517,7 @@ setup_backup_cron() {
         chmod 644 /opt/notes/logs/backup.log
     else
         info "Automatic backups not configured"
-        info "You can run backups manually: bash /opt/notes/couchdb-backup.sh"
+        info "You can run backups manually: bash scripts/couchdb-backup.sh"
     fi
 }
 

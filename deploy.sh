@@ -235,6 +235,25 @@ apply_nginx_config() {
     success "Nginx configuration applied"
 }
 
+copy_scripts_to_workdir() {
+    info "Copying scripts to working directory..."
+
+    # Create scripts directory in /opt/notes if not exists
+    sudo mkdir -p "$NOTES_DEPLOY_DIR/scripts"
+
+    # Copy all scripts from repository to working directory
+    sudo cp -r "$SCRIPTS_DIR"/* "$NOTES_DEPLOY_DIR/scripts/"
+
+    # Set executable permissions
+    sudo chmod +x "$NOTES_DEPLOY_DIR/scripts"/*.sh
+    sudo chmod +x "$NOTES_DEPLOY_DIR/scripts"/*.py 2>/dev/null || true
+
+    # Set ownership
+    sudo chown -R root:root "$NOTES_DEPLOY_DIR/scripts"
+
+    success "Scripts copied to $NOTES_DEPLOY_DIR/scripts/"
+}
+
 deploy_couchdb() {
     info "Deploying CouchDB..."
 
@@ -427,6 +446,8 @@ main() {
     verify_ssl
 
     apply_nginx_config
+
+    copy_scripts_to_workdir
 
     deploy_couchdb
 

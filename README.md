@@ -123,8 +123,13 @@ notes/
 ├── setup.sh                  # Конфигурация (/opt/notes/.env)
 ├── deploy.sh                 # Production deployment
 ├── local.ini                 # CouchDB server config
-├── couchdb-backup.sh         # Backup script
-└── scripts/                  # Helper scripts
+└── scripts/                  # Вспомогательные скрипты
+    ├── couchdb-backup.sh     # Backup script
+    ├── nginx-setup.sh        # Nginx configuration
+    ├── ssl-setup.sh          # SSL/certbot setup
+    ├── ufw-setup.sh          # Firewall configuration
+    ├── network-manager.sh    # Network configuration helper
+    └── ... (other utilities)
 ```
 
 ## 🔧 Требования
@@ -188,7 +193,7 @@ curl http://notes.localhost/_up
 ```bash
 # Manual backup
 cd /opt/notes
-bash couchdb-backup.sh
+bash scripts/couchdb-backup.sh
 
 # Backups сохраняются в: /opt/notes/backups/
 ```
@@ -263,7 +268,7 @@ openssl rand -hex 32  # 64 characters (256 bits)
 
 ### Ручной запуск backup
 ```bash
-bash /opt/notes/couchdb-backup.sh
+bash /opt/notes/scripts/couchdb-backup.sh
 ```
 
 ### Проверка статуса backups

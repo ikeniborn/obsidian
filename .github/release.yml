@@ -1,0 +1,98 @@
+# GitHub Release Notes Configuration
+# Used by GitHub's automatic release notes generation
+
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - dependencies
+      - duplicate
+      - invalid
+      - wontfix
+    authors:
+      - dependabot
+      - dependabot[bot]
+
+  categories:
+    # Breaking Changes - Always first
+    - title: ⚠️ Breaking Changes
+      labels:
+        - breaking-change
+        - breaking
+        - major
+
+    # Security - High priority
+    - title: 🔒 Security
+      labels:
+        - security
+        - vulnerability
+
+    # Features and Enhancements
+    - title: 🚀 New Features
+      labels:
+        - feature
+        - enhancement
+        - feat
+        - new
+
+    # Bug Fixes
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - fix
+        - bugfix
+        - hotfix
+
+    # Performance
+    - title: ⚡ Performance Improvements
+      labels:
+        - performance
+        - perf
+        - optimization
+        - speed
+
+    # Refactoring
+    - title: 🔧 Refactoring
+      labels:
+        - refactor
+        - refactoring
+        - cleanup
+        - code-quality
+
+    # Documentation
+    - title: 📝 Documentation
+      labels:
+        - documentation
+        - docs
+        - readme
+
+    # Infrastructure and DevOps
+    - title: 🏗️ Infrastructure
+      labels:
+        - infrastructure
+        - chore
+        - ci
+        - cd
+        - deployment
+        - docker
+        - devops
+
+    # Dependencies
+    - title: 📦 Dependencies
+      labels:
+        - dependencies
+        - deps
+        - npm
+        - pip
+
+    # Testing
+    - title: 🧪 Testing
+      labels:
+        - test
+        - testing
+        - tests
+
+    # Other Changes
+    - title: 📌 Other Changes
+      labels:
+        - "*"

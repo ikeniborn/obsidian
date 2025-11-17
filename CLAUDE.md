@@ -78,7 +78,7 @@ bash scripts/test-backup.sh
 ```bash
 # Manual backup
 cd /opt/notes
-bash couchdb-backup.sh
+bash scripts/couchdb-backup.sh
 
 # Check backup logs
 tail -f /opt/notes/logs/backup.log
@@ -327,8 +327,8 @@ obsidian/
 ├── install.sh                  # Dependencies installation (sudo)
 ├── setup.sh                    # Production configuration
 ├── deploy.sh                   # Production deployment
-├── couchdb-backup.sh           # Backup script
 ├── scripts/
+│   ├── couchdb-backup.sh       # Backup script
 │   ├── nginx-setup.sh          # Nginx detection & integration
 │   ├── ssl-setup.sh            # Let's Encrypt SSL
 │   ├── ufw-setup.sh            # Firewall configuration
@@ -399,7 +399,7 @@ tail -20 /opt/notes/logs/backup.log
 crontab -l | grep couchdb-backup
 
 # Default: daily at 3:00 AM
-0 3 * * * cd /opt/notes && bash couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1
+0 3 * * * cd /opt/notes && bash scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1
 ```
 
 ## Version Information
