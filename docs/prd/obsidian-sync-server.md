@@ -109,12 +109,20 @@ Obsidian Sync Server - это production-ready self-hosted решение для
 - **Управление:** Автоматическое через install.sh
 
 #### 5. Docker & Docker Compose
-- **Роль:** Контейнеризация CouchDB (и опционально Nginx)
-- **Конфигурация:** docker-compose.notes.yml
-- **Преимущества:**
-  - Изоляция
-  - Простой деплой и обновление
-  - Воспроизводимость окружения
+
+**Network Architecture:**
+- **Shared Mode:** использование `familybudget_familybudget` network для интеграции с Family Budget
+- **Isolated Mode:** создание `obsidian_network` с автоматическим выбором свободной подсети (172.24-31.0.0/16)
+- **Custom Mode:** пользовательская сеть через .env конфигурацию
+
+**Auto-detection:**
+- При deployment автоматически определяется наличие Family Budget
+- Режим может быть переопределен через NETWORK_MODE в .env
+
+**Isolation:**
+- CouchDB изолирован в Docker network
+- Port 5984 binds только на 127.0.0.1 (no external access)
+- Доступ только через nginx reverse proxy
 
 ---
 
@@ -314,20 +322,24 @@ gpg --encrypt --recipient email@example.com backup.tar.gz
 
 ### FR-003: Умная Nginx интеграция
 
-**Описание:** Система обнаруживает существующий Nginx и интегрируется с ним, либо запускает собственный в Docker.
+**Описание:** Система обнаруживает существующий Nginx и интегрируется с ним, либо запускает собственный в Docker. Поддерживает три сетевых режима.
 
-**Сценарий 1: Существующий системный Nginx**
-1. Обнаружение: `systemctl status nginx`
-2. Создание конфигурации: `/etc/nginx/sites-available/obsidian-sync`
-3. Symlink в sites-enabled
-4. Nginx config test: `nginx -t`
-5. Reload: `systemctl reload nginx`
+**Scenario 1: Existing nginx (systemd/standalone)**
+- Detection: проверка systemd, процессов
+- Action: copy config to `/etc/nginx/sites-available/`
+- Network: через localhost (127.0.0.1:5984)
 
-**Сценарий 2: Собственный Nginx в Docker**
-1. Обнаружение отсутствия системного Nginx
-2. Запуск Nginx контейнера через docker-compose
-3. Volume mapping для конфигурации и SSL сертификатов
-4. Автоматическая настройка reverse proxy
+**Scenario 2: Existing Family Budget Docker nginx**
+- Detection: проверка container `familybudget-nginx`
+- Action: copy config to nginx volume
+- Network: shared (`familybudget_familybudget`)
+- Mode: **shared**
+
+**Scenario 3: No existing nginx (isolated deployment)**
+- Action: deploy собственный nginx container
+- Network: isolated (`obsidian_network` с автовыбором подсети)
+- Mode: **isolated**
+- SSL: Let's Encrypt через certbot
 
 **Nginx Configuration Template:**
 ```nginx

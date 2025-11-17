@@ -11,28 +11,35 @@ Notes - это **полностью изолированное** приложе�
 
 ## 🏗️ Архитектура
 
+### Network Modes
+
+Obsidian Sync Server поддерживает гибкую сетевую конфигурацию:
+
+**Shared Mode (по умолчанию при интеграции с Family Budget):**
 ```
-Family Budget (основное приложение)
-├── nginx (reverse proxy для budget + notes)
-├── backend, bot, postgres
-└── Docker network: familybudget_familybudget
-
-Notes (изолированное приложение)
-└── CouchDB
-    ├── Подключается к Family Budget network
-    ├── Доступно через Family Budget nginx
-    └── Данные: /opt/notes/data (изолированы)
+Docker Network: familybudget_familybudget
+├── familybudget-nginx (Family Budget)
+├── familybudget-couchdb-notes (CouchDB)
+└── [другие Family Budget сервисы]
 ```
 
-**Зависимости:**
-- ✅ **Требуется:** Family Budget nginx ДОЛЖЕН быть запущен
-- ✅ **Требуется:** Docker network `familybudget_familybudget` ДОЛЖНА существовать
+**Isolated Mode (standalone deployment):**
+```
+Docker Network: obsidian_network (auto-created, 172.24-31.0.0/16)
+├── notes-nginx (собственный nginx)
+└── familybudget-couchdb-notes (CouchDB)
+```
 
-**Изоляция:**
-- Отдельный `docker-compose.notes.yml`
-- Отдельные deployment скрипты (`install.sh`, `setup.sh`, `deploy.sh`)
-- Изолированные данные в `/opt/notes/`
-- Может запускаться/останавливаться независимо (но требует nginx)
+**Custom Mode:**
+Настраивается через .env (NETWORK_MODE=custom, NETWORK_NAME, NETWORK_SUBNET)
+
+### Network Selection Logic
+1. Автоопределение при deploy:
+   - Если существует `familybudget_familybudget` → shared mode
+   - Если нет → isolated mode (создает obsidian_network)
+2. Переопределение через .env:
+   - `NETWORK_MODE=shared|isolated|custom`
+3. Валидация сетевой связности после deployment
 
 ## 🚀 Быстрый старт
 
@@ -78,33 +85,30 @@ sudo ./install.sh
 - HTTP: Автоматический редирект на HTTPS
 - Credentials: `admin` / [пароль из /opt/notes/.env]
 
-### Development
+### Migration from Previous Versions
 
-**Шаг 1: Одноразовая настройка**
+Для обновления с версии 1.x на 2.0 (с новой сетевой архитектурой), см. детальный [Migration Guide](docs/migration-guide.md).
+
+**Краткая инструкция:**
 ```bash
-cd ~/familyBudget/notes
-bash dev-setup.sh
+# 1. Backup текущей конфигурации
+sudo cp /opt/notes/.env /opt/notes/.env.backup
+
+# 2. Pull изменений
+git pull origin dev
+git checkout feature/network-isolation-refactor
+
+# 3. Обновить .env (добавить сетевые переменные)
+cat >> /opt/notes/.env <<EOF
+NETWORK_MODE=shared
+NETWORK_NAME=familybudget_familybudget
+NETWORK_EXTERNAL=true
+EOF
+
+# 4. Re-deploy
+sudo ./deploy.sh
 ```
 
-Этот скрипт:
-- Создаст `/opt/notes/` структуру директорий
-- Создаст `/opt/notes/.env` с dev credentials
-- Проверит/создаст docker network `familybudget_familybudget`
-
-**Шаг 2: Запуск CouchDB**
-```bash
-# Сначала запустите Family Budget (для nginx)
-cd ~/familyBudget
-docker compose --profile full up -d
-
-# Затем запустите notes
-cd ~/familyBudget/notes
-docker compose -f docker-compose.notes.yml up -d
-```
-
-**Доступ:**
-- CouchDB: http://notes.localhost
-- Credentials: `admin` / `dev_password_insecure`
 
 ## 📂 Структура файлов
 
@@ -116,10 +120,9 @@ notes/
 ├── install.sh                # Установка зависимостей
 ├── setup.sh                  # Конфигурация (/opt/notes/.env)
 ├── deploy.sh                 # Production deployment
-├── dev-setup.sh              # Development setup
 ├── local.ini                 # CouchDB server config
 ├── couchdb-backup.sh         # Backup script
-└── creds.json                # Credentials template
+└── scripts/                  # Helper scripts
 ```
 
 ## 🔧 Требования
@@ -284,9 +287,7 @@ docker network create familybudget_familybudget
 ```bash
 # Запустите setup для создания .env
 cd ~/familyBudget/notes
-bash setup.sh  # Production
-# ИЛИ
-bash dev-setup.sh  # Development
+bash setup.sh
 ```
 
 ### CouchDB не отвечает на health check

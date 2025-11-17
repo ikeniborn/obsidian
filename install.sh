@@ -314,9 +314,6 @@ main() {
     echo "  1. Configure notes:  ./setup.sh"
     echo "  2. Deploy notes:     ./deploy.sh"
     echo ""
-    info "For development:"
-    echo "  ./dev-setup.sh"
-    echo ""
 }
 
 main "$@"
