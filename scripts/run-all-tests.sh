@@ -126,6 +126,22 @@ run_test "S3 upload script exists" "test -x /opt/notes/scripts/s3_upload.py"
 # boto3 installed
 run_test "boto3 is installed" "python3 -c 'import boto3' 2>/dev/null"
 
+# === NETWORK TESTS ===
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "NETWORK TESTS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+info "Running network modes tests..."
+if bash "$SCRIPT_DIR/test-network-modes.sh"; then
+    pass "Network modes tests"
+    ((PASSED_TESTS++))
+else
+    fail "Network modes tests"
+    ((FAILED_TESTS++))
+fi
+((TOTAL_TESTS++))
+
 # === SUMMARY ===
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
