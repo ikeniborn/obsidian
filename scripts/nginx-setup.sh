@@ -76,8 +76,10 @@ generate_nginx_config() {
         error "Nginx template not found at $TEMPLATE_FILE"
     fi
 
+    source "$ENV_FILE"
+
     if [ "$nginx_mode" = "docker" ]; then
-        export COUCHDB_UPSTREAM="familybudget-couchdb-notes"
+        export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
     else
         export COUCHDB_UPSTREAM="127.0.0.1"
     fi
@@ -90,11 +92,110 @@ generate_nginx_config() {
     echo "$output_file"
 }
 
+detect_nginx_containers() {
+    info "Detecting nginx containers..."
+
+    local nginx_containers=$(docker ps --format '{{.Names}}' | grep -i nginx || true)
+
+    if [ -z "$nginx_containers" ]; then
+        info "No nginx containers found"
+        return 1
+    fi
+
+    info "Found nginx containers:"
+    local count=0
+    while IFS= read -r container; do
+        count=$((count + 1))
+        local network=$(docker inspect "$container" --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null | awk '{print $1}')
+        echo "$count. $container (network: $network)"
+    done <<< "$nginx_containers"
+
+    return 0
+}
+
+prompt_nginx_selection() {
+    if ! detect_nginx_containers; then
+        echo "none||"
+        return 0
+    fi
+
+    echo ""
+    read -p "Use existing nginx container? [y/N]: " use_existing
+
+    if [[ "$use_existing" =~ ^[Yy]$ ]]; then
+        local nginx_containers=$(docker ps --format '{{.Names}}' | grep -i nginx)
+        local count=$(echo "$nginx_containers" | wc -l)
+
+        local selected_nginx
+        if [ "$count" -eq 1 ]; then
+            selected_nginx="$nginx_containers"
+        else
+            read -p "Enter nginx container name: " selected_nginx
+        fi
+
+        echo ""
+        info "Detecting nginx config directory for: $selected_nginx"
+
+        local detected_config_dir=$(docker inspect "$selected_nginx" \
+            --format '{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' \
+            2>/dev/null || echo "")
+
+        if [ -n "$detected_config_dir" ]; then
+            info "Auto-detected config directory: $detected_config_dir"
+            read -p "Use this directory? [Y/n]: " use_detected
+            if [[ ! "$use_detected" =~ ^[Nn]$ ]]; then
+                echo "${selected_nginx}|${detected_config_dir}"
+                return 0
+            fi
+        fi
+
+        echo ""
+        warning "Cannot auto-detect nginx config directory"
+        echo "Please specify the directory where nginx configs should be placed:"
+        echo "  - For Docker nginx: volume mount path (e.g., /opt/nginx/conf.d)"
+        echo "  - For systemd nginx: /etc/nginx/sites-available or /etc/nginx/conf.d"
+        echo ""
+        read -p "Nginx config directory: " config_dir
+
+        if [ -z "$config_dir" ]; then
+            error "Config directory cannot be empty"
+            echo "none||"
+            return 1
+        fi
+
+        if docker exec "$selected_nginx" test -d "$config_dir" 2>/dev/null; then
+            success "Directory verified: $config_dir"
+            echo "${selected_nginx}|${config_dir}"
+        elif [ -d "$config_dir" ]; then
+            success "Directory verified: $config_dir"
+            echo "${selected_nginx}|${config_dir}"
+        else
+            warning "Directory not found: $config_dir"
+            read -p "Create this directory? [y/N]: " create_dir
+            if [[ "$create_dir" =~ ^[Yy]$ ]]; then
+                echo "${selected_nginx}|${config_dir}|CREATE"
+            else
+                error "Cannot proceed without valid config directory"
+                echo "none||"
+                return 1
+            fi
+        fi
+    else
+        echo "none||"
+    fi
+}
+
 integrate_with_existing_nginx() {
-    # Note: systemd/standalone nginx connects via localhost (127.0.0.1:5984)
-    # No network sharing required - CouchDB port exposed on host
     local nginx_type="$1"
-    local config_dir=$(get_nginx_config_dir "$nginx_type")
+
+    source "$ENV_FILE"
+
+    local config_dir="${NGINX_CONFIG_DIR}"
+    if [ -z "$config_dir" ]; then
+        warning "NGINX_CONFIG_DIR not set in .env, using auto-detection"
+        config_dir=$(get_nginx_config_dir "$nginx_type")
+    fi
+
     local config_file=$(generate_nginx_config "$nginx_type")
 
     info "Integrating with existing nginx ($nginx_type)"
@@ -185,8 +286,12 @@ deploy_own_nginx() {
 
     sleep 3
 
+    source "$ENV_FILE"
+    local couchdb_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+    local nginx_container="${NGINX_CONTAINER_NAME:-notes-nginx}"
+
     info "Validating network connectivity..."
-    if validate_network_connectivity "${network_name}" "notes-nginx" "familybudget-couchdb-notes"; then
+    if validate_network_connectivity "${network_name}" "$nginx_container" "$couchdb_container"; then
         success "Network connectivity validated"
     else
         error "Network connectivity check failed"

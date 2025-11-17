@@ -99,8 +99,10 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "COUCHDB TESTS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# CouchDB container running
-run_test "CouchDB container is running" "docker ps | grep -q familybudget-couchdb-notes"
+# CouchDB container running (load name from .env)
+source /opt/notes/.env 2>/dev/null || true
+COUCHDB_CONTAINER="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+run_test "CouchDB container is running" "docker ps | grep -q ${COUCHDB_CONTAINER}"
 
 # CouchDB health check
 run_test "CouchDB is healthy" "curl -s http://localhost:5984/_up | grep -q 'ok'"

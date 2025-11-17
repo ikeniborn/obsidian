@@ -273,13 +273,45 @@ wait_for_couchdb_healthy() {
     warning "Check logs: docker logs $container_name"
 }
 
+validate_env_variables() {
+    local required_vars=(
+        "NETWORK_NAME"
+        "NETWORK_MODE"
+        "COUCHDB_CONTAINER_NAME"
+        "NOTES_DOMAIN"
+        "COUCHDB_PASSWORD"
+    )
+
+    local missing=()
+    for var in "${required_vars[@]}"; do
+        if [ -z "${!var:-}" ]; then
+            missing+=("$var")
+        fi
+    done
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        error "Missing required variables in .env:"
+        printf '  - %s\n' "${missing[@]}"
+        error "Run 'setup.sh' to configure these variables"
+        return 1
+    fi
+
+    success "All required .env variables are set"
+    return 0
+}
+
 validate_deployment() {
     info "Validating deployment..."
 
     source /opt/notes/.env
 
-    local network_name="${NETWORK_NAME:-familybudget_familybudget}"
-    local network_mode="${NETWORK_MODE:-shared}"
+    if ! validate_env_variables; then
+        return 1
+    fi
+
+    local network_name="${NETWORK_NAME}"
+    local network_mode="${NETWORK_MODE}"
+    local couchdb_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
 
     info "Checking network: ${network_name}"
     if ! docker network ls --format '{{.Name}}' | grep -q "^${network_name}$"; then
@@ -289,30 +321,32 @@ validate_deployment() {
     success "Network ${network_name} exists"
 
     info "Checking CouchDB container..."
-    if ! docker ps --format '{{.Names}}' | grep -q "^familybudget-couchdb-notes$"; then
+    if ! docker ps --format '{{.Names}}' | grep -q "^${couchdb_container}$"; then
         error "CouchDB container not running"
         return 1
     fi
     success "CouchDB container running"
 
     info "Checking CouchDB network connection..."
-    if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' | grep -q "familybudget-couchdb-notes"; then
+    if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' | grep -q "${couchdb_container}"; then
         error "CouchDB not connected to ${network_name}"
         return 1
     fi
     success "CouchDB connected to ${network_name}"
 
-    if docker ps --format '{{.Names}}' | grep -q "^notes-nginx$"; then
+    local nginx_container="${NGINX_CONTAINER_NAME:-notes-nginx}"
+
+    if docker ps --format '{{.Names}}' | grep -q "^${nginx_container}$"; then
         info "Checking nginx container..."
 
-        if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' | grep -q "notes-nginx"; then
+        if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' | grep -q "${nginx_container}"; then
             error "Nginx not connected to ${network_name}"
             return 1
         fi
         success "Nginx connected to ${network_name}"
 
         info "Testing network connectivity nginx → CouchDB..."
-        if validate_network_connectivity "${network_name}" "notes-nginx" "familybudget-couchdb-notes"; then
+        if validate_network_connectivity "${network_name}" "${nginx_container}" "${couchdb_container}"; then
             success "Network connectivity validated"
         else
             warning "Network connectivity test failed (containers may not be fully started)"

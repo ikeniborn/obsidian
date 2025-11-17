@@ -18,6 +18,7 @@ Usage: $0 <command>
 Commands:
     detect_mode                 - Auto-detect network mode (shared/isolated)
     list_networks               - List available Docker networks
+    prompt_network_selection    - Interactive network selection (returns: mode|name)
     find_free_subnet            - Find free subnet in 172.24-31.0.0/16 range
     validate_subnet <subnet>    - Check if subnet is available
     create_network <name> [subnet] - Create Docker network
@@ -26,6 +27,7 @@ Commands:
 Examples:
     $0 detect_mode
     $0 list_networks
+    $0 prompt_network_selection
     $0 find_free_subnet
     $0 validate_subnet 172.25.0.0/16
     $0 create_network obsidian_network
@@ -38,15 +40,20 @@ EOF
 detect_network_mode() {
     info "Detecting network mode..."
 
-    if docker network inspect familybudget_familybudget &> /dev/null; then
-        success "Detected mode: SHARED (familybudget_familybudget network exists)"
-        echo "shared"
-        return 0
-    else
-        success "Detected mode: ISOLATED (familybudget_familybudget network not found)"
+    local networks=$(docker network ls --format '{{.Name}}' | grep -v '^bridge$\|^host$\|^none$' || true)
+
+    if [ -z "$networks" ]; then
+        info "No existing custom networks found"
+        success "Detected mode: ISOLATED"
         echo "isolated"
         return 0
     fi
+
+    info "Found existing networks, defaulting to isolated mode"
+    info "Run 'setup.sh' to configure shared mode with existing network"
+    success "Detected mode: ISOLATED"
+    echo "isolated"
+    return 0
 }
 
 list_available_networks() {
@@ -71,6 +78,40 @@ list_available_networks() {
     echo "$((count + 1)). Create new isolated network"
 
     success "Found $count existing network(s)"
+    echo "$count"
+}
+
+prompt_network_selection() {
+    info "Select network mode:"
+    echo ""
+
+    local count=$(list_available_networks)
+    local networks=$(docker network ls --format '{{.Name}}' | grep -v '^bridge$\|^host$\|^none$' || true)
+
+    echo ""
+    echo "Options:"
+    if [ "$count" -gt 0 ]; then
+        echo "  1-${count}. Use existing network"
+        echo "  $((count + 1)). Create new isolated network"
+    else
+        echo "  1. Create new isolated network"
+    fi
+    echo ""
+
+    local max_choice=$((count + 1))
+    read -p "Your choice [1-${max_choice}]: " choice
+
+    if [ -z "$choice" ]; then
+        error "Choice cannot be empty"
+        return 1
+    fi
+
+    if [ "$choice" -le "$count" ] && [ "$count" -gt 0 ]; then
+        local selected=$(echo "$networks" | sed -n "${choice}p")
+        echo "shared|$selected"
+    else
+        echo "isolated|obsidian_network"
+    fi
 }
 
 validate_subnet() {
@@ -185,6 +226,9 @@ main() {
             ;;
         list_networks)
             list_available_networks
+            ;;
+        prompt_network_selection)
+            prompt_network_selection
             ;;
         find_free_subnet)
             find_free_subnet

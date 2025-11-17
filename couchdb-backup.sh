@@ -8,7 +8,7 @@ set -uo pipefail
 # Uses environment variables from /opt/budget/.env
 #
 # Requirements:
-#   - Docker container: familybudget-couchdb
+#   - Docker container running (name from .env: COUCHDB_CONTAINER_NAME)
 #   - Python 3 with boto3: pip3 install boto3
 #   - S3 credentials in .env: S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET_NAME
 #
@@ -47,12 +47,15 @@ BACKUP_NAME="couchdb-$(date -u ${DATE_FORMAT}).tar.gz"
 OLD_BACKUP_NAME="couchdb-$(date -d "${RETENTION_DAYS} days ago" ${DATE_FORMAT}).tar.gz"
 
 # Docker configuration
-# Поддержка обоих имен контейнеров
-COUCHDB_CONTAINER="familybudget-couchdb-notes"
+# Use container name from .env (default: couchdb-notes)
+COUCHDB_CONTAINER="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
 
-# Fallback на старое имя
+# Validate container exists
 if ! docker ps --format '{{.Names}}' | grep -q "^${COUCHDB_CONTAINER}$"; then
-    COUCHDB_CONTAINER="familybudget-couchdb"
+    echo "ERROR: CouchDB container '${COUCHDB_CONTAINER}' not found"
+    echo "Available containers:"
+    docker ps --format '{{.Names}}'
+    exit 1
 fi
 
 # CouchDB credentials (from .env)

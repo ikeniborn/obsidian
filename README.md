@@ -4,10 +4,10 @@
 
 ## 📋 Описание
 
-Notes - это **полностью изолированное** приложение для хранения и синхронизации заметок Obsidian. Использует:
+Notes - это **гибкое приложение** для хранения и синхронизации заметок Obsidian. Использует:
 - **CouchDB** - база данных для хранения заметок
-- **Nginx** - reverse proxy (из основного приложения Family Budget)
-- **Docker Compose** - изолированное развертывание
+- **Nginx** - reverse proxy (существующий или собственный)
+- **Docker Compose** - контейнерное развертывание
 
 ## 🏗️ Архитектура
 
@@ -15,31 +15,30 @@ Notes - это **полностью изолированное** приложе�
 
 Obsidian Sync Server поддерживает гибкую сетевую конфигурацию:
 
-**Shared Mode (по умолчанию при интеграции с Family Budget):**
+**Shared Mode (интеграция с существующими сервисами):**
 ```
-Docker Network: familybudget_familybudget
-├── familybudget-nginx (Family Budget)
-├── familybudget-couchdb-notes (CouchDB)
-└── [другие Family Budget сервисы]
+Docker Network: my_app_network (existing)
+├── nginx (existing web proxy)
+├── couchdb-notes (CouchDB для Obsidian)
+└── [другие сервисы]
 ```
 
 **Isolated Mode (standalone deployment):**
 ```
 Docker Network: obsidian_network (auto-created, 172.24-31.0.0/16)
 ├── notes-nginx (собственный nginx)
-└── familybudget-couchdb-notes (CouchDB)
+└── couchdb-notes (CouchDB)
 ```
 
-**Custom Mode:**
-Настраивается через .env (NETWORK_MODE=custom, NETWORK_NAME, NETWORK_SUBNET)
-
 ### Network Selection Logic
-1. Автоопределение при deploy:
-   - Если существует `familybudget_familybudget` → shared mode
-   - Если нет → isolated mode (создает obsidian_network)
-2. Переопределение через .env:
-   - `NETWORK_MODE=shared|isolated|custom`
-3. Валидация сетевой связности после deployment
+1. **Интерактивный выбор** при запуске setup.sh:
+   - Показывает все доступные Docker сети
+   - Пользователь выбирает существующую (shared) или создает новую (isolated)
+2. **Nginx selection**:
+   - Показывает все существующие nginx контейнеры
+   - Пользователь выбирает существующий или создает новый
+   - Автоматическое определение или запрос config directory
+3. **Валидация** сетевой связности после deployment
 
 ## 🚀 Быстрый старт
 
@@ -101,8 +100,11 @@ git checkout feature/network-isolation-refactor
 # 3. Обновить .env (добавить сетевые переменные)
 cat >> /opt/notes/.env <<EOF
 NETWORK_MODE=shared
-NETWORK_NAME=familybudget_familybudget
+NETWORK_NAME=my_app_network
 NETWORK_EXTERNAL=true
+NGINX_CONTAINER_NAME=nginx
+NGINX_CONFIG_DIR=/etc/nginx/conf.d
+COUCHDB_CONTAINER_NAME=couchdb-notes
 EOF
 
 # 4. Re-deploy
@@ -130,19 +132,26 @@ notes/
 ### Обязательные
 - Docker 20.10+
 - Docker Compose v2+
-- Family Budget nginx running (`familybudget-nginx` container)
-- Docker network `familybudget_familybudget` exists
+- Python 3 + boto3 (для S3 backups, опционально)
+
+### Опциональные (для Shared Mode)
+- Существующий nginx контейнер (docker или systemd)
+- Существующая Docker сеть
 
 ### Проверка зависимостей
 ```bash
-# Проверить Family Budget nginx
-docker ps | grep familybudget-nginx
+# Проверить Docker
+docker --version
+docker compose version
 
-# Проверить docker network
-docker network ls | grep familybudget_familybudget
+# Проверить существующие nginx контейнеры (опционально)
+docker ps | grep nginx
 
-# Проверить CouchDB running
-docker ps | grep familybudget-couchdb-notes
+# Проверить существующие сети (опционально)
+docker network ls
+
+# Проверить CouchDB после deployment
+docker ps | grep couchdb-notes
 ```
 
 ## 🛠️ Управление
@@ -161,8 +170,9 @@ docker compose -f docker-compose.notes.yml down
 
 ### Логи
 ```bash
-docker logs familybudget-couchdb-notes
-docker logs -f familybudget-couchdb-notes  # Follow mode
+# Имя контейнера из .env: COUCHDB_CONTAINER_NAME (default: couchdb-notes)
+docker logs couchdb-notes
+docker logs -f couchdb-notes  # Follow mode
 ```
 
 ### Health check
@@ -270,30 +280,28 @@ crontab -l | grep couchdb-backup
 
 ## 🐛 Troubleshooting
 
-### Ошибка: "Family Budget nginx not running"
+### Ошибка: "Network not found"
 ```bash
-# Запустите основное приложение Family Budget
-cd ~/familyBudget
-./deploy.sh --profile full
-```
+# Проверьте доступные сети
+docker network ls
 
-### Ошибка: "Docker network familybudget_familybudget not found"
-```bash
-# Создайте network (делается автоматически при запуске Family Budget)
-docker network create familybudget_familybudget
+# Для shared mode: убедитесь что сеть существует
+docker network inspect my_app_network
+
+# Для isolated mode: сеть создается автоматически при deploy
 ```
 
 ### Ошибка: "env_file: /opt/notes/.env: no such file"
 ```bash
 # Запустите setup для создания .env
-cd ~/familyBudget/notes
+cd ~/obsidian-sync
 bash setup.sh
 ```
 
 ### CouchDB не отвечает на health check
 ```bash
-# Проверить логи
-docker logs familybudget-couchdb-notes
+# Проверить логи (имя контейнера из .env)
+docker logs couchdb-notes
 
 # Проверить порт
 netstat -tuln | grep 5984

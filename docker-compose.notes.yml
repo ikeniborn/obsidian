@@ -3,7 +3,7 @@ version: '3.8'
 services:
   couchdb:
     image: couchdb:3.3
-    container_name: familybudget-couchdb-notes
+    container_name: ${COUCHDB_CONTAINER_NAME:-couchdb-notes}
     restart: unless-stopped
     stop_grace_period: 30s
     stop_signal: SIGTERM
@@ -49,8 +49,8 @@ services:
 networks:
   notes-network:
     # Network mode configured via NETWORK_MODE in .env:
-    # - shared: use existing familybudget_familybudget (default)
-    # - isolated: use obsidian_network
+    # - shared: use existing network (NETWORK_EXTERNAL=true)
+    # - isolated: create new obsidian_network (NETWORK_EXTERNAL=false)
     # - custom: use custom NETWORK_NAME
-    external: ${NETWORK_EXTERNAL:-true}
-    name: ${NETWORK_NAME:-familybudget_familybudget}
+    external: ${NETWORK_EXTERNAL:-false}
+    name: ${NETWORK_NAME}

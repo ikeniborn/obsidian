@@ -111,13 +111,13 @@ Obsidian Sync Server - это production-ready self-hosted решение для
 #### 5. Docker & Docker Compose
 
 **Network Architecture:**
-- **Shared Mode:** использование `familybudget_familybudget` network для интеграции с Family Budget
+- **Shared Mode:** использование существующей Docker сети (интерактивный выбор)
 - **Isolated Mode:** создание `obsidian_network` с автоматическим выбором свободной подсети (172.24-31.0.0/16)
-- **Custom Mode:** пользовательская сеть через .env конфигурацию
 
-**Auto-detection:**
-- При deployment автоматически определяется наличие Family Budget
-- Режим может быть переопределен через NETWORK_MODE в .env
+**Interactive Selection:**
+- При запуске setup.sh показываются все доступные Docker сети
+- Пользователь выбирает существующую (shared) или создает новую (isolated)
+- Аналогично для nginx - выбор существующего контейнера или создание нового
 
 **Isolation:**
 - CouchDB изолирован в Docker network
@@ -329,10 +329,10 @@ gpg --encrypt --recipient email@example.com backup.tar.gz
 - Action: copy config to `/etc/nginx/sites-available/`
 - Network: через localhost (127.0.0.1:5984)
 
-**Scenario 2: Existing Family Budget Docker nginx**
-- Detection: проверка container `familybudget-nginx`
-- Action: copy config to nginx volume
-- Network: shared (`familybudget_familybudget`)
+**Scenario 2: Existing Docker nginx**
+- Detection: показ всех nginx контейнеров, интерактивный выбор
+- Action: copy config to nginx volume (config directory определяется автоматически или вручную)
+- Network: shared (использует ту же сеть что и nginx)
 - Mode: **shared**
 
 **Scenario 3: No existing nginx (isolated deployment)**

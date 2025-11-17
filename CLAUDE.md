@@ -17,12 +17,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Network Configuration
 
-**Гибкая сетевая архитектура с тремя режимами:**
+**Гибкая сетевая архитектура с двумя режимами:**
 
-1. **Shared Mode** - интеграция с Family Budget
-   - Network: `familybudget_familybudget` (external)
-   - Nginx: использует Family Budget nginx
-   - CouchDB: в общей сети с Family Budget
+1. **Shared Mode** - интеграция с существующими сервисами
+   - Network: использует существующую Docker сеть (выбирается интерактивно)
+   - Примеры: `my_app_network`, `webproxy_default`, `traefik_public`
+   - Nginx: может использовать существующий nginx из той же сети
+   - CouchDB: в общей сети с другими сервисами
 
 2. **Isolated Mode** - standalone deployment
    - Network: `obsidian_network` (auto-created)
@@ -30,16 +31,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Nginx: собственный контейнер notes-nginx
    - CouchDB: изолирован от других Docker сервисов
 
-3. **Custom Mode** - пользовательская конфигурация
-   - Network: указывается в .env (NETWORK_NAME)
-   - Subnet: указывается в .env (NETWORK_SUBNET)
-   - Гибкость для специфичных deployment сценариев
-
-**Auto-detection Logic:**
-- При deployment scripts/network-manager.sh определяет режим
-- Если `familybudget_familybudget` существует → shared
-- Если нет → isolated (создает новую сеть)
-- Переопределяется через NETWORK_MODE в .env
+**Interactive Selection Logic:**
+- При запуске setup.sh пользователь выбирает режим интерактивно
+- Показываются все доступные Docker сети
+- Пользователь может выбрать существующую сеть (shared) или создать новую (isolated)
+- Аналогично для nginx - выбор существующего контейнера или создание нового
+- Все выборы сохраняются в /opt/notes/.env
 
 **Key Design Decisions:**
 1. CouchDB port 5984 binds to `127.0.0.1` only - no external access
@@ -53,9 +50,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Container management:**
 ```bash
-# View logs
-docker logs familybudget-couchdb-notes
-docker logs -f familybudget-couchdb-notes  # Follow mode
+# View logs (container name from .env: COUCHDB_CONTAINER_NAME)
+docker logs couchdb-notes
+docker logs -f couchdb-notes  # Follow mode
 
 # Restart CouchDB
 docker compose -f docker-compose.notes.yml restart
@@ -149,7 +146,7 @@ CouchDB configuration:
 - CORS enabled for Obsidian app
 
 ### docker-compose.notes.yml
-- Container name: `familybudget-couchdb-notes`
+- Container name: configurable via `COUCHDB_CONTAINER_NAME` (default: `couchdb-notes`)
 - Image: `couchdb:3.3`
 - Network: Динамическая (из .env переменных)
   - `${NETWORK_NAME}` - имя сети
@@ -279,17 +276,16 @@ curl -u admin:password http://localhost:5984/_all_dbs
 
 ### Common Issues
 
-**"Family Budget nginx not running"**
-- Start Family Budget: `cd ~/familyBudget && ./deploy.sh --profile full`
-
-**"Docker network familybudget_familybudget not found"**
-- Create network: `docker network create familybudget_familybudget`
+**"Docker network not found"**
+- Check available networks: `docker network ls`
+- For shared mode: ensure the network specified in .env exists
+- For isolated mode: network created automatically during deploy
 
 **"env_file: /opt/notes/.env: no such file"**
 - Run setup: `bash setup.sh`
 
 **CouchDB health check timeout**
-- Check logs: `docker logs familybudget-couchdb-notes`
+- Check logs: `docker logs couchdb-notes` (or your configured COUCHDB_CONTAINER_NAME)
 - Verify port: `netstat -tuln | grep 5984`
 - Restart: `docker compose -f docker-compose.notes.yml restart`
 
@@ -312,7 +308,7 @@ curl -u admin:password http://localhost:5984/_all_dbs
 - Resource limits for backup operations (CPU, memory, I/O)
 
 ### Docker
-- Container naming: `familybudget-couchdb-notes` (matches Family Budget convention)
+- Container naming: Configurable via .env (COUCHDB_CONTAINER_NAME, NGINX_CONTAINER_NAME)
 - External networks for service communication
 - Health checks for reliability
 - Resource constraints (CPU/memory limits)
@@ -375,11 +371,11 @@ obsidian/
 
 ### Regular Checks
 ```bash
-# CouchDB status
-docker ps | grep familybudget-couchdb-notes
+# CouchDB status (use your configured COUCHDB_CONTAINER_NAME)
+docker ps | grep couchdb-notes
 
 # Resource usage
-docker stats familybudget-couchdb-notes
+docker stats couchdb-notes
 
 # Disk usage
 du -sh /opt/notes/data
@@ -393,7 +389,7 @@ tail -20 /opt/notes/logs/backup.log
 ```
 
 ### Logs
-- CouchDB: `docker logs familybudget-couchdb-notes`
+- CouchDB: `docker logs couchdb-notes` (or your COUCHDB_CONTAINER_NAME)
 - Backup: `/opt/notes/logs/backup.log`
 - Installation: `/var/log/notes_install.log`
 
