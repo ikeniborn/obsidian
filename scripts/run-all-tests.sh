@@ -99,8 +99,10 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "COUCHDB TESTS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# CouchDB container running
-run_test "CouchDB container is running" "docker ps | grep -q familybudget-couchdb-notes"
+# CouchDB container running (load name from .env)
+source /opt/notes/.env 2>/dev/null || true
+COUCHDB_CONTAINER="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+run_test "CouchDB container is running" "docker ps | grep -q ${COUCHDB_CONTAINER}"
 
 # CouchDB health check
 run_test "CouchDB is healthy" "curl -s http://localhost:5984/_up | grep -q 'ok'"
@@ -125,6 +127,22 @@ run_test "S3 upload script exists" "test -x /opt/notes/scripts/s3_upload.py"
 
 # boto3 installed
 run_test "boto3 is installed" "python3 -c 'import boto3' 2>/dev/null"
+
+# === NETWORK TESTS ===
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "NETWORK TESTS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+info "Running network modes tests..."
+if bash "$SCRIPT_DIR/test-network-modes.sh"; then
+    pass "Network modes tests"
+    ((PASSED_TESTS++))
+else
+    fail "Network modes tests"
+    ((FAILED_TESTS++))
+fi
+((TOTAL_TESTS++))
 
 # === SUMMARY ===
 echo ""

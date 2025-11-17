@@ -8,6 +8,7 @@ TEMPLATE_FILE="${PROJECT_ROOT}/templates/notes.conf.template"
 NGINX_CONTAINER_NAME="notes-nginx"
 
 source "${SCRIPT_DIR}/ufw-setup.sh" 2>/dev/null || true
+source "${SCRIPT_DIR}/network-manager.sh"
 
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 info() { log "INFO: $*"; }
@@ -59,6 +60,8 @@ get_nginx_config_dir() {
 }
 
 generate_nginx_config() {
+    local nginx_mode="${1:-systemd}"
+
     if [[ ! -f "$ENV_FILE" ]]; then
         error ".env file not found at $ENV_FILE"
     fi
@@ -69,28 +72,131 @@ generate_nginx_config() {
         error "NOTES_DOMAIN not set in .env"
     fi
 
-    if [[ -z "${COUCHDB_PORT:-}" ]]; then
-        error "COUCHDB_PORT not set in .env"
-    fi
-
     if [[ ! -f "$TEMPLATE_FILE" ]]; then
         error "Nginx template not found at $TEMPLATE_FILE"
     fi
 
+    source "$ENV_FILE"
+
+    if [ "$nginx_mode" = "docker" ]; then
+        export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+    else
+        export COUCHDB_UPSTREAM="127.0.0.1"
+    fi
+
     local output_file="${PROJECT_ROOT}/notes.conf"
 
-    sed -e "s/\${NOTES_DOMAIN}/${NOTES_DOMAIN}/g" \
-        -e "s/\${COUCHDB_PORT}/${COUCHDB_PORT}/g" \
-        "$TEMPLATE_FILE" > "$output_file"
+    envsubst < "$TEMPLATE_FILE" > "$output_file"
 
-    info "Generated nginx config: $output_file"
+    info "Generated nginx config: $output_file (upstream: ${COUCHDB_UPSTREAM})"
     echo "$output_file"
+}
+
+detect_nginx_containers() {
+    info "Detecting nginx containers..."
+
+    local nginx_containers=$(docker ps --format '{{.Names}}' | grep -i nginx || true)
+
+    if [ -z "$nginx_containers" ]; then
+        info "No nginx containers found"
+        return 1
+    fi
+
+    info "Found nginx containers:"
+    local count=0
+    while IFS= read -r container; do
+        count=$((count + 1))
+        local network=$(docker inspect "$container" --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null | awk '{print $1}')
+        echo "$count. $container (network: $network)"
+    done <<< "$nginx_containers"
+
+    return 0
+}
+
+prompt_nginx_selection() {
+    if ! detect_nginx_containers; then
+        echo "none||"
+        return 0
+    fi
+
+    echo ""
+    read -p "Use existing nginx container? [y/N]: " use_existing
+
+    if [[ "$use_existing" =~ ^[Yy]$ ]]; then
+        local nginx_containers=$(docker ps --format '{{.Names}}' | grep -i nginx)
+        local count=$(echo "$nginx_containers" | wc -l)
+
+        local selected_nginx
+        if [ "$count" -eq 1 ]; then
+            selected_nginx="$nginx_containers"
+        else
+            read -p "Enter nginx container name: " selected_nginx
+        fi
+
+        echo ""
+        info "Detecting nginx config directory for: $selected_nginx"
+
+        local detected_config_dir=$(docker inspect "$selected_nginx" \
+            --format '{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' \
+            2>/dev/null || echo "")
+
+        if [ -n "$detected_config_dir" ]; then
+            info "Auto-detected config directory: $detected_config_dir"
+            read -p "Use this directory? [Y/n]: " use_detected
+            if [[ ! "$use_detected" =~ ^[Nn]$ ]]; then
+                echo "${selected_nginx}|${detected_config_dir}"
+                return 0
+            fi
+        fi
+
+        echo ""
+        warning "Cannot auto-detect nginx config directory"
+        echo "Please specify the directory where nginx configs should be placed:"
+        echo "  - For Docker nginx: volume mount path (e.g., /opt/nginx/conf.d)"
+        echo "  - For systemd nginx: /etc/nginx/sites-available or /etc/nginx/conf.d"
+        echo ""
+        read -p "Nginx config directory: " config_dir
+
+        if [ -z "$config_dir" ]; then
+            error "Config directory cannot be empty"
+            echo "none||"
+            return 1
+        fi
+
+        if docker exec "$selected_nginx" test -d "$config_dir" 2>/dev/null; then
+            success "Directory verified: $config_dir"
+            echo "${selected_nginx}|${config_dir}"
+        elif [ -d "$config_dir" ]; then
+            success "Directory verified: $config_dir"
+            echo "${selected_nginx}|${config_dir}"
+        else
+            warning "Directory not found: $config_dir"
+            read -p "Create this directory? [y/N]: " create_dir
+            if [[ "$create_dir" =~ ^[Yy]$ ]]; then
+                echo "${selected_nginx}|${config_dir}|CREATE"
+            else
+                error "Cannot proceed without valid config directory"
+                echo "none||"
+                return 1
+            fi
+        fi
+    else
+        echo "none||"
+    fi
 }
 
 integrate_with_existing_nginx() {
     local nginx_type="$1"
-    local config_dir=$(get_nginx_config_dir "$nginx_type")
-    local config_file=$(generate_nginx_config)
+
+    source "$ENV_FILE"
+
+    local config_dir="${NGINX_CONFIG_DIR}"
+    if [ -z "$config_dir" ]; then
+        warning "NGINX_CONFIG_DIR not set in .env, using auto-detection"
+        config_dir=$(get_nginx_config_dir "$nginx_type")
+    fi
+
+    local config_file=$(generate_nginx_config "$nginx_type")
 
     info "Integrating with existing nginx ($nginx_type)"
     info "Config directory: $config_dir"
@@ -143,88 +249,94 @@ integrate_with_existing_nginx() {
 deploy_own_nginx() {
     info "Deploying own nginx container..."
 
-    local config_file=$(generate_nginx_config)
-    local compose_file="${PROJECT_ROOT}/docker-compose.nginx.yml"
+    source /opt/notes/.env
 
-    cat > "$compose_file" <<EOF
-version: '3.8'
+    local network_mode=$(detect_network_mode)
+    info "Network mode: ${network_mode}"
 
-services:
-  nginx:
-    image: nginx:alpine
-    container_name: ${NGINX_CONTAINER_NAME}
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ${config_file}:/etc/nginx/conf.d/notes.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/log/nginx:/var/log/nginx
-    networks:
-      - notes-network
+    local network_name="${NETWORK_NAME}"
+    local network_external="${NETWORK_EXTERNAL:-true}"
 
-networks:
-  notes-network:
-    external: true
-EOF
+    if [ "$network_mode" = "isolated" ]; then
+        if ! docker network ls --format '{{.Name}}' | grep -q "^${network_name}$"; then
+            info "Creating isolated network: ${network_name}"
 
-    info "Created docker-compose.nginx.yml"
+            local subnet="${NETWORK_SUBNET}"
+            if [ -z "$subnet" ]; then
+                subnet=$(find_free_subnet)
+                info "Auto-selected subnet: ${subnet}"
+            fi
 
-    if ! docker network ls | grep -q notes-network; then
-        docker network create notes-network
-        info "Created notes-network"
+            create_network "${network_name}" "${subnet}"
+
+            if [ -z "$NETWORK_SUBNET" ]; then
+                echo "NETWORK_SUBNET=${subnet}" >> /opt/notes/.env
+            fi
+        else
+            success "Network ${network_name} already exists"
+        fi
     fi
 
-    docker-compose -f "$compose_file" up -d
+    info "Generating docker-compose.nginx.yml..."
+    export NETWORK_NAME NETWORK_EXTERNAL
+    envsubst < templates/docker-compose.nginx.template > /opt/notes/docker-compose.nginx.yml
 
-    success "Nginx container deployed: ${NGINX_CONTAINER_NAME}"
-    echo "${NGINX_CONTAINER_NAME}"
+    info "Starting nginx container..."
+    docker compose -f /opt/notes/docker-compose.nginx.yml up -d
+
+    sleep 3
+
+    source "$ENV_FILE"
+    local couchdb_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+    local nginx_container="${NGINX_CONTAINER_NAME:-notes-nginx}"
+
+    info "Validating network connectivity..."
+    if validate_network_connectivity "${network_name}" "$nginx_container" "$couchdb_container"; then
+        success "Network connectivity validated"
+    else
+        error "Network connectivity check failed"
+        error "Nginx and CouchDB may not be able to communicate"
+        exit 1
+    fi
+
+    success "Own nginx deployed in ${network_mode} mode (network: ${network_name})"
 }
 
 main() {
-    local detect_only=false
-    local apply_config=false
+    info "Setting up nginx for Obsidian Sync Server..."
 
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --detect-only)
-                detect_only=true
-                shift
-                ;;
-            --apply-config)
-                apply_config=true
-                shift
-                ;;
-            *)
-                error "Unknown option: $1"
-                ;;
-        esac
-    done
-
-    if [[ "$detect_only" == true ]]; then
-        detect_existing_nginx
-        exit 0
+    if [ ! -f /opt/notes/.env ]; then
+        error ".env file not found. Run setup.sh first."
+        exit 1
     fi
 
-    NGINX_TYPE=$(detect_existing_nginx)
+    source /opt/notes/.env
 
-    if [[ "$apply_config" == true ]]; then
-        if [[ "$NGINX_TYPE" != "none" ]]; then
-            integrate_with_existing_nginx "$NGINX_TYPE"
-        else
-            error "No nginx found. Run without --apply-config first."
-        fi
-        exit 0
-    fi
+    NGINX_MODE=$(detect_existing_nginx)
+    info "Detected nginx mode: ${NGINX_MODE}"
 
-    if [[ "$NGINX_TYPE" != "none" ]]; then
-        info "Found existing nginx ($NGINX_TYPE), integrating..."
-        integrate_with_existing_nginx "$NGINX_TYPE"
-    else
-        info "No nginx found, deploying own nginx container..."
-        deploy_own_nginx
-    fi
+    case "$NGINX_MODE" in
+        docker)
+            info "Using existing Docker nginx from Family Budget"
+            integrate_with_existing_nginx "docker"
+            ;;
+        systemd)
+            info "Using existing systemd nginx"
+            integrate_with_existing_nginx "systemd"
+            ;;
+        standalone)
+            info "Using existing standalone nginx"
+            integrate_with_existing_nginx "standalone"
+            ;;
+        none)
+            info "No existing nginx found"
+            deploy_own_nginx
+            ;;
+        *)
+            error "Unknown nginx mode: ${NGINX_MODE}"
+            exit 1
+            ;;
+    esac
 
     success "Nginx setup completed"
 }

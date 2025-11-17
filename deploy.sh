@@ -72,6 +72,9 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Source network manager
+source "${SCRIPT_DIR}/scripts/network-manager.sh"
+
 # =============================================================================
 # VALIDATION FUNCTIONS
 # =============================================================================
@@ -135,6 +138,48 @@ check_rsync() {
 # =============================================================================
 # DEPLOYMENT FUNCTIONS
 # =============================================================================
+
+prepare_network() {
+    info "Preparing network configuration..."
+
+    if [ ! -f /opt/notes/.env ]; then
+        error ".env file not found. Run setup.sh first."
+        exit 1
+    fi
+    source /opt/notes/.env
+
+    if [ -z "$NETWORK_NAME" ]; then
+        error "NETWORK_NAME not configured in .env"
+        error "Please run setup.sh to configure network"
+        exit 1
+    fi
+
+    if [ -z "$NETWORK_MODE" ]; then
+        if docker network ls --format '{{.Name}}' | grep -q "^${NETWORK_NAME}$"; then
+            export NETWORK_MODE="shared"
+            info "Network ${NETWORK_NAME} exists - using shared mode"
+        else
+            export NETWORK_MODE="isolated"
+            info "Network ${NETWORK_NAME} will be created - using isolated mode"
+        fi
+
+        echo "NETWORK_MODE=${NETWORK_MODE}" >> /opt/notes/.env
+    else
+        info "Using configured network mode: ${NETWORK_MODE}"
+        info "Using configured network: ${NETWORK_NAME}"
+    fi
+
+    if [ "$NETWORK_MODE" = "shared" ]; then
+        if ! docker network ls --format '{{.Name}}' | grep -q "^${NETWORK_NAME}$"; then
+            error "Configured network ${NETWORK_NAME} does not exist"
+            error "Either create it or run setup.sh to reconfigure"
+            exit 1
+        fi
+        success "Found existing network: ${NETWORK_NAME}"
+    fi
+
+    success "Network configuration prepared: mode=${NETWORK_MODE}, name=${NETWORK_NAME}"
+}
 
 setup_nginx() {
     info "Setting up Nginx..."
@@ -228,6 +273,112 @@ wait_for_couchdb_healthy() {
     warning "Check logs: docker logs $container_name"
 }
 
+validate_env_variables() {
+    local required_vars=(
+        "NETWORK_NAME"
+        "NETWORK_MODE"
+        "COUCHDB_CONTAINER_NAME"
+        "NOTES_DOMAIN"
+        "COUCHDB_PASSWORD"
+    )
+
+    local missing=()
+    for var in "${required_vars[@]}"; do
+        if [ -z "${!var:-}" ]; then
+            missing+=("$var")
+        fi
+    done
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        error "Missing required variables in .env:"
+        printf '  - %s\n' "${missing[@]}"
+        error "Run 'setup.sh' to configure these variables"
+        return 1
+    fi
+
+    success "All required .env variables are set"
+    return 0
+}
+
+validate_deployment() {
+    info "Validating deployment..."
+
+    source /opt/notes/.env
+
+    if ! validate_env_variables; then
+        return 1
+    fi
+
+    local network_name="${NETWORK_NAME}"
+    local network_mode="${NETWORK_MODE}"
+    local couchdb_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+
+    info "Checking network: ${network_name}"
+    if ! docker network ls --format '{{.Name}}' | grep -q "^${network_name}$"; then
+        error "Network ${network_name} does not exist"
+        return 1
+    fi
+    success "Network ${network_name} exists"
+
+    info "Checking CouchDB container..."
+    if ! docker ps --format '{{.Names}}' | grep -q "^${couchdb_container}$"; then
+        error "CouchDB container not running"
+        return 1
+    fi
+    success "CouchDB container running"
+
+    info "Checking CouchDB network connection..."
+    if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' | grep -q "${couchdb_container}"; then
+        error "CouchDB not connected to ${network_name}"
+        return 1
+    fi
+    success "CouchDB connected to ${network_name}"
+
+    local nginx_container="${NGINX_CONTAINER_NAME:-notes-nginx}"
+
+    if docker ps --format '{{.Names}}' | grep -q "^${nginx_container}$"; then
+        info "Checking nginx container..."
+
+        if ! docker network inspect "${network_name}" --format '{{range .Containers}}{{.Name}} {{end}}' | grep -q "${nginx_container}"; then
+            error "Nginx not connected to ${network_name}"
+            return 1
+        fi
+        success "Nginx connected to ${network_name}"
+
+        info "Testing network connectivity nginx → CouchDB..."
+        if validate_network_connectivity "${network_name}" "${nginx_container}" "${couchdb_container}"; then
+            success "Network connectivity validated"
+        else
+            warning "Network connectivity test failed (containers may not be fully started)"
+        fi
+    else
+        info "No Docker nginx found (using systemd/standalone nginx - OK)"
+    fi
+
+    info "Testing CouchDB health endpoint..."
+    local max_attempts=10
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if curl -sf http://127.0.0.1:5984/_up >/dev/null 2>&1; then
+            success "CouchDB health check passed"
+            break
+        fi
+
+        if [ $attempt -eq $max_attempts ]; then
+            error "CouchDB health check failed after ${max_attempts} attempts"
+            return 1
+        fi
+
+        info "Waiting for CouchDB... (attempt $attempt/$max_attempts)"
+        sleep 2
+        ((attempt++))
+    done
+
+    success "Deployment validation completed"
+    return 0
+}
+
 display_summary() {
     echo ""
     success "========================================"
@@ -261,26 +412,37 @@ display_summary() {
 # =============================================================================
 
 main() {
-    info "========================================"
-    info "Obsidian Sync Server - Deployment"
-    info "========================================"
-    echo ""
+    echo "=========================================="
+    echo "Deploying Obsidian Sync Server"
+    echo "=========================================="
 
     check_env_file
     check_ufw_configured
 
+    prepare_network
+
     setup_nginx
+
     setup_ssl
     verify_ssl
+
     apply_nginx_config
 
     deploy_couchdb
+
     wait_for_couchdb_healthy
+
+    if ! validate_deployment; then
+        error "Deployment validation failed"
+        error "Please check logs and fix issues before continuing"
+        exit 1
+    fi
 
     display_summary
 
+    echo "=========================================="
     success "Deployment completed successfully!"
-    echo ""
+    echo "=========================================="
 }
 
 main "$@"

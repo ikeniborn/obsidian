@@ -97,6 +97,22 @@ check_existing_env() {
     fi
 }
 
+validate_network_config() {
+    if [ "$NETWORK_MODE" = "custom" ] && [ -z "$NETWORK_NAME" ]; then
+        error "NETWORK_NAME required for custom mode"
+        exit 1
+    fi
+
+    if [ -n "${NETWORK_SUBNET:-}" ]; then
+        if ! echo "$NETWORK_SUBNET" | grep -qE '^172\.(2[4-9]|3[0-1])\.0\.0/16$'; then
+            error "Invalid subnet format. Use 172.24-31.0.0/16"
+            exit 1
+        fi
+    fi
+
+    success "Network configuration validated"
+}
+
 validate_config() {
     info "Validating configuration..."
 
@@ -127,6 +143,8 @@ validate_config() {
     if [[ "$has_errors" == true ]]; then
         error "Configuration validation failed"
     fi
+
+    validate_network_config
 
     success "Configuration validation passed"
 }
@@ -259,6 +277,91 @@ prompt_notes_domain() {
     done
 }
 
+configure_network() {
+    echo ""
+    info "Docker Network Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configure Docker network for CouchDB container"
+    echo ""
+
+    source "${SCRIPT_DIR}/scripts/network-manager.sh"
+
+    local result=$(prompt_network_selection)
+    NETWORK_MODE=$(echo "$result" | cut -d'|' -f1)
+    NETWORK_NAME=$(echo "$result" | cut -d'|' -f2)
+
+    if [ "$NETWORK_MODE" = "shared" ]; then
+        NETWORK_EXTERNAL="true"
+        NETWORK_SUBNET=""
+    else
+        NETWORK_EXTERNAL="false"
+        NETWORK_SUBNET=$(find_free_subnet)
+    fi
+
+    echo ""
+    info "Network configuration:"
+    echo "  Mode: $NETWORK_MODE"
+    echo "  Name: $NETWORK_NAME"
+    echo "  External: $NETWORK_EXTERNAL"
+    [ -n "$NETWORK_SUBNET" ] && echo "  Subnet: $NETWORK_SUBNET"
+    echo ""
+}
+
+configure_nginx() {
+    echo ""
+    info "Nginx Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configure nginx for reverse proxy"
+    echo ""
+
+    source "${SCRIPT_DIR}/scripts/nginx-setup.sh"
+
+    local nginx_result=$(prompt_nginx_selection)
+    local nginx_container=$(echo "$nginx_result" | cut -d'|' -f1)
+    local nginx_config_dir=$(echo "$nginx_result" | cut -d'|' -f2)
+    local nginx_create_flag=$(echo "$nginx_result" | cut -d'|' -f3)
+
+    if [ "$nginx_container" = "none" ]; then
+        info "Will deploy own nginx container"
+        NGINX_CONTAINER_NAME="notes-nginx"
+        NGINX_CONFIG_DIR="/etc/nginx/conf.d"
+        DEPLOY_OWN_NGINX="true"
+    else
+        info "Will use existing nginx: $nginx_container"
+        NGINX_CONTAINER_NAME="$nginx_container"
+        NGINX_CONFIG_DIR="$nginx_config_dir"
+        DEPLOY_OWN_NGINX="false"
+
+        if [ "$nginx_create_flag" = "CREATE" ]; then
+            info "Creating nginx config directory: $nginx_config_dir"
+            if docker exec "$nginx_container" mkdir -p "$nginx_config_dir" 2>/dev/null; then
+                success "Directory created in container: $nginx_config_dir"
+            elif sudo mkdir -p "$nginx_config_dir" 2>/dev/null; then
+                success "Directory created on host: $nginx_config_dir"
+            else
+                error "Failed to create directory: $nginx_config_dir"
+                exit 1
+            fi
+        fi
+    fi
+
+    echo ""
+    info "Nginx configuration:"
+    echo "  Container: $NGINX_CONTAINER_NAME"
+    echo "  Config dir: $NGINX_CONFIG_DIR"
+    echo "  Deploy own: $DEPLOY_OWN_NGINX"
+    echo ""
+}
+
+configure_couchdb() {
+    echo ""
+    info "CouchDB Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    read -p "CouchDB container name [couchdb-notes]: " couchdb_name
+    COUCHDB_CONTAINER_NAME="${couchdb_name:-couchdb-notes}"
+    success "CouchDB container name: $COUCHDB_CONTAINER_NAME"
+}
+
 prompt_s3_credentials() {
     echo ""
     info "S3 Backup Configuration (Optional)"
@@ -347,7 +450,25 @@ NOTES_LOG_DIR=/opt/notes/logs
 # Network Configuration
 # =============================================================================
 
+NETWORK_MODE=$NETWORK_MODE
+NETWORK_NAME=$NETWORK_NAME
+NETWORK_EXTERNAL=$NETWORK_EXTERNAL
+${NETWORK_SUBNET:+NETWORK_SUBNET=$NETWORK_SUBNET}
+
+# =============================================================================
+# Container Configuration
+# =============================================================================
+
+COUCHDB_CONTAINER_NAME=$COUCHDB_CONTAINER_NAME
 COUCHDB_PORT=5984
+
+# =============================================================================
+# Nginx Configuration
+# =============================================================================
+
+NGINX_CONTAINER_NAME=$NGINX_CONTAINER_NAME
+NGINX_CONFIG_DIR=$NGINX_CONFIG_DIR
+DEPLOY_OWN_NGINX=$DEPLOY_OWN_NGINX
 EOF
 
     if [[ -n "${S3_ACCESS_KEY_ID:-}" ]]; then
@@ -462,6 +583,9 @@ main() {
     check_notes_directory
     check_existing_env
 
+    configure_network
+    configure_nginx
+    configure_couchdb
     prompt_certbot_email
     prompt_notes_domain
     prompt_s3_credentials
