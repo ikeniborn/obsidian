@@ -57,13 +57,14 @@ detect_network_mode() {
 }
 
 list_available_networks() {
-    info "Listing available Docker networks..."
+    info "Listing available Docker networks..." >&2
 
     local networks=$(docker network ls --format '{{.Name}}' | grep -v '^bridge$\|^host$\|^none$' || true)
 
     if [ -z "$networks" ]; then
-        warning "No custom Docker networks found"
-        echo "0. Create new isolated network"
+        warning "No custom Docker networks found" >&2
+        echo "0. Create new isolated network" >&2
+        echo "0"
         return 0
     fi
 
@@ -72,12 +73,12 @@ list_available_networks() {
         count=$((count + 1))
         local subnet=$(docker network inspect "$network" --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || echo "N/A")
         local driver=$(docker network inspect "$network" --format '{{.Driver}}' 2>/dev/null || echo "N/A")
-        echo "$count. $network ($subnet, $driver)"
+        echo "$count. $network ($subnet, $driver)" >&2
     done <<< "$networks"
 
-    echo "$((count + 1)). Create new isolated network"
+    echo "$((count + 1)). Create new isolated network" >&2
 
-    success "Found $count existing network(s)"
+    success "Found $count existing network(s)" >&2
     echo "$count"
 }
 
@@ -103,6 +104,16 @@ prompt_network_selection() {
 
     if [ -z "$choice" ]; then
         error "Choice cannot be empty"
+        return 1
+    fi
+
+    if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+        error "Invalid choice: must be a number"
+        return 1
+    fi
+
+    if [ "$choice" -lt 1 ] || [ "$choice" -gt "$max_choice" ]; then
+        error "Invalid choice: must be between 1 and $max_choice"
         return 1
     fi
 
