@@ -128,32 +128,32 @@ prompt_network_selection() {
 validate_subnet() {
     local subnet="$1"
 
-    info "Validating subnet: $subnet"
+    info "Validating subnet: $subnet" >&2
 
     local used_subnets=$(docker network inspect $(docker network ls -q) --format '{{range .IPAM.Config}}{{.Subnet}}{{"\n"}}{{end}}' 2>/dev/null | grep -v '^$' || true)
 
     if echo "$used_subnets" | grep -q "^${subnet}$"; then
-        error "Subnet $subnet is already in use"
+        error "Subnet $subnet is already in use" >&2
         return 1
     fi
 
-    success "Subnet $subnet is available"
+    success "Subnet $subnet is available" >&2
     return 0
 }
 
 find_free_subnet() {
-    info "Searching for free subnet in range 172.24-31.0.0/16..."
+    info "Searching for free subnet in range 172.24-31.0.0/16..." >&2
 
     for i in {24..31}; do
         local subnet="172.${i}.0.0/16"
-        if validate_subnet "$subnet" 2>/dev/null; then
-            success "Found free subnet: $subnet"
+        if validate_subnet "$subnet" &>/dev/null; then
+            success "Found free subnet: $subnet" >&2
             echo "$subnet"
             return 0
         fi
     done
 
-    error "No free subnets available in range 172.24-31.0.0/16"
+    error "No free subnets available in range 172.24-31.0.0/16" >&2
     return 1
 }
 
@@ -162,32 +162,32 @@ create_network() {
     local subnet="${2:-}"
 
     if [ -z "$subnet" ]; then
-        info "Subnet not specified, auto-detecting..."
+        info "Subnet not specified, auto-detecting..." >&2
         subnet=$(find_free_subnet)
         if [ $? -ne 0 ]; then
-            error "Failed to find free subnet"
+            error "Failed to find free subnet" >&2
             return 1
         fi
     fi
 
     local gateway=$(echo "$subnet" | sed 's|0/16|1|')
 
-    info "Creating Docker network: $network_name"
-    info "  Subnet: $subnet"
-    info "  Gateway: $gateway"
+    info "Creating Docker network: $network_name" >&2
+    info "  Subnet: $subnet" >&2
+    info "  Gateway: $gateway" >&2
 
     if docker network create \
         --driver bridge \
         --subnet "$subnet" \
         --gateway "$gateway" \
         "$network_name" &> /dev/null; then
-        success "Network created successfully"
+        success "Network created successfully" >&2
         echo "Network: $network_name"
         echo "Subnet: $subnet"
         echo "Gateway: $gateway"
         return 0
     else
-        error "Failed to create network $network_name"
+        error "Failed to create network $network_name" >&2
         return 1
     fi
 }
