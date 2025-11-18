@@ -83,21 +83,21 @@ list_available_networks() {
 }
 
 prompt_network_selection() {
-    info "Select network mode:"
-    echo ""
+    info "Select network mode:" >&2
+    echo "" >&2
 
     local count=$(list_available_networks)
     local networks=$(docker network ls --format '{{.Name}}' | grep -v '^bridge$\|^host$\|^none$' || true)
 
-    echo ""
-    echo "Options:"
+    echo "" >&2
+    echo "Options:" >&2
     if [ "$count" -gt 0 ]; then
-        echo "  1-${count}. Use existing network"
-        echo "  $((count + 1)). Create new isolated network"
+        echo "  1-${count}. Use existing network" >&2
+        echo "  $((count + 1)). Create new isolated network" >&2
     else
-        echo "  1. Create new isolated network"
+        echo "  1. Create new isolated network" >&2
     fi
-    echo ""
+    echo "" >&2
 
     local max_choice=$((count + 1))
     read -p "Your choice [1-${max_choice}]: " choice
