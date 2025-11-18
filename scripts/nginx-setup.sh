@@ -93,21 +93,21 @@ generate_nginx_config() {
 }
 
 detect_nginx_containers() {
-    info "Detecting nginx containers..."
+    info "Detecting nginx containers..." >&2
 
     local nginx_containers=$(docker ps --format '{{.Names}}' | grep -i nginx || true)
 
     if [ -z "$nginx_containers" ]; then
-        info "No nginx containers found"
+        info "No nginx containers found" >&2
         return 1
     fi
 
-    info "Found nginx containers:"
+    info "Found nginx containers:" >&2
     local count=0
     while IFS= read -r container; do
         count=$((count + 1))
         local network=$(docker inspect "$container" --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null | awk '{print $1}')
-        echo "$count. $container (network: $network)"
+        echo "$count. $container (network: $network)" >&2
     done <<< "$nginx_containers"
 
     return 0
@@ -119,7 +119,7 @@ prompt_nginx_selection() {
         return 0
     fi
 
-    echo ""
+    echo "" >&2
     read -p "Use existing nginx container? [y/N]: " use_existing
 
     if [[ "$use_existing" =~ ^[Yy]$ ]]; then
@@ -133,15 +133,15 @@ prompt_nginx_selection() {
             read -p "Enter nginx container name: " selected_nginx
         fi
 
-        echo ""
-        info "Detecting nginx config directory for: $selected_nginx"
+        echo "" >&2
+        info "Detecting nginx config directory for: $selected_nginx" >&2
 
         local detected_config_dir=$(docker inspect "$selected_nginx" \
             --format '{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' \
             2>/dev/null || echo "")
 
         if [ -n "$detected_config_dir" ]; then
-            info "Auto-detected config directory: $detected_config_dir"
+            info "Auto-detected config directory: $detected_config_dir" >&2
             read -p "Use this directory? [Y/n]: " use_detected
             if [[ ! "$use_detected" =~ ^[Nn]$ ]]; then
                 echo "${selected_nginx}|${detected_config_dir}"
@@ -149,33 +149,33 @@ prompt_nginx_selection() {
             fi
         fi
 
-        echo ""
-        warning "Cannot auto-detect nginx config directory"
-        echo "Please specify the directory where nginx configs should be placed:"
-        echo "  - For Docker nginx: volume mount path (e.g., /opt/nginx/conf.d)"
-        echo "  - For systemd nginx: /etc/nginx/sites-available or /etc/nginx/conf.d"
-        echo ""
+        echo "" >&2
+        warning "Cannot auto-detect nginx config directory" >&2
+        echo "Please specify the directory where nginx configs should be placed:" >&2
+        echo "  - For Docker nginx: volume mount path (e.g., /opt/nginx/conf.d)" >&2
+        echo "  - For systemd nginx: /etc/nginx/sites-available or /etc/nginx/conf.d" >&2
+        echo "" >&2
         read -p "Nginx config directory: " config_dir
 
         if [ -z "$config_dir" ]; then
-            error "Config directory cannot be empty"
+            error "Config directory cannot be empty" >&2
             echo "none||"
             return 1
         fi
 
         if docker exec "$selected_nginx" test -d "$config_dir" 2>/dev/null; then
-            success "Directory verified: $config_dir"
+            success "Directory verified: $config_dir" >&2
             echo "${selected_nginx}|${config_dir}"
         elif [ -d "$config_dir" ]; then
-            success "Directory verified: $config_dir"
+            success "Directory verified: $config_dir" >&2
             echo "${selected_nginx}|${config_dir}"
         else
-            warning "Directory not found: $config_dir"
+            warning "Directory not found: $config_dir" >&2
             read -p "Create this directory? [y/N]: " create_dir
             if [[ "$create_dir" =~ ^[Yy]$ ]]; then
                 echo "${selected_nginx}|${config_dir}|CREATE"
             else
-                error "Cannot proceed without valid config directory"
+                error "Cannot proceed without valid config directory" >&2
                 echo "none||"
                 return 1
             fi
