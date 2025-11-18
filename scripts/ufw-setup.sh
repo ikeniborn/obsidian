@@ -146,6 +146,13 @@ configure_ufw_defaults() {
 add_ssh_rule() {
     local ssh_port=$1
 
+    info "Checking SSH rule for port $ssh_port..."
+
+    if check_rule_exists "$ssh_port" "tcp"; then
+        success "SSH rule for port $ssh_port already exists - skipping"
+        return 0
+    fi
+
     info "Adding SSH rule for port $ssh_port..."
 
     if [[ "$DRY_RUN" == true ]]; then
@@ -158,6 +165,13 @@ add_ssh_rule() {
 }
 
 add_https_rule() {
+    info "Checking HTTPS rule..."
+
+    if check_rule_exists "443" "tcp"; then
+        success "HTTPS rule for port 443 already exists - skipping"
+        return 0
+    fi
+
     info "Adding HTTPS rule..."
 
     if [[ "$DRY_RUN" == true ]]; then
@@ -176,9 +190,38 @@ verify_ssh_rule_exists() {
         return 0
     fi
 
-    if ! ufw status | grep -q "$ssh_port/tcp"; then
-        error "SSH rule not found! This would block your SSH access. Aborting."
+    if ufw status | grep -q "Status: active"; then
+        if ufw status | grep -q "$ssh_port/tcp"; then
+            return 0
+        fi
+    else
+        if ufw show added | grep -q "allow $ssh_port/tcp"; then
+            return 0
+        fi
     fi
+
+    error "SSH rule not found! This would block your SSH access. Aborting."
+}
+
+check_rule_exists() {
+    local port=$1
+    local protocol="${2:-tcp}"
+
+    if [[ "$DRY_RUN" == true ]]; then
+        return 1
+    fi
+
+    if ufw status | grep -q "Status: active"; then
+        if ufw status | grep -q "$port/$protocol"; then
+            return 0
+        fi
+    else
+        if ufw show added | grep -q "allow $port/$protocol"; then
+            return 0
+        fi
+    fi
+
+    return 1
 }
 
 enable_ufw() {
@@ -210,6 +253,21 @@ display_ufw_status() {
     fi
 
     ufw status verbose
+}
+
+confirm_reset() {
+    echo ""
+    warning "WARNING: This will reset all existing UFW rules"
+    warning "All current firewall rules will be removed"
+    echo ""
+    read -p "Reset UFW rules? (yes/no): " -r
+    echo ""
+
+    if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 confirm_enable() {
@@ -252,8 +310,42 @@ main() {
     info "Detected SSH port: $SSH_PORT"
     echo ""
 
-    reset_ufw_rules
-    configure_ufw_defaults
+    if [[ "$DRY_RUN" == false ]]; then
+        local ufw_active=false
+        if ufw status | grep -q "Status: active"; then
+            ufw_active=true
+            info "UFW is currently active"
+        else
+            info "UFW is currently inactive"
+        fi
+
+        if [[ "$ufw_active" == true ]]; then
+            info "Checking existing rules..."
+            local ssh_exists=false
+            local https_exists=false
+
+            if check_rule_exists "$SSH_PORT" "tcp"; then
+                ssh_exists=true
+            fi
+            if check_rule_exists "443" "tcp"; then
+                https_exists=true
+            fi
+
+            if [[ "$ssh_exists" == true && "$https_exists" == true ]]; then
+                success "Required rules (SSH:$SSH_PORT, HTTPS:443) already exist"
+                info "No reset needed - will add missing rules only"
+            else
+                warning "Some required rules are missing"
+                if confirm_reset; then
+                    reset_ufw_rules
+                    configure_ufw_defaults
+                fi
+            fi
+        else
+            info "UFW not active - configuring from scratch"
+            configure_ufw_defaults
+        fi
+    fi
 
     echo ""
     add_ssh_rule "$SSH_PORT"
