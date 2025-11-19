@@ -19,7 +19,7 @@ services:
       # CouchDB data isolated in /opt/notes
       - ${NOTES_DATA_DIR:-/opt/notes/data}:/opt/couchdb/data
       # CouchDB config from notes/ directory
-      - ./local.ini:/opt/couchdb/etc/local.ini:ro
+      - ./local.ini:/opt/couchdb/etc/local.ini
 
     # Port 5984 bound to localhost ONLY
     # External access through Family Budget nginx reverse proxy
