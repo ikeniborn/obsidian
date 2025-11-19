@@ -2,10 +2,34 @@ upstream couchdb_backend {
     server ${COUCHDB_UPSTREAM}:5984;
 }
 
+# HTTP - redirect to HTTPS
 server {
     listen 80;
     listen [::]:80;
     server_name ${NOTES_DOMAIN};
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS - main configuration
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ${NOTES_DOMAIN};
+
+    # SSL certificates
+    ssl_certificate /etc/letsencrypt/live/${NOTES_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${NOTES_DOMAIN}/privkey.pem;
+
+    # SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # HSTS
+    add_header Strict-Transport-Security "max-age=31536000" always;
 
     location / {
         proxy_pass http://couchdb_backend;
