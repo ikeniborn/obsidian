@@ -31,7 +31,7 @@ services:
       - notes-network
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "-u", "$$COUCHDB_USER:$$COUCHDB_PASSWORD", "http://localhost:5984/_up"]
+      test: ["CMD", "sh", "-c", "curl -f -u \"$${COUCHDB_USER}:$${COUCHDB_PASSWORD}\" http://localhost:5984/_up"]
       interval: 30s
       timeout: 10s
       retries: 3
