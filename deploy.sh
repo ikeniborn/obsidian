@@ -395,7 +395,7 @@ validate_deployment() {
     local attempt=1
 
     while [ $attempt -le $max_attempts ]; do
-        if curl -sf -u "$COUCHDB_USER:$COUCHDB_PASSWORD" http://127.0.0.1:5984/_up >/dev/null 2>&1; then
+        if curl -sf -u "$COUCHDB_USER:$COUCHDB_PASSWORD" http://0.0.0.0:5984/_up >/dev/null 2>&1; then
             success "CouchDB health check passed"
             break
         fi
