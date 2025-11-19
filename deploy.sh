@@ -268,6 +268,17 @@ deploy_couchdb() {
         error "docker-compose.notes.yml not found at $compose_file"
     fi
 
+    # Export variables for docker compose interpolation
+    export NETWORK_NAME
+    export NETWORK_EXTERNAL
+    export NETWORK_MODE
+    export NETWORK_SUBNET
+    export COUCHDB_CONTAINER_NAME
+    export COUCHDB_USER
+    export COUCHDB_PASSWORD
+    export NOTES_DATA_DIR
+    export COUCHDB_PORT
+
     docker compose -f "$compose_file" pull
     docker compose -f "$compose_file" up -d --remove-orphans
 

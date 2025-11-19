@@ -86,7 +86,9 @@ generate_nginx_config() {
 
     local output_file="${PROJECT_ROOT}/notes.conf"
 
-    envsubst < "$TEMPLATE_FILE" > "$output_file"
+    export NOTES_DOMAIN
+    export COUCHDB_UPSTREAM
+    envsubst '$COUCHDB_UPSTREAM,$NOTES_DOMAIN' < "$TEMPLATE_FILE" > "$output_file"
 
     info "Generated nginx config: $output_file (upstream: ${COUCHDB_UPSTREAM})" >&2
     echo "$output_file"
