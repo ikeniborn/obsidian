@@ -91,7 +91,7 @@ Please run setup first:
 
     source "$NOTES_DEPLOY_DIR/.env"
 
-    local required_vars=("NOTES_DOMAIN" "COUCHDB_PORT" "COUCHDB_USER" "COUCHDB_PASSWORD" "CERTBOT_EMAIL")
+    local required_vars=("NOTES_DOMAIN" "COUCHDB_PORT" "COUCHDB_USER" "COUCHDB_PASSWORD" "CERTBOT_EMAIL" "NETWORK_NAME" "NETWORK_MODE")
     local missing_vars=()
 
     for var in "${required_vars[@]}"; do
@@ -103,7 +103,12 @@ Please run setup first:
     if [[ ${#missing_vars[@]} -gt 0 ]]; then
         error "Missing required variables in .env: ${missing_vars[*]}
 
-Please run setup.sh again"
+Configuration file: $NOTES_DEPLOY_DIR/.env
+
+Please run setup to generate complete configuration:
+  bash setup.sh
+
+If you already ran setup.sh, check that all prompts were completed successfully."
     fi
 
     success "Configuration file valid"

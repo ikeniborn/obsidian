@@ -88,7 +88,7 @@ generate_nginx_config() {
 
     envsubst < "$TEMPLATE_FILE" > "$output_file"
 
-    info "Generated nginx config: $output_file (upstream: ${COUCHDB_UPSTREAM})"
+    info "Generated nginx config: $output_file (upstream: ${COUCHDB_UPSTREAM})" >&2
     echo "$output_file"
 }
 
