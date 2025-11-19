@@ -507,7 +507,11 @@ setup_backup_cron() {
         CRON_JOB="0 3 * * * /bin/bash /opt/notes/scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
 
         if crontab -l 2>/dev/null | grep -q "couchdb-backup.sh"; then
-            warning "Backup cron job already exists, skipping"
+            info "Removing old backup cron job..."
+            crontab -l 2>/dev/null | grep -v "couchdb-backup.sh" | crontab -
+            info "Installing updated backup cron job..."
+            (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+            success "Backup cron job updated (daily at 3:00 AM)"
         else
             (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
             success "Backup cron job created (daily at 3:00 AM)"
