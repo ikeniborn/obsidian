@@ -13,7 +13,7 @@ services:
 
     environment:
       COUCHDB_USER: ${COUCHDB_USER:-admin}
-      # COUCHDB_PASSWORD загружается через env_file: /opt/notes/.env
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
 
     volumes:
       # CouchDB data isolated in /opt/notes
