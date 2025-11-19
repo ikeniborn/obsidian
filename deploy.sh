@@ -288,9 +288,11 @@ deploy_couchdb() {
 wait_for_couchdb_healthy() {
     info "Waiting for CouchDB to become healthy..."
 
+    source "$NOTES_DEPLOY_DIR/.env"
+
     local max_attempts=30
     local attempt=1
-    local container_name="obsidian-couchdb"
+    local container_name="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
 
     while [[ $attempt -le $max_attempts ]]; do
         if docker ps --filter "name=$container_name" --filter "health=healthy" | grep -q "$container_name"; then
@@ -423,7 +425,8 @@ display_summary() {
 
     source "$NOTES_DEPLOY_DIR/.env"
 
-    local couchdb_status=$(docker ps --filter name=obsidian-couchdb --format "{{.Status}}")
+    local container_name="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+    local couchdb_status=$(docker ps --filter name="$container_name" --format "{{.Status}}")
     local nginx_type=$(bash "$SCRIPTS_DIR/nginx-setup.sh" --detect-only)
 
     echo "  Domain:             https://${NOTES_DOMAIN}"
@@ -434,7 +437,7 @@ display_summary() {
     echo ""
 
     info "Useful commands:"
-    echo "  CouchDB logs:       docker logs obsidian-couchdb"
+    echo "  CouchDB logs:       docker logs $container_name"
     echo "  Check SSL:          bash scripts/check-ssl-expiration.sh"
     echo "  Test SSL renewal:   bash scripts/test-ssl-renewal.sh"
     echo "  Restart CouchDB:    docker compose -f docker-compose.notes.yml restart"
