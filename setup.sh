@@ -504,7 +504,7 @@ setup_backup_cron() {
     echo ""
 
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        CRON_JOB="0 3 * * * cd /opt/notes && bash scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+        CRON_JOB="0 3 * * * /bin/bash /opt/notes/scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
 
         if crontab -l 2>/dev/null | grep -q "couchdb-backup.sh"; then
             warning "Backup cron job already exists, skipping"

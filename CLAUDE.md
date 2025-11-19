@@ -399,7 +399,7 @@ tail -20 /opt/notes/logs/backup.log
 crontab -l | grep couchdb-backup
 
 # Default: daily at 3:00 AM
-0 3 * * * cd /opt/notes && bash scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1
+0 3 * * * /bin/bash /opt/notes/scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1
 ```
 
 ## Version Information
