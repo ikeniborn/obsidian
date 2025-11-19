@@ -15,8 +15,9 @@ server {
 
 # HTTPS - main configuration
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
     server_name ${NOTES_DOMAIN};
 
     # SSL certificates
