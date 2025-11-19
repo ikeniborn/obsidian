@@ -98,6 +98,22 @@ obtain_certificate() {
     sudo ufw allow 80/tcp comment 'Certbot initial setup'
     sleep 2
 
+    local nginx_was_stopped=false
+    local nginx_container=""
+
+    if docker ps --format '{{.Names}}' | grep -q "nginx"; then
+        nginx_container=$(docker ps --format '{{.Names}}' | grep "nginx" | head -n1)
+        info "Stopping nginx container: $nginx_container"
+        docker stop "$nginx_container" >/dev/null 2>&1
+        nginx_was_stopped=true
+        sleep 2
+    elif systemctl is-active --quiet nginx 2>/dev/null; then
+        info "Stopping nginx service"
+        sudo systemctl stop nginx
+        nginx_was_stopped=true
+        sleep 2
+    fi
+
     local cert_exit_code=0
     sudo certbot certonly \
         --standalone \
@@ -106,6 +122,16 @@ obtain_certificate() {
         --email "${CERTBOT_EMAIL}" \
         --domain "${NOTES_DOMAIN}" \
         ${staging_flag} || cert_exit_code=$?
+
+    if [[ "$nginx_was_stopped" == "true" ]]; then
+        if [[ -n "$nginx_container" ]]; then
+            info "Starting nginx container: $nginx_container"
+            docker start "$nginx_container" >/dev/null 2>&1
+        else
+            info "Starting nginx service"
+            sudo systemctl start nginx
+        fi
+    fi
 
     info "Closing port 80..."
     sudo ufw delete allow 80/tcp

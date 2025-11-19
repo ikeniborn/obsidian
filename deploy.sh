@@ -91,7 +91,7 @@ Please run setup first:
 
     source "$NOTES_DEPLOY_DIR/.env"
 
-    local required_vars=("NOTES_DOMAIN" "COUCHDB_PORT" "COUCHDB_USER" "COUCHDB_PASSWORD" "CERTBOT_EMAIL")
+    local required_vars=("NOTES_DOMAIN" "COUCHDB_PORT" "COUCHDB_USER" "COUCHDB_PASSWORD" "CERTBOT_EMAIL" "NETWORK_NAME" "NETWORK_MODE")
     local missing_vars=()
 
     for var in "${required_vars[@]}"; do
@@ -103,7 +103,12 @@ Please run setup first:
     if [[ ${#missing_vars[@]} -gt 0 ]]; then
         error "Missing required variables in .env: ${missing_vars[*]}
 
-Please run setup.sh again"
+Configuration file: $NOTES_DEPLOY_DIR/.env
+
+Please run setup to generate complete configuration:
+  bash setup.sh
+
+If you already ran setup.sh, check that all prompts were completed successfully."
     fi
 
     success "Configuration file valid"
@@ -263,6 +268,17 @@ deploy_couchdb() {
         error "docker-compose.notes.yml not found at $compose_file"
     fi
 
+    # Export variables for docker compose interpolation
+    export NETWORK_NAME
+    export NETWORK_EXTERNAL
+    export NETWORK_MODE
+    export NETWORK_SUBNET
+    export COUCHDB_CONTAINER_NAME
+    export COUCHDB_USER
+    export COUCHDB_PASSWORD
+    export NOTES_DATA_DIR
+    export COUCHDB_PORT
+
     docker compose -f "$compose_file" pull
     docker compose -f "$compose_file" up -d --remove-orphans
 
@@ -272,9 +288,11 @@ deploy_couchdb() {
 wait_for_couchdb_healthy() {
     info "Waiting for CouchDB to become healthy..."
 
+    source "$NOTES_DEPLOY_DIR/.env"
+
     local max_attempts=30
     local attempt=1
-    local container_name="obsidian-couchdb"
+    local container_name="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
 
     while [[ $attempt -le $max_attempts ]]; do
         if docker ps --filter "name=$container_name" --filter "health=healthy" | grep -q "$container_name"; then
@@ -379,7 +397,7 @@ validate_deployment() {
     local attempt=1
 
     while [ $attempt -le $max_attempts ]; do
-        if curl -sf http://127.0.0.1:5984/_up >/dev/null 2>&1; then
+        if curl -sf -u "$COUCHDB_USER:$COUCHDB_PASSWORD" http://0.0.0.0:5984/_up >/dev/null 2>&1; then
             success "CouchDB health check passed"
             break
         fi
@@ -407,7 +425,8 @@ display_summary() {
 
     source "$NOTES_DEPLOY_DIR/.env"
 
-    local couchdb_status=$(docker ps --filter name=obsidian-couchdb --format "{{.Status}}")
+    local container_name="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+    local couchdb_status=$(docker ps --filter name="$container_name" --format "{{.Status}}")
     local nginx_type=$(bash "$SCRIPTS_DIR/nginx-setup.sh" --detect-only)
 
     echo "  Domain:             https://${NOTES_DOMAIN}"
@@ -418,7 +437,7 @@ display_summary() {
     echo ""
 
     info "Useful commands:"
-    echo "  CouchDB logs:       docker logs obsidian-couchdb"
+    echo "  CouchDB logs:       docker logs $container_name"
     echo "  Check SSL:          bash scripts/check-ssl-expiration.sh"
     echo "  Test SSL renewal:   bash scripts/test-ssl-renewal.sh"
     echo "  Restart CouchDB:    docker compose -f docker-compose.notes.yml restart"
