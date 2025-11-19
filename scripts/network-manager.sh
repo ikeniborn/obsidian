@@ -57,13 +57,14 @@ detect_network_mode() {
 }
 
 list_available_networks() {
-    info "Listing available Docker networks..."
+    info "Listing available Docker networks..." >&2
 
     local networks=$(docker network ls --format '{{.Name}}' | grep -v '^bridge$\|^host$\|^none$' || true)
 
     if [ -z "$networks" ]; then
-        warning "No custom Docker networks found"
-        echo "0. Create new isolated network"
+        warning "No custom Docker networks found" >&2
+        echo "0. Create new isolated network" >&2
+        echo "0"
         return 0
     fi
 
@@ -72,37 +73,47 @@ list_available_networks() {
         count=$((count + 1))
         local subnet=$(docker network inspect "$network" --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || echo "N/A")
         local driver=$(docker network inspect "$network" --format '{{.Driver}}' 2>/dev/null || echo "N/A")
-        echo "$count. $network ($subnet, $driver)"
+        echo "$count. $network ($subnet, $driver)" >&2
     done <<< "$networks"
 
-    echo "$((count + 1)). Create new isolated network"
+    echo "$((count + 1)). Create new isolated network" >&2
 
-    success "Found $count existing network(s)"
+    success "Found $count existing network(s)" >&2
     echo "$count"
 }
 
 prompt_network_selection() {
-    info "Select network mode:"
-    echo ""
+    info "Select network mode:" >&2
+    echo "" >&2
 
     local count=$(list_available_networks)
     local networks=$(docker network ls --format '{{.Name}}' | grep -v '^bridge$\|^host$\|^none$' || true)
 
-    echo ""
-    echo "Options:"
+    echo "" >&2
+    echo "Options:" >&2
     if [ "$count" -gt 0 ]; then
-        echo "  1-${count}. Use existing network"
-        echo "  $((count + 1)). Create new isolated network"
+        echo "  1-${count}. Use existing network" >&2
+        echo "  $((count + 1)). Create new isolated network" >&2
     else
-        echo "  1. Create new isolated network"
+        echo "  1. Create new isolated network" >&2
     fi
-    echo ""
+    echo "" >&2
 
     local max_choice=$((count + 1))
     read -p "Your choice [1-${max_choice}]: " choice
 
     if [ -z "$choice" ]; then
         error "Choice cannot be empty"
+        return 1
+    fi
+
+    if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+        error "Invalid choice: must be a number"
+        return 1
+    fi
+
+    if [ "$choice" -lt 1 ] || [ "$choice" -gt "$max_choice" ]; then
+        error "Invalid choice: must be between 1 and $max_choice"
         return 1
     fi
 
@@ -117,32 +128,32 @@ prompt_network_selection() {
 validate_subnet() {
     local subnet="$1"
 
-    info "Validating subnet: $subnet"
+    info "Validating subnet: $subnet" >&2
 
     local used_subnets=$(docker network inspect $(docker network ls -q) --format '{{range .IPAM.Config}}{{.Subnet}}{{"\n"}}{{end}}' 2>/dev/null | grep -v '^$' || true)
 
     if echo "$used_subnets" | grep -q "^${subnet}$"; then
-        error "Subnet $subnet is already in use"
+        error "Subnet $subnet is already in use" >&2
         return 1
     fi
 
-    success "Subnet $subnet is available"
+    success "Subnet $subnet is available" >&2
     return 0
 }
 
 find_free_subnet() {
-    info "Searching for free subnet in range 172.24-31.0.0/16..."
+    info "Searching for free subnet in range 172.24-31.0.0/16..." >&2
 
     for i in {24..31}; do
         local subnet="172.${i}.0.0/16"
-        if validate_subnet "$subnet" 2>/dev/null; then
-            success "Found free subnet: $subnet"
+        if validate_subnet "$subnet" &>/dev/null; then
+            success "Found free subnet: $subnet" >&2
             echo "$subnet"
             return 0
         fi
     done
 
-    error "No free subnets available in range 172.24-31.0.0/16"
+    error "No free subnets available in range 172.24-31.0.0/16" >&2
     return 1
 }
 
@@ -151,32 +162,32 @@ create_network() {
     local subnet="${2:-}"
 
     if [ -z "$subnet" ]; then
-        info "Subnet not specified, auto-detecting..."
+        info "Subnet not specified, auto-detecting..." >&2
         subnet=$(find_free_subnet)
         if [ $? -ne 0 ]; then
-            error "Failed to find free subnet"
+            error "Failed to find free subnet" >&2
             return 1
         fi
     fi
 
     local gateway=$(echo "$subnet" | sed 's|0/16|1|')
 
-    info "Creating Docker network: $network_name"
-    info "  Subnet: $subnet"
-    info "  Gateway: $gateway"
+    info "Creating Docker network: $network_name" >&2
+    info "  Subnet: $subnet" >&2
+    info "  Gateway: $gateway" >&2
 
     if docker network create \
         --driver bridge \
         --subnet "$subnet" \
         --gateway "$gateway" \
         "$network_name" &> /dev/null; then
-        success "Network created successfully"
+        success "Network created successfully" >&2
         echo "Network: $network_name"
         echo "Subnet: $subnet"
         echo "Gateway: $gateway"
         return 0
     else
-        error "Failed to create network $network_name"
+        error "Failed to create network $network_name" >&2
         return 1
     fi
 }
@@ -265,4 +276,7 @@ main() {
     esac
 }
 
-main "$@"
+# Execute main only when script is run directly (not when sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
