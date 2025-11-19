@@ -24,7 +24,7 @@ services:
     # Port 5984 bound to localhost ONLY
     # External access through Family Budget nginx reverse proxy
     ports:
-      - "127.0.0.1:5984:5984"
+      - "5984:5984"
 
     # Connect to notes network (configurable via NETWORK_NAME)
     networks:
