@@ -108,10 +108,10 @@ generate_nginx_config() {
         # Set upstreams for both backends
         if [ "$nginx_mode" = "docker" ]; then
             export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
-            export SERVERPEER_UPSTREAM="${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}"
+            export NOSTR_RELAY_UPSTREAM="${NOSTR_RELAY_UPSTREAM:-notes-nostr-relay}"
         else
             export COUCHDB_UPSTREAM="127.0.0.1"
-            export SERVERPEER_UPSTREAM="127.0.0.1"
+            export NOSTR_RELAY_UPSTREAM="127.0.0.1"
         fi
 
         # Export location paths
@@ -120,11 +120,11 @@ generate_nginx_config() {
 
         local output_file="${PROJECT_ROOT}/unified.conf"
         export NOTES_DOMAIN
-        envsubst '$COUCHDB_UPSTREAM,$SERVERPEER_UPSTREAM,$COUCHDB_LOCATION,$SERVERPEER_LOCATION,$NOTES_DOMAIN' < "$template_file" > "$output_file"
+        envsubst '$COUCHDB_UPSTREAM,$NOSTR_RELAY_UPSTREAM,$COUCHDB_LOCATION,$SERVERPEER_LOCATION,$NOTES_DOMAIN' < "$template_file" > "$output_file"
 
         info "Generated unified nginx config: $output_file" >&2
         info "  CouchDB upstream: ${COUCHDB_UPSTREAM}, location: ${COUCHDB_LOCATION}" >&2
-        info "  ServerPeer upstream: ${SERVERPEER_UPSTREAM}, location: ${SERVERPEER_LOCATION}" >&2
+        info "  Nostr Relay upstream: ${NOSTR_RELAY_UPSTREAM}, location: ${SERVERPEER_LOCATION}" >&2
         echo "$output_file"
     elif [[ "$sync_backend" == "serverpeer" ]]; then
         # ServerPeer WebSocket proxy
