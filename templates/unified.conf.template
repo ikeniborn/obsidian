@@ -7,7 +7,7 @@ upstream couchdb_backend {
 }
 
 upstream nostr_relay_backend {
-    server ${NOSTR_RELAY_UPSTREAM:-notes-nostr-relay}:7000 max_fails=0;
+    server ${NOSTR_RELAY_UPSTREAM}:7000 max_fails=0;
     keepalive 32;
 }
 
