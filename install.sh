@@ -11,13 +11,13 @@
 #   sudo ./install.sh
 #
 # Requirements:
-#   - Docker 20.10+ (installed by Family Budget install.sh)
+#   - Docker 20.10+
 #   - Docker Compose v2+
 #   - Root/sudo access
 #
-# Author: Family Budget Team
-# Version: 1.0.0
-# Date: 2025-11-16
+# Author: Obsidian Sync Server Team
+# Version: 2.0.0
+# Date: 2025-12-29
 #
 
 set -e  # Exit on error
@@ -89,8 +89,13 @@ check_docker() {
     info "Checking Docker installation..."
 
     if ! command_exists docker; then
-        error "Docker is not installed. Please install Family Budget first:
-    cd ~/familyBudget && sudo ./install.sh"
+        error "Docker is not installed. Please install Docker first:
+
+For Ubuntu/Debian:
+    curl -fsSL https://get.docker.com | sh
+    sudo usermod -aG docker \$USER
+
+Then re-run this script."
     fi
 
     # Check Docker is running
@@ -107,25 +112,22 @@ check_docker_compose() {
     info "Checking Docker Compose installation..."
 
     if ! command_exists docker compose version; then
-        error "Docker Compose is not installed. Please install Family Budget first:
-    cd ~/familyBudget && sudo ./install.sh"
+        error "Docker Compose is not installed. Please install Docker Compose:
+
+For Ubuntu/Debian with Docker already installed:
+    Docker Compose v2 is included with Docker installation
+
+If you need to install manually:
+    sudo apt-get update
+    sudo apt-get install docker-compose-plugin
+
+Then re-run this script."
     fi
 
     local compose_version=$(docker compose version --short)
     success "Docker Compose $compose_version is installed"
 }
 
-check_family_budget() {
-    info "Checking Family Budget installation..."
-
-    if [[ ! -d "/opt/budget" ]]; then
-        warning "Family Budget is not installed at /opt/budget"
-        warning "Notes can work independently, but requires Family Budget nginx"
-        warning "Install Family Budget first for best experience"
-    else
-        success "Family Budget found at /opt/budget"
-    fi
-}
 
 check_ufw() {
     info "Checking UFW firewall..."
@@ -247,6 +249,13 @@ install_python_deps() {
         apt-get install -y python3 python3-pip
     fi
 
+    # Separately check for pip3 (may be missing even if python3 is present)
+    if ! command_exists pip3; then
+        info "Installing pip3..."
+        apt-get update -qq
+        apt-get install -y python3-pip
+    fi
+
     if ! python3 -c "import boto3" 2>/dev/null; then
         info "Installing boto3..."
         pip3 install boto3 --quiet
@@ -261,14 +270,13 @@ install_python_deps() {
 
 main() {
     info "========================================"
-    info "Notes CouchDB - Installation"
+    info "Obsidian Sync Server - Installation"
     info "========================================"
     echo ""
 
     check_root
     check_docker
     check_docker_compose
-    check_family_budget
 
     echo ""
     check_ufw
