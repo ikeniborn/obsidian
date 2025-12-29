@@ -78,9 +78,9 @@ navigation:
           name: "Dependency Installation Script"
 
         - id: "script:setup"
-          path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/setup.sh"
+          file: "scripts/deployment/setup.yml"
+          path: "/home/ikeniborn/Documents/Project/obsidian/setup.sh"
           name: "Interactive Configuration Script"
-          note: "Documentation pending - see CLAUDE.md for details"
 
       helpers:
         - id: "script:couchdb-backup"

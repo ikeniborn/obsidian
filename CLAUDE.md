@@ -253,11 +253,14 @@ CouchDB configuration:
 
 **setup.sh**
 - Creates `/opt/notes/.env`
+- Prompts for sync backend selection (CouchDB/ServerPeer/Both)
 - Prompts for domain and email
-- Generates secure CouchDB password
-- Optionally configures S3 backup
+- Generates secure CouchDB password (when CouchDB backend selected)
+- Configures backend-specific settings (container names, ports, locations)
+- Optionally configures S3 backup with backend-aware prefix defaults
 - Sets up cron/systemd for automatic backups
 - No sudo required
+- **Important:** Backend-specific variables (COUCHDB_CONTAINER_NAME, SERVERPEER_CONTAINER_NAME) are only added to .env when their respective backend is selected
 
 **deploy.sh**
 - Orchestrates full deployment

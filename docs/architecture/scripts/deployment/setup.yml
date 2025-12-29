@@ -1,0 +1,308 @@
+# setup.sh - Interactive Configuration Script
+
+metadata:
+  id: "script:setup"
+  name: "Interactive Configuration Script"
+  file_path: "/home/ikeniborn/Documents/Project/obsidian/setup.sh"
+  type: "deployment"
+  language: "bash"
+  version: "5.1.1"
+  status: "active"
+  last_updated: "2025-12-29"
+  lines_of_code: 881
+
+description:
+  summary: "Interactive script for configuring Obsidian Sync Server environment"
+  purpose: "Generate /opt/notes/.env with all deployment parameters based on user choices"
+  use_cases:
+    - "Initial configuration after install.sh"
+    - "Reconfiguration of sync backend or network settings"
+    - "S3 backup setup"
+
+interface:
+  usage: "./setup.sh"
+  arguments: []
+  options: []
+  exit_codes:
+    - code: 0
+      meaning: "Configuration successful"
+    - code: 1
+      meaning: "Validation failed or /opt/notes missing"
+
+execution:
+  requires_sudo: false
+  prerequisites:
+    - "install.sh must have been run"
+    - "/opt/notes directory exists"
+    - "Docker and Docker Compose installed"
+
+  environment_variables: []
+
+  runtime_dependencies:
+    - "openssl (for password generation)"
+    - "docker (for network detection)"
+    - "bash 4.0+"
+
+  execution_time: "2-5 minutes (interactive)"
+
+behavior:
+  idempotent: true  # Overwrites existing .env
+  destructive: false
+  interactive: true  # Multiple user prompts
+  logging:
+    enabled: true
+    location: "stdout/stderr"
+  error_handling:
+    strategy: "set -e (exit on error), set -u (exit on undefined variable)"
+    rollback: false
+
+key_functions:
+  - name: "prompt_sync_backend"
+    line_number: 365
+    purpose: "Interactive selection of sync backend (CouchDB/ServerPeer/Both)"
+    parameters: []
+    returns: "Sets SYNC_BACKEND, S3_BACKUP_PREFIX, COUCHDB_LOCATION, SERVERPEER_LOCATION"
+    notes:
+      - "S3_BACKUP_PREFIX defaults: couchdb-backups/ | serverpeer-backups/ | backups/"
+      - "Location paths configurable for dual mode (/couchdb, /serverpeer)"
+
+  - name: "configure_couchdb"
+    line_number: 356
+    purpose: "Configure CouchDB-specific settings"
+    parameters: []
+    returns: "Sets COUCHDB_CONTAINER_NAME"
+    notes:
+      - "Only called when SYNC_BACKEND = couchdb or both"
+      - "Default container name: couchdb-notes"
+
+  - name: "configure_serverpeer"
+    line_number: 428
+    purpose: "Configure ServerPeer-specific settings"
+    parameters: []
+    returns: "Sets SERVERPEER_APPID, SERVERPEER_ROOMID, SERVERPEER_CONTAINER_NAME, etc."
+    notes:
+      - "Only called when SYNC_BACKEND = serverpeer or both"
+      - "Default container name: serverpeer-notes"
+      - "Generates secure passphrase (64 chars)"
+
+  - name: "prompt_s3_credentials"
+    line_number: 457
+    purpose: "Configure S3 backup credentials (optional)"
+    parameters: []
+    returns: "Sets S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET_NAME, S3_ENDPOINT_URL, S3_REGION, S3_BACKUP_PREFIX"
+    notes:
+      - "Uses backend-specific S3_BACKUP_PREFIX default (set in prompt_sync_backend)"
+      - "Fixed in v5.1.1: Preserves backend-aware prefix instead of hardcoded 'couchdb-backups/'"
+
+  - name: "create_env_file"
+    line_number: 501
+    purpose: "Generate /opt/notes/.env with all configuration"
+    parameters: []
+    returns: "Creates .env file with chmod 600"
+    notes:
+      - "CouchDB variables only added if SYNC_BACKEND = couchdb or both"
+      - "ServerPeer variables only added if SYNC_BACKEND = serverpeer or both"
+      - "Fixed in v5.1.1: Conditional COUCHDB_CONTAINER_NAME prevents 'unbound variable' error"
+
+  - name: "configure_network"
+    line_number: "~200"
+    purpose: "Interactive Docker network configuration (shared/isolated/custom)"
+    parameters: []
+    returns: "Sets NETWORK_MODE, NETWORK_NAME, NETWORK_EXTERNAL, NETWORK_SUBNET"
+
+  - name: "configure_nginx"
+    line_number: "~300"
+    purpose: "Nginx reverse proxy configuration"
+    parameters: []
+    returns: "Sets NGINX_CONTAINER_NAME, NGINX_CONFIG_DIR, DEPLOY_OWN_NGINX"
+
+relationships:
+  calls_scripts: []
+  called_by_scripts: []
+  sources: []
+
+  configures_components:
+    - "component:couchdb"
+    - "component:serverpeer"  # NEW in v5.1.0
+    - "component:nginx"
+    - "component:docker-network"
+    - "component:s3-storage"
+
+  modifies_files:
+    - path: "/opt/notes/.env"
+      action: "creates/overwrites"
+
+  depends_on_patterns:
+    - "pattern:flexible-network"
+
+workflow:
+  sequential_steps:
+    - step: 1
+      action: "Check /opt/notes directory exists"
+      components_affected: []
+      validation: "check_notes_directory()"
+      error_handling: "exit 1 if missing"
+
+    - step: 2
+      action: "Check for existing .env file"
+      components_affected: []
+      validation: "check_existing_env()"
+      error_handling: "warn and prompt to overwrite"
+
+    - step: 3
+      action: "Configure Docker network (interactive)"
+      components_affected:
+        - "component:docker-network"
+      validation: "User selection"
+      error_handling: "Validate network exists or create"
+
+    - step: 4
+      action: "Configure Nginx (interactive)"
+      components_affected:
+        - "component:nginx"
+      validation: "Detect existing nginx or plan new deployment"
+      error_handling: "Default to deploy own nginx"
+
+    - step: 5
+      action: "Prompt for domain and email"
+      components_affected: []
+      validation: "Basic format validation"
+      error_handling: "Required fields"
+
+    - step: 6
+      action: "Select sync backend (CouchDB/ServerPeer/Both)"
+      components_affected:
+        - "component:couchdb"
+        - "component:serverpeer"
+      validation: "User choice [1-3]"
+      error_handling: "Default to CouchDB"
+
+    - step: 7
+      action: "Configure selected backend(s)"
+      components_affected:
+        - "component:couchdb"
+        - "component:serverpeer"
+      validation: "Conditional execution based on SYNC_BACKEND"
+      error_handling: "Skip non-selected backends"
+
+    - step: 8
+      action: "Configure S3 backup (optional)"
+      components_affected:
+        - "component:s3-storage"
+      validation: "Optional - can skip"
+      error_handling: "Skip if no credentials provided"
+
+    - step: 9
+      action: "Validate configuration"
+      components_affected: []
+      validation: "validate_config()"
+      error_handling: "exit 1 on validation failure"
+
+    - step: 10
+      action: "Create /opt/notes/.env file"
+      components_affected: []
+      validation: "File created with chmod 600"
+      error_handling: "exit 1 on write failure"
+
+    - step: 11
+      action: "Setup backup scheduler (cron or systemd)"
+      components_affected: []
+      validation: "User choice"
+      error_handling: "Default to cron"
+
+validation:
+  pre_execution_checks:
+    - "/opt/notes directory exists"
+    - "Docker installed (for network detection)"
+
+  post_execution_checks:
+    - "/opt/notes/.env exists"
+    - "/opt/notes/.env has chmod 600"
+    - "All required variables set in .env"
+    - "Backend-specific variables only present when backend selected"
+
+  test_coverage:
+    test_scripts: []
+    coverage_percentage: 0
+
+examples:
+  - scenario: "Initial setup with CouchDB only"
+    command: "./setup.sh"
+    expected_output: |
+      Select backend [1-3] (default: 1): 1
+      [SUCCESS] Selected: CouchDB only
+      CouchDB container name [couchdb-notes]:
+      S3 Backup Prefix [couchdb-backups/]:
+      [SUCCESS] Configuration file created: /opt/notes/.env
+
+  - scenario: "Setup with ServerPeer only"
+    command: "./setup.sh"
+    expected_output: |
+      Select backend [1-3] (default: 1): 2
+      [SUCCESS] Selected: ServerPeer only (Docker-based)
+      S3 Backup Prefix [serverpeer-backups/]:
+      [SUCCESS] Configuration file created: /opt/notes/.env
+
+  - scenario: "Setup with both backends"
+    command: "./setup.sh"
+    expected_output: |
+      Select backend [1-3] (default: 1): 3
+      [SUCCESS] Selected: Both backends (dual mode)
+      CouchDB location path (default: /couchdb):
+      ServerPeer location path (default: /serverpeer):
+      S3 Backup Prefix [backups/]:
+      [SUCCESS] Configuration file created: /opt/notes/.env
+
+troubleshooting:
+  common_errors:
+    - error_message: "setup.sh: line 507: COUCHDB_CONTAINER_NAME: unbound variable"
+      cause: "OBSOLETE: Fixed in v5.1.1 - old versions created .env with CouchDB variables even when ServerPeer-only selected"
+      resolution: "Update to setup.sh v5.1.1+ which conditionally adds backend-specific variables"
+
+    - error_message: "S3 Backup Prefix shows [couchdb-backups/] for ServerPeer backend"
+      cause: "OBSOLETE: Fixed in v5.1.1 - old versions hardcoded S3 prefix prompt default"
+      resolution: "Update to setup.sh v5.1.1+ which preserves backend-aware S3 prefix defaults"
+
+    - error_message: "/opt/notes does not exist"
+      cause: "install.sh was not run"
+      resolution: "Run: sudo ./install.sh"
+
+    - error_message: "Docker network not found"
+      cause: "Selected network does not exist"
+      resolution: "Choose different network or create new isolated network"
+
+references:
+  documentation:
+    - "CLAUDE.md - Script Architecture section"
+    - "README.md - Setup instructions"
+
+  prd_requirements:
+    - "FR-002: Interactive configuration workflow"
+    - "FR-011: Dual backend support (CouchDB + ServerPeer)"
+    - "FR-010: S3-compatible backups"
+    - "NFR-002: Idempotent setup"
+
+  related_workflows:
+    - "workflow:deployment"  # setup.sh is step 2 of deployment flow
+
+changelog:
+  - version: "5.1.1"
+    date: "2025-12-29"
+    changes:
+      - "Fixed: COUCHDB_CONTAINER_NAME unbound variable error when ServerPeer-only selected"
+      - "Fixed: S3_BACKUP_PREFIX prompt now uses backend-aware default (couchdb-backups/, serverpeer-backups/, or backups/)"
+      - "Improved: Backend-specific summary output (conditionally shows CouchDB and/or ServerPeer info)"
+      - "Conditional .env generation: CouchDB variables only added when backend = couchdb or both"
+      - "Conditional .env generation: ServerPeer variables only added when backend = serverpeer or both"
+
+  - version: "5.1.0"
+    date: "2025-11-16"
+    changes:
+      - "Added dual backend support (CouchDB + ServerPeer + Both modes)"
+      - "Added backend selection prompt with location path configuration"
+      - "Backend-aware S3 backup prefix defaults"
+
+  - version: "5.0.0"
+    date: "2025-11-15"
+    changes:
+      - "Initial version with CouchDB-only support"

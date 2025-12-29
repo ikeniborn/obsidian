@@ -489,8 +489,9 @@ prompt_s3_credentials() {
         read -p "S3 Region [ru-central1]: " S3_REGION
         S3_REGION=${S3_REGION:-ru-central1}
 
-        read -p "S3 Backup Prefix [couchdb-backups/]: " S3_BACKUP_PREFIX
-        S3_BACKUP_PREFIX=${S3_BACKUP_PREFIX:-couchdb-backups/}
+        # Use backend-specific default prefix (set in prompt_sync_backend)
+        read -p "S3 Backup Prefix [${S3_BACKUP_PREFIX}]: " user_prefix
+        S3_BACKUP_PREFIX=${user_prefix:-${S3_BACKUP_PREFIX}}
 
         success "S3 configuration saved"
     else
@@ -549,13 +550,6 @@ NETWORK_EXTERNAL=$NETWORK_EXTERNAL
 ${NETWORK_SUBNET:+NETWORK_SUBNET=$NETWORK_SUBNET}
 
 # =============================================================================
-# Container Configuration
-# =============================================================================
-
-COUCHDB_CONTAINER_NAME=$COUCHDB_CONTAINER_NAME
-COUCHDB_PORT=5984
-
-# =============================================================================
 # Nginx Configuration
 # =============================================================================
 
@@ -590,9 +584,16 @@ EOF
 SYNC_BACKEND=$SYNC_BACKEND
 EOF
 
-    # CouchDB location (if enabled)
+    # CouchDB configuration (if enabled)
     if [[ "$SYNC_BACKEND" == "couchdb" || "$SYNC_BACKEND" == "both" ]]; then
         cat >> "$ENV_FILE" << EOF
+
+# =============================================================================
+# CouchDB Configuration
+# =============================================================================
+
+COUCHDB_CONTAINER_NAME=$COUCHDB_CONTAINER_NAME
+COUCHDB_PORT=5984
 COUCHDB_LOCATION=${COUCHDB_LOCATION:-/}
 EOF
     fi
@@ -804,12 +805,28 @@ main() {
     echo "     Config dir: $NGINX_CONFIG_DIR"
     echo "     Deploy own: $DEPLOY_OWN_NGINX"
     echo ""
-    echo "  💾 CouchDB:"
-    echo "     Container:  $COUCHDB_CONTAINER_NAME"
-    echo "     User:       admin"
-    echo "     Password:   [generated - 64 chars]"
-    echo "     Port:       5984 (localhost only)"
-    echo ""
+
+    # Backend-specific summary
+    if [[ "$SYNC_BACKEND" == "couchdb" || "$SYNC_BACKEND" == "both" ]]; then
+        echo "  💾 CouchDB:"
+        echo "     Container:  $COUCHDB_CONTAINER_NAME"
+        echo "     User:       admin"
+        echo "     Password:   [generated - 64 chars]"
+        echo "     Port:       5984 (localhost only)"
+        [[ "$SYNC_BACKEND" == "both" ]] && echo "     Location:   $COUCHDB_LOCATION"
+        echo ""
+    fi
+
+    if [[ "$SYNC_BACKEND" == "serverpeer" || "$SYNC_BACKEND" == "both" ]]; then
+        echo "  🔄 ServerPeer:"
+        echo "     Container:  $SERVERPEER_CONTAINER_NAME"
+        echo "     App ID:     $SERVERPEER_APPID"
+        echo "     Room ID:    $SERVERPEER_ROOMID"
+        echo "     Port:       3000 (localhost only)"
+        [[ "$SYNC_BACKEND" == "both" ]] && echo "     Location:   $SERVERPEER_LOCATION"
+        echo ""
+    fi
+
     echo "  🌍 Domain & SSL:"
     echo "     Domain:     $NOTES_DOMAIN"
     echo "     Email:      $CERTBOT_EMAIL"
