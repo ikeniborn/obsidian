@@ -259,6 +259,29 @@ copy_scripts_to_workdir() {
     success "Scripts copied to $NOTES_DEPLOY_DIR/scripts/"
 }
 
+prepull_serverpeer_images() {
+    info "Pre-pulling base images for ServerPeer build..."
+    info "This ensures proxy settings are used for image downloads"
+
+    local images=(
+        "denoland/deno:bin-latest"
+        "node:22.14-bookworm-slim"
+    )
+
+    for image in "${images[@]}"; do
+        info "Pulling $image..."
+        if docker pull "$image"; then
+            success "Pulled: $image"
+        else
+            warning "Failed to pull $image - build may fail"
+            warning "If you're behind a proxy, ensure Docker daemon proxy is configured"
+            warning "Run: sudo systemctl show --property=Environment docker | grep -i proxy"
+        fi
+    done
+
+    success "Base images pre-pulled"
+}
+
 deploy_serverpeer() {
     info "Building and starting ServerPeer container..."
 
@@ -271,6 +294,9 @@ deploy_serverpeer() {
     # Create vault directory
     sudo mkdir -p "${SERVERPEER_VAULT_DIR:-/opt/notes/serverpeer-vault}"
     sudo chown -R $(whoami):$(whoami) "${SERVERPEER_VAULT_DIR}"
+
+    # Pre-pull base images (respects Docker daemon proxy)
+    prepull_serverpeer_images
 
     # Export variables for docker compose interpolation
     export NETWORK_NAME NETWORK_EXTERNAL SERVERPEER_VAULT_DIR
@@ -305,6 +331,22 @@ wait_for_serverpeer_healthy() {
     warning "Health check timeout (container may still be starting)"
 }
 
+prepull_couchdb_images() {
+    info "Pre-pulling CouchDB image..."
+    info "This ensures proxy settings are used for image download"
+
+    local image="couchdb:3.3"
+
+    info "Pulling $image..."
+    if docker pull "$image"; then
+        success "Pulled: $image"
+    else
+        warning "Failed to pull $image - deployment may fail"
+        warning "If you're behind a proxy, ensure Docker daemon proxy is configured"
+        warning "Run: sudo systemctl show --property=Environment docker | grep -i proxy"
+    fi
+}
+
 deploy_couchdb() {
     info "Deploying CouchDB..."
 
@@ -313,6 +355,9 @@ deploy_couchdb() {
     if [[ ! -f "$compose_file" ]]; then
         error "docker-compose.notes.yml not found at $compose_file"
     fi
+
+    # Pre-pull CouchDB image (respects Docker daemon proxy)
+    prepull_couchdb_images
 
     # Export variables for docker compose interpolation
     export NETWORK_NAME

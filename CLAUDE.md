@@ -289,6 +289,61 @@ sudo systemctl restart docker
 - Common issue: Proxy authentication failed → check credentials in URL
 - Common issue: SOCKS5 not working → some Docker versions have limited SOCKS5 support
 
+**Important: BuildKit vs Docker Daemon Proxy**
+
+Docker daemon proxy (`/etc/systemd/system/docker.service.d/http-proxy.conf`) affects:
+- ✅ `docker pull` - downloads images through proxy
+- ✅ `docker run` - container runtime
+- ❌ `docker build` - BuildKit uses separate daemon (does NOT inherit proxy)
+
+**Why `docker build` fails with proxy:**
+- Docker Buildx uses `buildkitd` daemon (separate from Docker daemon)
+- BuildKit requires separate proxy configuration via config.toml
+- Or use pre-pull workaround (implemented in deploy.sh)
+
+**Solution implemented (deploy.sh:262-283, 334-348):**
+```bash
+# deploy.sh pre-pulls base images using docker pull (respects proxy)
+prepull_serverpeer_images() {
+    docker pull denoland/deno:bin-latest  # Uses proxy ✅
+    docker pull node:22.14-bookworm-slim  # Uses proxy ✅
+}
+
+prepull_couchdb_images() {
+    docker pull couchdb:3.3  # Uses proxy ✅
+}
+
+# Then docker build uses cached images (no network needed)
+docker compose build  # Uses local cache ✅
+```
+
+**Benefits:**
+- Images pulled through proxy (Docker daemon)
+- Build uses cached images (no network/proxy needed)
+- Works around BuildKit proxy limitation
+- No complex BuildKit configuration required
+
+**Alternative (manual BuildKit proxy config):**
+If you prefer to configure BuildKit proxy directly:
+```bash
+# Create buildkit config
+mkdir -p ~/.docker
+cat > ~/.docker/buildkitd.toml << EOF
+[worker.oci]
+  [worker.oci.http]
+    [worker.oci.http.proxies]
+      [worker.oci.http.proxies.default]
+        http = "https://proxy:8080"
+        https = "https://proxy:8080"
+        no_proxy = "localhost,127.0.0.1"
+EOF
+
+# Restart buildkit
+docker buildx stop
+docker buildx rm default
+docker buildx create --use --config ~/.docker/buildkitd.toml
+```
+
 ## Configuration Files
 
 ### /opt/notes/.env
