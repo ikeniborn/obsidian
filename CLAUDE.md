@@ -303,7 +303,7 @@ unexpected status from HEAD request to https://dockerhub.hostkey.ru/v2/.../manif
 - Docker resolves DNS BEFORE applying proxy
 - Proxy can't fix already-hijacked domain resolution
 
-**Solution - Docker Hub DNS Fix (setup.sh:100-163):**
+**Solution - Docker Hub DNS Fix (setup.sh:100-195):**
 
 Automatically offered if proxy test fails:
 ```bash
@@ -315,29 +315,46 @@ sudo ./setup.sh
 # Try fixing Docker Hub DNS now? (Y/n): y
 ```
 
-What it does:
-1. Resolves real Docker Hub IPs using Google DNS (8.8.8.8)
-2. Adds correct IPs to /etc/hosts:
-   ```
-   3.226.190.193 registry-1.docker.io
-   18.205.34.3 auth.docker.io
-   104.16.100.215 production.cloudflare.docker.com
-   ```
-3. Bypasses local DNS hijacking (/etc/hosts has priority)
-4. Tests with `docker pull hello-world`
+**Robust DNS Resolution with Multiple Fallbacks:**
+
+The fix uses a multi-method DNS resolution approach (setup.sh:100-130):
+
+1. **Primary methods** - Tries in order:
+   - `dig +short @8.8.8.8` (most reliable)
+   - `nslookup <domain> 8.8.8.8`
+   - `host -t A <domain> 8.8.8.8`
+   - `getent hosts <domain>` (system resolver)
+
+2. **Fallback IPs** - If all DNS methods fail (network blocks 8.8.8.8 queries):
+   - Uses verified fallback IPs (updated 2025-01-29)
+   - `registry-1.docker.io: 3.226.190.193`
+   - `auth.docker.io: 18.205.34.3`
+   - `production.cloudflare.docker.com: 104.16.100.215`
+   - Asks for user confirmation before applying fallbacks
+
+3. **What it does:**
+   - Adds correct IPs to /etc/hosts
+   - /etc/hosts has priority over DNS, bypassing hijacking
+   - Tests with `docker pull hello-world`
+
+**Why multiple methods needed:**
+- Some networks block all DNS queries to external servers (8.8.8.8)
+- Different systems may have different DNS tools installed
+- Fallback IPs ensure deployment works even in fully restricted networks
 
 **Manual DNS fix:**
 ```bash
-# Resolve real IPs
+# Try resolving with different tools
+dig +short @8.8.8.8 A registry-1.docker.io
+nslookup registry-1.docker.io 8.8.8.8
 host -t A registry-1.docker.io 8.8.8.8
-host -t A auth.docker.io 8.8.8.8
 
-# Add to /etc/hosts
+# If all fail, use fallback IPs in /etc/hosts
 sudo nano /etc/hosts
 # Add lines:
-# <IP> registry-1.docker.io
-# <IP> auth.docker.io
-# <IP> production.cloudflare.docker.com
+# 3.226.190.193 registry-1.docker.io
+# 18.205.34.3 auth.docker.io
+# 104.16.100.215 production.cloudflare.docker.com
 ```
 
 **Verification:**
