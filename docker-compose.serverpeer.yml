@@ -26,7 +26,7 @@ services:
       - "127.0.0.1:${SERVERPEER_PORT:-3000}:3000"
 
     networks:
-      - serverpeer-network
+      - notes-network
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -45,7 +45,7 @@ services:
           memory: 128M
 
 networks:
-  serverpeer-network:
+  notes-network:
     # Network mode configured via NETWORK_MODE in .env:
     # - shared: use existing network (NETWORK_EXTERNAL=true)
     # - isolated: create new obsidian_network (NETWORK_EXTERNAL=false)

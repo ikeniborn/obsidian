@@ -20,9 +20,9 @@ services:
       - ./local.ini:/opt/couchdb/etc/local.ini
 
     # Port 5984 bound to localhost ONLY
-    # External access through Family Budget nginx reverse proxy
+    # External access through nginx reverse proxy
     ports:
-      - "5984:5984"
+      - "127.0.0.1:${COUCHDB_PORT:-5984}:5984"
 
     # Connect to notes network (configurable via NETWORK_NAME)
     networks:
