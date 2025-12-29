@@ -8,11 +8,11 @@ source /opt/notes/.env
 
 # Test 1: Container
 echo "✓ Test 1: Container status"
-docker ps | grep serverpeer-notes || exit 1
+docker ps | grep notes-serverpeer || exit 1
 
 # Test 2: Health
 echo "✓ Test 2: Health endpoint"
-docker exec serverpeer-notes curl -sf http://localhost:3000/health || exit 1
+docker exec notes-serverpeer curl -sf http://localhost:3000/health || exit 1
 
 # Test 3: Vault
 echo "✓ Test 3: Vault directory"

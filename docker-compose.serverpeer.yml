@@ -3,7 +3,7 @@ services:
     build:
       context: ./serverpeer
       dockerfile: Dockerfile
-    container_name: ${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}
+    container_name: ${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}
     restart: unless-stopped
 
     env_file:

@@ -82,7 +82,7 @@ key_functions:
     returns: "Sets SERVERPEER_APPID, SERVERPEER_ROOMID, SERVERPEER_RELAYS, SERVERPEER_CONTAINER_NAME, etc."
     notes:
       - "Only called when SYNC_BACKEND = serverpeer or both"
-      - "Default container name: serverpeer-notes"
+      - "Default container name: notes-serverpeer"
       - "Generates secure passphrase (32 hex chars = 16 bytes)"
       - "NEW in v5.1.3: Prompts for WebSocket relay URL"
       - "NEW in v5.1.3: Uses local relay by default (wss://domain/serverpeer/) instead of external relay"

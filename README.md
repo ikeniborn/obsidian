@@ -57,7 +57,7 @@ Docker Network: obsidian_network (auto-created, 172.24-31.0.0/16)
 - Хранение: Headless vault (файловая система)
 - Backup: Архив директории → S3 (через `serverpeer-backup.sh`, **БЕЗ зависимости от CouchDB**)
 - Порт: 3000 (localhost only)
-- Контейнер: `serverpeer-notes`
+- Контейнер: `notes-serverpeer`
 - Технология: Deno-based (все зависимости в контейнере)
 
 **Общие возможности:**

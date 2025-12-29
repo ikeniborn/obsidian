@@ -30,7 +30,7 @@ DATE_FORMAT="+%Y%m%d"
 BACKUP_NAME="serverpeer-$(date -u ${DATE_FORMAT}).tar.gz"
 
 VAULT_DIR="${SERVERPEER_VAULT_DIR:-/opt/notes/serverpeer-vault}"
-CONTAINER_NAME="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+CONTAINER_NAME="${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}"
 
 # S3 configuration (SHARED with CouchDB backups)
 S3_ACCESS_KEY_ID="${S3_ACCESS_KEY_ID:-}"

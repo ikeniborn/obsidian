@@ -99,7 +99,7 @@ The server supports two sync backends, selected during `setup.sh`:
 - **Storage**: Headless vault (filesystem-based)
 - **Backup**: Vault archive → tar.gz → S3 (via `serverpeer-backup.sh`, **NO CouchDB dependency**)
 - **Port**: 3000 (localhost only)
-- **Container**: `serverpeer-notes` (configurable via SERVERPEER_CONTAINER_NAME)
+- **Container**: `notes-serverpeer` (configurable via SERVERPEER_CONTAINER_NAME)
 - **Technology**: Deno-based (https://github.com/vrtmrz/livesync-serverpeer)
 - **Dependencies**: Fully containerized (Deno, Node.js, git) - NO host installation required
 - **WebSocket Relay**: Uses local server by default (wss://your-domain/serverpeer/)
@@ -128,7 +128,7 @@ bash /opt/notes/scripts/couchdb-backup.sh
 
 *ServerPeer:*
 ```bash
-docker logs serverpeer-notes
+docker logs notes-serverpeer
 docker compose -f docker-compose.serverpeer.yml restart
 bash /opt/notes/scripts/serverpeer-backup.sh  # NO CouchDB dependency
 ```

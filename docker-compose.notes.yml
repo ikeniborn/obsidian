@@ -1,7 +1,7 @@
 services:
   couchdb:
     image: couchdb:3.3
-    container_name: ${COUCHDB_CONTAINER_NAME:-couchdb-notes}
+    container_name: ${COUCHDB_CONTAINER_NAME:-notes-couchdb}
     restart: unless-stopped
     stop_grace_period: 30s
     stop_signal: SIGTERM

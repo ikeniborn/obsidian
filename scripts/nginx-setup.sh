@@ -108,7 +108,7 @@ generate_nginx_config() {
         # Set upstreams for both backends
         if [ "$nginx_mode" = "docker" ]; then
             export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
-            export SERVERPEER_UPSTREAM="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+            export SERVERPEER_UPSTREAM="${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}"
         else
             export COUCHDB_UPSTREAM="127.0.0.1"
             export SERVERPEER_UPSTREAM="127.0.0.1"
@@ -135,7 +135,7 @@ generate_nginx_config() {
         fi
 
         if [ "$nginx_mode" = "docker" ]; then
-            export SERVERPEER_UPSTREAM="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+            export SERVERPEER_UPSTREAM="${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}"
         else
             export SERVERPEER_UPSTREAM="127.0.0.1"
         fi
@@ -481,7 +481,7 @@ deploy_own_nginx() {
             fi
             ;;
         serverpeer)
-            local backend_container="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+            local backend_container="${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}"
             if docker ps --format '{{.Names}}' | grep -q "^${backend_container}$"; then
                 if validate_network_connectivity "${network_name}" "$nginx_container" "$backend_container"; then
                     success "Network connectivity validated (ServerPeer)"
@@ -494,7 +494,7 @@ deploy_own_nginx() {
             ;;
         both)
             local couchdb_container="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
-            local serverpeer_container="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+            local serverpeer_container="${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}"
 
             if docker ps --format '{{.Names}}' | grep -q "^${couchdb_container}$"; then
                 if validate_network_connectivity "${network_name}" "$nginx_container" "$couchdb_container"; then

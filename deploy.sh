@@ -314,7 +314,7 @@ deploy_serverpeer() {
 wait_for_serverpeer_healthy() {
     info "Waiting for ServerPeer health check..."
 
-    local container="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+    local container="${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}"
     local max_attempts=30
     local attempt=1
 

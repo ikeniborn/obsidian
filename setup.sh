@@ -765,7 +765,7 @@ configure_serverpeer() {
     SERVERPEER_AUTOSTART=true
     SERVERPEER_PORT=3000
     SERVERPEER_VAULT_DIR=/opt/notes/serverpeer-vault
-    SERVERPEER_CONTAINER_NAME=serverpeer-notes
+    SERVERPEER_CONTAINER_NAME=notes-serverpeer
 
     success "ServerPeer configured"
     echo "  Room ID: $room_id"
