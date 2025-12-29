@@ -102,6 +102,9 @@ The server supports two sync backends, selected during `setup.sh`:
 - **Container**: `serverpeer-notes` (configurable via SERVERPEER_CONTAINER_NAME)
 - **Technology**: Deno-based (https://github.com/vrtmrz/livesync-serverpeer)
 - **Dependencies**: Fully containerized (Deno, Node.js, git) - NO host installation required
+- **WebSocket Relay**: Uses local server by default (wss://your-domain/serverpeer/)
+  - **Recommended**: Local relay (best performance & privacy)
+  - **Alternative**: External relay (e.g., wss://exp-relay.vrtmrz.net/) - adds latency
 - **Use Case**: P2P synchronization with WebSocket relay, file-based storage
 
 **Backend-Independent Features**:

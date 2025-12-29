@@ -438,10 +438,27 @@ configure_serverpeer() {
     # Generate room ID (12 bytes = UUID-like format)
     local room_id=$(openssl rand -hex 6 | sed 's/\(..\)/\1-/g;s/-$//')
 
+    # Use local WebSocket relay (own server) instead of external
+    local default_relay="wss://${NOTES_DOMAIN}${SERVERPEER_LOCATION:-/}"
+
+    echo ""
+    echo "WebSocket Relay Configuration:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "ServerPeer uses WebSocket relay for P2P synchronization."
+    echo ""
+    echo "Recommended: Use your own server as relay (best performance & privacy)"
+    echo "  Default: $default_relay"
+    echo ""
+    echo "Alternative: Use external relay (e.g., wss://exp-relay.vrtmrz.net/)"
+    echo "  Note: External relay adds latency and external dependency"
+    echo ""
+    read -p "WebSocket relay URL [$default_relay]: " relay_input
+
+    SERVERPEER_RELAYS="${relay_input:-$default_relay}"
+
     SERVERPEER_APPID=self-hosted-livesync
     SERVERPEER_ROOMID=$room_id
     SERVERPEER_PASSPHRASE=$passphrase
-    SERVERPEER_RELAYS=wss://exp-relay.vrtmrz.net/
     SERVERPEER_NAME=${NOTES_DOMAIN}-peer
     SERVERPEER_VAULT_NAME=headless-vault
     SERVERPEER_AUTOBROADCAST=true
@@ -453,6 +470,7 @@ configure_serverpeer() {
     success "ServerPeer configured"
     echo "  Room ID: $room_id"
     echo "  Passphrase: [hidden - saved in .env]"
+    echo "  Relay: $SERVERPEER_RELAYS"
 }
 
 prompt_s3_credentials() {
