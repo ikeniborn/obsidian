@@ -767,10 +767,17 @@ configure_serverpeer() {
     SERVERPEER_VAULT_DIR=/opt/notes/serverpeer-vault
     SERVERPEER_CONTAINER_NAME=notes-serverpeer
 
+    # Nostr Relay configuration (WebSocket signaling server for P2P)
+    NOSTR_RELAY_PORT=7000
+    NOSTR_RELAY_DATA_DIR=/opt/notes/nostr-relay-data
+    NOSTR_RELAY_CONTAINER_NAME=notes-nostr-relay
+    NOSTR_RELAY_UPSTREAM=notes-nostr-relay
+
     success "ServerPeer configured"
     echo "  Room ID: $room_id"
     echo "  Passphrase: [hidden - saved in .env]"
     echo "  Relay: $SERVERPEER_RELAYS"
+    echo "  Nostr Relay: Will be deployed as WebSocket signaling server"
 }
 
 prompt_s3_credentials() {
@@ -1025,6 +1032,15 @@ SERVERPEER_VAULT_NAME=$SERVERPEER_VAULT_NAME
 SERVERPEER_VAULT_DIR=$SERVERPEER_VAULT_DIR
 SERVERPEER_CONTAINER_NAME=$SERVERPEER_CONTAINER_NAME
 SERVERPEER_LOCATION=${SERVERPEER_LOCATION:-/}
+
+# =============================================================================
+# Nostr Relay Configuration (WebSocket signaling server for P2P)
+# =============================================================================
+
+NOSTR_RELAY_PORT=$NOSTR_RELAY_PORT
+NOSTR_RELAY_DATA_DIR=$NOSTR_RELAY_DATA_DIR
+NOSTR_RELAY_CONTAINER_NAME=$NOSTR_RELAY_CONTAINER_NAME
+NOSTR_RELAY_UPSTREAM=$NOSTR_RELAY_UPSTREAM
 EOF
     fi
 

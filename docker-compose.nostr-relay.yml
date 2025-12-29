@@ -1,0 +1,43 @@
+services:
+  nostr-relay:
+    image: scsibug/nostr-rs-relay:latest
+    container_name: ${NOSTR_RELAY_CONTAINER_NAME:-notes-nostr-relay}
+    restart: unless-stopped
+
+    env_file:
+      - /opt/notes/.env
+
+    volumes:
+      - ${NOSTR_RELAY_DATA_DIR:-/opt/notes/nostr-relay-data}:/data
+      - ./nostr-relay/config.toml:/usr/src/app/config.toml:ro
+
+    ports:
+      - "127.0.0.1:${NOSTR_RELAY_PORT:-7000}:7000"
+
+    networks:
+      - notes-network
+
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -z localhost 7000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+networks:
+  notes-network:
+    # Network mode configured via NETWORK_MODE in .env:
+    # - shared: use existing network (NETWORK_EXTERNAL=true)
+    # - isolated: create new obsidian_network (NETWORK_EXTERNAL=false)
+    # - custom: use custom NETWORK_NAME
+    external: ${NETWORK_EXTERNAL:-false}
+    name: ${NETWORK_NAME}

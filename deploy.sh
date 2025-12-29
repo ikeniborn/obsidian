@@ -332,6 +332,72 @@ wait_for_serverpeer_healthy() {
     warning "Health check timeout (container may still be starting)"
 }
 
+prepull_nostr_relay_images() {
+    info "Pre-pulling Nostr Relay image..."
+    info "This ensures proxy settings are used for image download"
+
+    local image="scsibug/nostr-rs-relay:latest"
+
+    info "Pulling $image..."
+    if docker pull "$image"; then
+        success "Pulled: $image"
+    else
+        warning "Failed to pull $image - deployment may fail"
+        warning "If you're behind a proxy, ensure Docker daemon proxy is configured"
+        warning "Run: sudo systemctl show --property=Environment docker | grep -i proxy"
+    fi
+}
+
+deploy_nostr_relay() {
+    info "Deploying Nostr Relay (WebSocket signaling server)..."
+
+    local compose_file="$SCRIPT_DIR/docker-compose.nostr-relay.yml"
+
+    if [[ ! -f "$compose_file" ]]; then
+        error "docker-compose.nostr-relay.yml not found at $compose_file"
+    fi
+
+    # Create relay data directory
+    sudo mkdir -p "${NOSTR_RELAY_DATA_DIR:-/opt/notes/nostr-relay-data}"
+    sudo chown -R $(whoami):$(whoami) "${NOSTR_RELAY_DATA_DIR}"
+
+    # Copy config to deployment directory
+    sudo mkdir -p /opt/notes/nostr-relay
+    sudo cp "$SCRIPT_DIR/nostr-relay/config.toml" /opt/notes/nostr-relay/config.toml
+    sudo chown root:root /opt/notes/nostr-relay/config.toml
+
+    # Pre-pull Nostr Relay image (respects Docker daemon proxy)
+    prepull_nostr_relay_images
+
+    # Export variables for docker compose interpolation
+    export NETWORK_NAME NETWORK_EXTERNAL
+    export NOSTR_RELAY_CONTAINER_NAME NOSTR_RELAY_DATA_DIR NOSTR_RELAY_PORT
+
+    docker compose -f "$compose_file" up -d
+
+    success "Nostr Relay deployed"
+}
+
+wait_for_nostr_relay_healthy() {
+    info "Waiting for Nostr Relay health check..."
+
+    local container="${NOSTR_RELAY_CONTAINER_NAME:-notes-nostr-relay}"
+    local max_attempts=30
+    local attempt=1
+
+    while [[ $attempt -le $max_attempts ]]; do
+        if docker ps --filter "name=$container" --filter "health=healthy" | grep -q "$container"; then
+            success "Nostr Relay is healthy"
+            return 0
+        fi
+        echo -n "."
+        sleep 2
+        ((attempt++))
+    done
+
+    warning "Health check timeout (container may still be starting)"
+}
+
 prepull_couchdb_images() {
     info "Pre-pulling CouchDB image..."
     info "This ensures proxy settings are used for image download"
@@ -561,13 +627,17 @@ main() {
     if [[ "${SYNC_BACKEND:-couchdb}" == "both" ]]; then
         info "Deploying both backends (dual mode)..."
         deploy_couchdb
+        deploy_nostr_relay
         deploy_serverpeer
         wait_for_couchdb_healthy
+        wait_for_nostr_relay_healthy
         wait_for_serverpeer_healthy
         success "Both backends deployed successfully"
     elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
         info "Deploying ServerPeer backend..."
+        deploy_nostr_relay
         deploy_serverpeer
+        wait_for_nostr_relay_healthy
         wait_for_serverpeer_healthy
     else
         info "Deploying CouchDB backend..."

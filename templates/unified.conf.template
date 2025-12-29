@@ -6,8 +6,8 @@ upstream couchdb_backend {
     keepalive 32;
 }
 
-upstream serverpeer_backend {
-    server ${SERVERPEER_UPSTREAM}:3000 max_fails=0;
+upstream nostr_relay_backend {
+    server ${NOSTR_RELAY_UPSTREAM:-notes-nostr-relay}:7000 max_fails=0;
     keepalive 32;
 }
 
@@ -48,10 +48,10 @@ server {
         client_max_body_size 50M;
     }
 
-    # ServerPeer WebSocket relay
+    # Nostr Relay WebSocket endpoint for P2P signaling
     location ${SERVERPEER_LOCATION} {
         rewrite ^${SERVERPEER_LOCATION}(.*)$ /$1 break;
-        proxy_pass http://serverpeer_backend;
+        proxy_pass http://nostr_relay_backend;
 
         # WebSocket upgrade
         proxy_http_version 1.1;
@@ -74,7 +74,7 @@ server {
 
     # Root location - show info page or redirect
     location = / {
-        return 200 'Obsidian Sync Server\n\nAvailable backends:\n- CouchDB: ${COUCHDB_LOCATION}\n- ServerPeer: ${SERVERPEER_LOCATION}\n';
+        return 200 'Obsidian Sync Server\n\nAvailable backends:\n- CouchDB: ${COUCHDB_LOCATION}\n- Nostr Relay (WebSocket): ${SERVERPEER_LOCATION}\n';
         add_header Content-Type text/plain;
     }
 }
