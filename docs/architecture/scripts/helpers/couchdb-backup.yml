@@ -1,0 +1,49 @@
+# couchdb-backup.sh - Backup Script Example
+
+metadata:
+  id: "script:couchdb-backup"
+  name: "CouchDB Backup Script"
+  file_path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/couchdb-backup.sh"
+  type: "helper"
+  language: "bash"
+  version: "1.0"
+  status: "active"
+  last_updated: "2025-11-16"
+  lines_of_code: 600
+
+description:
+  summary: "Backs up all CouchDB databases with compression and S3 upload"
+  purpose: "Ensure data durability through automated backups"
+  use_cases:
+    - "Daily automated backups via cron"
+    - "Manual backups before major changes"
+
+execution:
+  requires_sudo: false
+  environment_variables:
+    - name: "COUCHDB_PASSWORD"
+      source: "/opt/notes/.env"
+      required: true
+
+behavior:
+  idempotent: true
+  destructive: false
+  interactive: false
+
+key_functions:
+  - name: "backup_database"
+    purpose: "Backup single database via /_all_docs?include_docs=true"
+    parameters: ["database_name"]
+
+  - name: "calculate_timeout"
+    purpose: "Calculate dynamic timeout based on database size"
+    formula: "60 + (size_mb * 2)"
+
+relationships:
+  configures_components:
+    - id: "component:backup-system"
+    - id: "component:s3-storage"
+
+references:
+  prd_requirements:
+    - "FR-005: Automated S3 Backups"

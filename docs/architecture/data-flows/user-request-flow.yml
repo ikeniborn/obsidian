@@ -1,0 +1,69 @@
+# User Request Data Flow
+
+metadata:
+  id: "dataflow:user-request"
+  name: "User Request Flow"
+  type: "data_flow"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Data flow from Obsidian client to CouchDB database"
+  purpose: "Document request path through security layers"
+
+flow_diagram: |
+  Internet → UFW Firewall → Nginx → CouchDB
+      ↓           ↓            ↓        ↓
+  [Client]   [Port 443]  [Reverse   [Port
+  HTTPS      ALLOW       Proxy]    5984]
+                         +SSL
+
+flow_steps:
+  - step: 1
+    component_id: "external_client"
+    action: "Obsidian app sends HTTPS request"
+    data: "Sync request with authentication headers"
+    protocol: "HTTPS"
+    port: 443
+
+  - step: 2
+    component_id: "component:ufw-firewall"
+    action: "UFW allows port 443 (HTTPS)"
+    validation: "Port 443 in allowed list"
+
+  - step: 3
+    component_id: "component:nginx"
+    action: "Nginx terminates SSL, forwards to CouchDB"
+    transformation: "HTTPS → HTTP (within Docker network)"
+    upstream: "http://couchdb-notes:5984"
+
+  - step: 4
+    component_id: "component:couchdb"
+    action: "CouchDB processes request"
+    authentication: "HTTP Basic Auth"
+    response: "JSON data or success/error status"
+
+  - step: 5
+    component_id: "component:nginx"
+    action: "Nginx encrypts response with SSL"
+    transformation: "HTTP → HTTPS"
+
+  - step: 6
+    component_id: "external_client"
+    action: "Client receives encrypted response"
+
+security_controls:
+  - layer: "Network"
+    control: "UFW denies all except port 443"
+
+  - layer: "Transport"
+    control: "TLS 1.2+ encryption"
+
+  - layer: "Application"
+    control: "HTTP Basic Auth (require_valid_user = true)"
+
+references:
+  components:
+    - "component:ufw-firewall"
+    - "component:nginx"
+    - "component:couchdb"

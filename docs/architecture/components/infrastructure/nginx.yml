@@ -1,0 +1,225 @@
+# Nginx Reverse Proxy Component
+
+metadata:
+  id: "component:nginx"
+  name: "Nginx Reverse Proxy"
+  type: "infrastructure"
+  category: "proxy"
+  version: "latest"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Nginx reverse proxy for CouchDB with SSL/TLS termination"
+  purpose: "Provide HTTPS access to CouchDB, terminate SSL/TLS, handle HTTP→HTTPS redirects"
+  responsibilities:
+    - "Reverse proxy HTTPS requests to CouchDB on port 5984"
+    - "SSL/TLS termination using Let's Encrypt certificates"
+    - "HTTP to HTTPS redirect (301 permanent redirect)"
+    - "Security headers (HSTS, X-Frame-Options, etc.)"
+    - "WebSocket upgrade support for CouchDB _changes feed"
+
+technical_details:
+  technology: "Nginx (3 deployment scenarios)"
+  deployment_modes:
+    - mode: "existing_docker"
+      description: "Use existing nginx Docker container"
+      detection: "docker ps | grep nginx"
+
+    - mode: "existing_systemd"
+      description: "Use existing nginx systemd service"
+      detection: "systemctl status nginx"
+
+    - mode: "own_container"
+      description: "Deploy own notes-nginx container"
+      config_file: "docker-compose.nginx.yml"
+
+  port_bindings:
+    - port: 80
+      protocol: "HTTP"
+      purpose: "HTTP→HTTPS redirect only"
+      firewall: "Opened temporarily by UFW hooks during cert renewal"
+
+    - port: 443
+      protocol: "HTTPS"
+      purpose: "Encrypted access to CouchDB"
+      firewall: "Always open in UFW"
+
+  volumes:
+    - path: "/etc/letsencrypt"
+      mount: "/etc/letsencrypt:ro"
+      purpose: "SSL certificates (read-only)"
+
+    - path: "/etc/nginx/sites-available/notes.conf"
+      purpose: "Nginx site configuration"
+
+  upstream:
+    docker_mode: "${COUCHDB_CONTAINER_NAME}:5984"
+    system_mode: "127.0.0.1:5984"
+    note: "Upstream selected based on nginx deployment mode"
+
+relationships:
+  depends_on:
+    - id: "component:couchdb"
+      reason: "Proxies requests to CouchDB backend"
+
+    - id: "component:certbot"
+      reason: "Requires SSL certificates from Let's Encrypt"
+
+    - id: "component:docker-network"
+      reason: "Docker mode requires shared network with CouchDB"
+      conditional: "Only for docker deployment mode"
+
+  used_by:
+    - id: "external_clients"
+      description: "Obsidian app and web browsers"
+
+  communicates_with:
+    - id: "component:couchdb"
+      protocol: "HTTP"
+      direction: "forwards"
+      port: 5984
+
+  managed_by:
+    - id: "script:nginx-setup"
+      operations: ["detect", "configure", "deploy"]
+
+    - id: "script:deploy"
+      operations: ["apply_config", "reload"]
+
+  configured_by:
+    - id: "config:nginx-template"
+      aspects: ["reverse proxy", "SSL", "redirects", "headers"]
+
+security:
+  ssl_tls:
+    protocol_versions: ["TLSv1.2", "TLSv1.3"]
+    cipher_suites: "High strength ciphers"
+    certificate_authority: "Let's Encrypt"
+    auto_renewal: true
+    renewal_interval: "60 days"
+
+  headers:
+    - name: "Strict-Transport-Security"
+      value: "max-age=31536000"
+      purpose: "Force HTTPS for 1 year"
+
+    - name: "X-Frame-Options"
+      value: "DENY"
+      purpose: "Prevent clickjacking"
+
+    - name: "X-Content-Type-Options"
+      value: "nosniff"
+      purpose: "Prevent MIME sniffing"
+
+  authentication: "Pass-through to CouchDB (HTTP Basic Auth)"
+
+configuration:
+  template_file: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/templates/notes.conf.template"
+  generated_file: "/etc/nginx/sites-available/notes.conf"
+
+  template_variables:
+    - name: "NOTES_DOMAIN"
+      example: "notes.example.com"
+      source: "/opt/notes/.env"
+
+    - name: "COUCHDB_UPSTREAM"
+      docker_value: "${COUCHDB_CONTAINER_NAME}"
+      system_value: "127.0.0.1"
+
+  example_config: |
+    upstream couchdb_backend {
+        server ${COUCHDB_UPSTREAM}:5984;
+    }
+
+    # HTTP → HTTPS redirect
+    server {
+        listen 80;
+        server_name ${NOTES_DOMAIN};
+        return 301 https://$host$request_uri;
+    }
+
+    # HTTPS configuration
+    server {
+        listen 443 ssl http2;
+        server_name ${NOTES_DOMAIN};
+
+        ssl_certificate /etc/letsencrypt/live/${NOTES_DOMAIN}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${NOTES_DOMAIN}/privkey.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+
+        add_header Strict-Transport-Security "max-age=31536000";
+
+        location / {
+            proxy_pass http://couchdb_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+    }
+
+files:
+  configuration:
+    - path: "/etc/nginx/sites-available/notes.conf"
+      purpose: "Nginx site configuration"
+
+    - path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/templates/notes.conf.template"
+      purpose: "Configuration template"
+
+  scripts:
+    - id: "script:nginx-setup"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/nginx-setup.sh"
+
+operational:
+  monitoring:
+    health_check: "curl -f https://${NOTES_DOMAIN}/_up"
+    metrics:
+      - name: "Service status"
+        docker: "docker ps | grep nginx"
+        systemd: "systemctl status nginx"
+
+  logging:
+    access_log: "/var/log/nginx/access.log"
+    error_log: "/var/log/nginx/error.log"
+
+troubleshooting:
+  common_issues:
+    - issue: "502 Bad Gateway"
+      symptoms:
+        - "HTTPS request returns 502"
+      resolution: |
+        1. Check CouchDB is running: curl http://localhost:5984/_up
+        2. Check nginx can reach CouchDB: docker exec nginx curl http://${COUCHDB_CONTAINER_NAME}:5984/_up
+        3. Verify upstream in nginx config
+        4. Check nginx error logs: docker logs nginx OR tail /var/log/nginx/error.log
+
+    - issue: "SSL certificate not found"
+      symptoms:
+        - "nginx fails to start"
+        - "Error loading SSL certificate"
+      resolution: |
+        1. Check certificates exist: ls /etc/letsencrypt/live/${NOTES_DOMAIN}/
+        2. Re-run ssl-setup.sh if missing
+        3. Check file permissions
+
+  commands:
+    status: "systemctl status nginx OR docker ps | grep nginx"
+    logs: "tail -f /var/log/nginx/error.log OR docker logs nginx"
+    reload: "nginx -s reload OR systemctl reload nginx OR docker exec nginx nginx -s reload"
+    test_config: "nginx -t"
+
+references:
+  documentation:
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+    - "https://nginx.org/en/docs/"
+
+  prd_sections:
+    - "FR-003: Smart Nginx Integration"
+    - "FR-006: HTTP→HTTPS Redirect"
+
+  related_patterns:
+    - "pattern:nginx-integration"
+    - "pattern:certificate-management"

@@ -4,16 +4,54 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Obsidian Sync Server** - production-ready self-hosted CouchDB server for Obsidian note synchronization with flexible network architecture.
+**Obsidian Sync Server** - production-ready self-hosted sync server for Obsidian notes with dual backend support (CouchDB or livesync-serverpeer) and flexible network architecture.
 
 ### Key Characteristics
+- **Dual backend support**: Choose between CouchDB (client-server) or livesync-serverpeer (P2P)
 - **Flexible networking**: Three modes - shared, isolated, custom
 - **Auto-detection**: Automatically determines optimal network mode
 - **Nginx integration**: Auto-detects existing nginx or deploys its own
 - **Security-first**: UFW firewall, SSL/TLS, password generation
-- **Automated backups**: S3-compatible storage with cron/systemd scheduling
+- **Automated backups**: S3-compatible storage with cron/systemd scheduling (backend-independent)
 
 ## Architecture
+
+### Architecture Documentation
+
+**Location:** `docs/architecture/`
+
+Comprehensive YAML-based knowledge graph documenting all components, scripts, workflows, and architectural patterns.
+
+**Navigation:**
+- **Entry point:** `docs/architecture/index.yml` - root of the knowledge graph
+- **Structure:** Hierarchical YAML files with ID-based cross-references
+- **Categories:**
+  - `components/` - Infrastructure (CouchDB, Nginx, Docker, UFW, Certbot, S3) and Application components
+  - `scripts/` - Deployment, helper, and testing scripts with function-level documentation
+  - `workflows/` - End-to-end process flows (deployment, network setup, backup, SSL renewal)
+  - `patterns/` - Architectural patterns (flexible networking, nginx integration, etc.)
+  - `data-flows/` - Data flow diagrams through the system
+  - `network-topology/` - Network architecture diagrams (shared/isolated modes)
+  - `security/` - Security architecture and threat model
+  - `configurations/` - Configuration files documentation
+  - `dependencies/` - Dependency graphs
+
+**Query Examples:**
+```
+Q: "What scripts handle SSL certificate management?"
+A: Navigate to patterns → certificate-management → check implementation.scripts
+   Result: [script:ssl-setup, script:deploy]
+
+Q: "How does deployment work?"
+A: Navigate to workflows → deployment-flow → read phases
+   Result: Full deployment process with all scripts and dependencies
+
+Q: "What are the dependencies of deploy.sh?"
+A: Navigate to scripts.deployment.deploy → check relationships.calls_scripts
+   Result: [script:install, script:setup, script:network-manager, ...]
+```
+
+**Usage:** Claude Code can use this knowledge graph for efficient context extraction when working with the codebase. Start at `index.yml` and follow ID references to navigate between related files.
 
 ### Network Configuration
 
@@ -39,10 +77,56 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Все выборы сохраняются в /opt/notes/.env
 
 **Key Design Decisions:**
-1. CouchDB port 5984 binds to `127.0.0.1` only - no external access
+1. Backend ports bind to `127.0.0.1` only - no external access
 2. All HTTPS traffic goes through nginx reverse proxy
 3. Flexible network selection for different deployment scenarios
 4. Deployment directory `/opt/notes` - consistent across all modes
+
+### Sync Backend Options
+
+The server supports two sync backends, selected during `setup.sh`:
+
+**1. CouchDB (Default)** - Client-Server Architecture
+- **Protocol**: HTTP REST API
+- **Storage**: Database (document-oriented, CouchDB 3.3)
+- **Backup**: Database dumps → tar.gz → S3 (via `couchdb-backup.sh`)
+- **Port**: 5984 (localhost only)
+- **Container**: `couchdb-notes` (configurable via COUCHDB_CONTAINER_NAME)
+- **Use Case**: Traditional client-server sync, proven stability
+
+**2. livesync-serverpeer** - P2P Architecture
+- **Protocol**: WebSocket (WSS) relay
+- **Storage**: Headless vault (filesystem-based)
+- **Backup**: Vault archive → tar.gz → S3 (via `serverpeer-backup.sh`, **NO CouchDB dependency**)
+- **Port**: 3000 (localhost only)
+- **Container**: `serverpeer-notes` (configurable via SERVERPEER_CONTAINER_NAME)
+- **Technology**: Deno-based (https://github.com/vrtmrz/livesync-serverpeer)
+- **Dependencies**: Fully containerized (Deno, Node.js, git) - NO host installation required
+- **Use Case**: P2P synchronization with WebSocket relay, file-based storage
+
+**Backend-Independent Features**:
+- ✅ S3 backups (shared `s3_upload.py` script)
+- ✅ Nginx reverse proxy (backend-aware templates)
+- ✅ UFW firewall
+- ✅ SSL/TLS (Let's Encrypt)
+- ✅ Health checks and monitoring
+- ✅ Cron-based backup scheduling
+
+**Backend-Specific Commands**:
+
+*CouchDB:*
+```bash
+docker logs couchdb-notes
+docker compose -f docker-compose.notes.yml restart
+bash /opt/notes/scripts/couchdb-backup.sh
+```
+
+*ServerPeer:*
+```bash
+docker logs serverpeer-notes
+docker compose -f docker-compose.serverpeer.yml restart
+bash /opt/notes/scripts/serverpeer-backup.sh  # NO CouchDB dependency
+```
 
 ## Deployment Workflow
 

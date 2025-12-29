@@ -1,0 +1,296 @@
+# CouchDB Database Component
+
+metadata:
+  id: "component:couchdb"
+  name: "CouchDB Database"
+  type: "infrastructure"
+  category: "database"
+  version: "3.3"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "CouchDB 3.3 database for Obsidian note synchronization"
+  purpose: "Provide reliable, document-oriented database for note storage and synchronization with multi-master replication support"
+  responsibilities:
+    - "Store Obsidian notes and metadata as JSON documents"
+    - "Provide HTTP REST API for synchronization"
+    - "Handle CORS for Obsidian app integration"
+    - "Manage document conflicts and replication"
+    - "Support 50MB attachments per document"
+
+technical_details:
+  technology: "CouchDB 3.3 (Apache CouchDB)"
+  deployment_mode: "Docker Compose"
+  image: "couchdb:3.3"
+  container_name: "${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+
+  port_bindings:
+    - host: "5984"
+      container: "5984"
+      protocol: "HTTP"
+      exposure: "all-interfaces"
+      note: "Accessible within Docker network; external access via nginx reverse proxy only"
+
+  volumes:
+    - host: "${NOTES_DATA_DIR:-/opt/notes/data}"
+      container: "/opt/couchdb/data"
+      purpose: "Persistent database storage"
+
+    - host: "./local.ini"
+      container: "/opt/couchdb/etc/local.ini"
+      purpose: "CouchDB configuration (CORS, authentication, single_node mode, document size limits)"
+
+  environment_variables:
+    - name: "COUCHDB_USER"
+      source: "/opt/notes/.env"
+      default: "admin"
+      required: true
+      description: "Admin username for CouchDB"
+
+    - name: "COUCHDB_PASSWORD"
+      source: "/opt/notes/.env"
+      required: true
+      security: "Generated in setup.sh using openssl rand -hex 32 (64-char hex, 256-bit entropy)"
+      description: "Admin password for CouchDB"
+
+  resource_limits:
+    cpu: "0.5"
+    cpu_reservation: "0.1"
+    memory: "512M"
+    memory_reservation: "128M"
+
+  health_check:
+    command: 'curl -f -u "$COUCHDB_USER:$COUCHDB_PASSWORD" http://localhost:5984/_up'
+    interval: "30s"
+    timeout: "10s"
+    retries: 3
+    start_period: "30s"
+
+  restart_policy: "unless-stopped"
+  stop_grace_period: "30s"
+  stop_signal: "SIGTERM"
+
+relationships:
+  depends_on:
+    - id: "component:docker-network"
+      reason: "Requires Docker network for container connectivity"
+
+    - id: "config:local-ini"
+      reason: "Configuration file required for startup"
+
+    - id: "config:env-file"
+      reason: "Environment variables from /opt/notes/.env"
+
+  used_by:
+    - id: "component:nginx"
+      reason: "Nginx reverse proxies HTTP requests to CouchDB"
+
+    - id: "component:backup-system"
+      reason: "Backup system backs up CouchDB databases"
+
+  communicates_with:
+    - id: "component:nginx"
+      protocol: "HTTP"
+      direction: "receives"
+      port: 5984
+      note: "Nginx forwards requests to http://couchdb-notes:5984 (Docker DNS)"
+
+  managed_by:
+    - id: "script:deploy"
+      operations: ["deploy", "start", "stop", "restart"]
+
+    - id: "script:couchdb-backup"
+      operations: ["backup"]
+
+  configured_by:
+    - id: "config:local-ini"
+      aspects: ["CORS", "authentication", "single_node mode", "document size limits", "HTTP request limits"]
+
+    - id: "config:docker-compose"
+      aspects: ["container settings", "network", "volumes", "resources", "health check"]
+
+security:
+  authentication:
+    method: "HTTP Basic Auth"
+    admin_user: "admin"
+    password_source: "COUCHDB_PASSWORD from /opt/notes/.env"
+    password_strength: "64-character hex (256-bit entropy)"
+    enforcement: "require_valid_user = true in local.ini"
+
+  network_exposure: "Docker network only - no direct external access"
+
+  firewall_rules:
+    - port: 5984
+      action: "ALLOW within Docker network"
+      rationale: "Accessible to nginx container on same network"
+
+    - port: 5984
+      action: "DENY external access"
+      rationale: "Port bound to all interfaces (0.0.0.0) but isolated via Docker network; UFW blocks external connections"
+
+  access_control:
+    - rule: "require_valid_user = true"
+      scope: "chttpd and chttpd_auth"
+      effect: "All HTTP endpoints require authentication"
+
+    - rule: "CORS enabled for app://obsidian.md"
+      scope: "httpd"
+      effect: "Obsidian mobile/desktop app can access CouchDB API"
+
+  credentials:
+    - name: "COUCHDB_PASSWORD"
+      storage: "/opt/notes/.env (chmod 600)"
+      generation: "openssl rand -hex 32 (setup.sh)"
+
+configuration:
+  local_ini:
+    file: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/local.ini"
+    settings:
+      couchdb:
+        single_node: true
+        max_document_size: 50000000  # 50MB for attachments
+
+      chttpd:
+        require_valid_user: true
+        max_http_request_size: 4294967296  # 4GB
+
+      chttpd_auth:
+        require_valid_user: true
+        authentication_redirect: "/_utils/session.html"
+
+      httpd:
+        WWW_Authenticate: "Basic realm=\"couchdb\""
+        enable_cors: true
+
+      cors:
+        origins: "app://obsidian.md,capacitor://localhost,http://localhost"
+        credentials: true
+        headers: "accept, authorization, content-type, origin, referer"
+        methods: "GET, PUT, POST, HEAD, DELETE"
+        max_age: 3600
+
+  docker_compose:
+    file: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docker-compose.notes.yml"
+    service: "couchdb"
+
+files:
+  configuration:
+    - path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/local.ini"
+      purpose: "CouchDB server configuration"
+
+    - path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docker-compose.notes.yml"
+      purpose: "Docker Compose service definition"
+
+    - path: "/opt/notes/.env"
+      purpose: "Environment variables (credentials, configuration)"
+
+  data:
+    - path: "/opt/notes/data"
+      purpose: "CouchDB database files (persistent volume)"
+
+  scripts:
+    - id: "script:deploy"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/deploy.sh"
+      operations: ["deploy", "validate"]
+
+    - id: "script:couchdb-backup"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/couchdb-backup.sh"
+      operations: ["backup"]
+
+operational:
+  monitoring:
+    health_endpoint: "http://localhost:5984/_up"
+    metrics:
+      - name: "Container status"
+        command: "docker ps | grep ${COUCHDB_CONTAINER_NAME}"
+
+      - name: "CPU usage"
+        command: "docker stats ${COUCHDB_CONTAINER_NAME} --no-stream --format '{{.CPUPerc}}'"
+
+      - name: "Memory usage"
+        command: "docker stats ${COUCHDB_CONTAINER_NAME} --no-stream --format '{{.MemUsage}}'"
+
+      - name: "Database count"
+        command: "curl -s -u admin:password http://localhost:5984/_all_dbs | jq length"
+
+  backup:
+    enabled: true
+    frequency: "daily at 3:00 AM"
+    retention: "7 days local, indefinite S3"
+    script_id: "script:couchdb-backup"
+    location: "/opt/notes/backups/"
+
+  logging:
+    location: "docker logs ${COUCHDB_CONTAINER_NAME}"
+    rotation: "Docker default (json-file driver)"
+    commands:
+      view_logs: "docker logs ${COUCHDB_CONTAINER_NAME}"
+      follow_logs: "docker logs -f ${COUCHDB_CONTAINER_NAME}"
+      tail_logs: "docker logs --tail 100 ${COUCHDB_CONTAINER_NAME}"
+
+troubleshooting:
+  common_issues:
+    - issue: "Container not starting"
+      symptoms:
+        - "docker ps shows no couchdb-notes container"
+        - "docker compose up fails"
+      resolution: |
+        1. Check .env file exists: ls -la /opt/notes/.env
+        2. Verify COUCHDB_PASSWORD is set: grep COUCHDB_PASSWORD /opt/notes/.env
+        3. Check Docker network: docker network ls | grep ${NETWORK_NAME}
+        4. View container logs: docker logs ${COUCHDB_CONTAINER_NAME}
+        5. Check port conflict: netstat -tuln | grep 5984
+
+    - issue: "Health check timeout"
+      symptoms:
+        - "curl http://localhost:5984/_up returns connection refused"
+        - "docker inspect shows unhealthy status"
+      resolution: |
+        1. Check if CouchDB is listening: docker exec ${COUCHDB_CONTAINER_NAME} curl localhost:5984
+        2. Verify credentials match .env: test curl with admin user
+        3. Check container logs for errors: docker logs ${COUCHDB_CONTAINER_NAME}
+        4. Restart container: docker compose -f docker-compose.notes.yml restart
+
+    - issue: "Authentication failures"
+      symptoms:
+        - "401 Unauthorized responses"
+        - "Obsidian sync fails to connect"
+      resolution: |
+        1. Verify password in .env matches password in Obsidian plugin
+        2. Check local.ini has require_valid_user = true
+        3. Test auth: curl -u admin:password http://localhost:5984/_up
+        4. Regenerate password if needed: openssl rand -hex 32
+
+    - issue: "Document size limit exceeded"
+      symptoms:
+        - "413 Request Entity Too Large"
+        - "Large attachments fail to upload"
+      resolution: |
+        1. Check max_document_size in local.ini (should be 50000000 = 50MB)
+        2. Check max_http_request_size in local.ini (should be 4294967296 = 4GB)
+        3. Restart CouchDB after config changes
+
+  commands:
+    status: "docker ps | grep ${COUCHDB_CONTAINER_NAME}"
+    logs: "docker logs ${COUCHDB_CONTAINER_NAME}"
+    restart: "docker compose -f /home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docker-compose.notes.yml restart"
+    stop: "docker compose -f /home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docker-compose.notes.yml down"
+    start: "docker compose -f /home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docker-compose.notes.yml up -d"
+    shell: "docker exec -it ${COUCHDB_CONTAINER_NAME} bash"
+
+references:
+  documentation:
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/CLAUDE.md"
+    - "https://docs.couchdb.org/en/stable/"
+
+  prd_sections:
+    - "FR-001: Automated Dependency Installation"
+    - "SR-001: Network Isolation"
+    - "SR-002: Authentication & Authorization"
+
+  related_patterns:
+    - "pattern:resource-management"
+    - "pattern:configuration-isolation"
+    - "pattern:credential-management"

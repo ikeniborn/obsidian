@@ -1,0 +1,69 @@
+# Obsidian Sync Server - Architecture Documentation Metadata
+
+project:
+  name: "Obsidian Sync Server"
+  version: "5.1.0"
+  description: "Production-ready self-hosted CouchDB server for Obsidian note synchronization"
+  repository: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian"
+
+documentation:
+  version: "1.0"
+  created: "2025-12-29"
+  last_updated: "2025-12-29"
+  format: "YAML Knowledge Graph"
+  purpose: "Enable efficient context extraction for Claude Code"
+
+maintainers:
+  - name: "Development Team"
+    role: "Architecture Documentation"
+
+architecture_overview:
+  description: "3-layer design with flexible network modes"
+  layers:
+    - name: "Internet Layer"
+      components: ["UFW Firewall"]
+
+    - name: "Proxy Layer"
+      components: ["Nginx Reverse Proxy", "SSL/TLS (Let's Encrypt)"]
+
+    - name: "Application Layer"
+      components: ["CouchDB 3.3", "Docker Network"]
+
+    - name: "Storage Layer"
+      components: ["S3 Backup"]
+
+key_features:
+  - "Flexible network architecture (shared/isolated modes)"
+  - "Automated SSL certificate management"
+  - "S3-compatible backup system"
+  - "UFW firewall security"
+  - "Nginx reverse proxy integration"
+
+deployment_modes:
+  - name: "Shared Mode"
+    description: "Integrates with existing Docker services"
+    use_case: "Multi-service deployments"
+
+  - name: "Isolated Mode"
+    description: "Creates dedicated network with auto-allocated subnet"
+    use_case: "Standalone Obsidian-only deployment"
+
+statistics:
+  total_components: 9
+  total_scripts: 14
+  total_workflows: 5
+  total_patterns: 6
+  lines_of_code: "~2500+"
+
+reference_documents:
+  - path: "docs/prd/obsidian-sync-server.md"
+    type: "Product Requirements Document"
+    version: "1.0"
+
+  - path: "CLAUDE.md"
+    type: "Developer Documentation"
+    version: "5.1.0"
+
+  - path: "README.md"
+    type: "User Guide"
+    version: "5.1.0"

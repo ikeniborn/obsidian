@@ -1,0 +1,201 @@
+# UFW Firewall Component
+
+metadata:
+  id: "component:ufw-firewall"
+  name: "UFW Firewall"
+  type: "infrastructure"
+  category: "firewall"
+  version: "ufw"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "UFW (Uncomplicated Firewall) for server security with deny-by-default policy"
+  purpose: "Restrict network access to only SSH and HTTPS, temporarily open port 80 for SSL cert renewal"
+  responsibilities:
+    - "Block all incoming traffic except allowed ports"
+    - "Allow SSH (port 22) for server management"
+    - "Allow HTTPS (port 443) for Obsidian client access"
+    - "Temporarily allow HTTP (port 80) during certbot SSL renewal"
+    - "Deny all other incoming traffic"
+
+technical_details:
+  default_policy:
+    incoming: "deny"
+    outgoing: "allow"
+    routed: "deny"
+
+  allowed_ports:
+    - port: 22
+      protocol: "tcp"
+      purpose: "SSH access for server management"
+      permanent: true
+
+    - port: 443
+      protocol: "tcp"
+      purpose: "HTTPS access to CouchDB via nginx"
+      permanent: true
+
+    - port: 80
+      protocol: "tcp"
+      purpose: "HTTP for certbot ACME challenge only"
+      permanent: false
+      note: "Opened by pre-hook, closed by post-hook"
+
+  hooks:
+    pre_renewal:
+      location: "/etc/letsencrypt/renewal-hooks/pre/ufw-allow-http.sh"
+      action: "ufw allow 80/tcp"
+
+    post_renewal:
+      location: "/etc/letsencrypt/renewal-hooks/post/ufw-deny-http.sh"
+      action: "ufw delete allow 80/tcp"
+
+relationships:
+  depends_on: []
+
+  used_by:
+    - id: "component:nginx"
+      reason: "Firewall allows HTTPS traffic to nginx"
+
+    - id: "component:certbot"
+      reason: "Firewall hooks manage port 80 for cert renewal"
+
+  managed_by:
+    - id: "script:ufw-setup"
+      operations: ["configure", "enable"]
+
+    - id: "script:ssl-setup"
+      operations: ["install_hooks"]
+
+  configured_by:
+    - id: "script:ufw-setup"
+      aspects: ["default policies", "SSH port", "HTTPS port"]
+
+security:
+  attack_surface:
+    exposed_ports: [22, 443]
+    blocked_ports: "All others (including 80, 5984)"
+
+  ssh_protection:
+    port_detection: "Auto-detect from /etc/ssh/sshd_config"
+    default: 22
+
+  ddos_mitigation:
+    rate_limiting: "Not configured (can be added)"
+    connection_tracking: "UFW default"
+
+configuration:
+  ufw_rules: |
+    # Default policies
+    ufw default deny incoming
+    ufw default allow outgoing
+
+    # Allow SSH (detected port)
+    ufw allow ${SSH_PORT}/tcp
+
+    # Allow HTTPS
+    ufw allow 443/tcp
+
+    # Port 80 managed by certbot hooks (not permanently open)
+
+  certbot_hooks:
+    pre_renewal_hook: |
+      #!/bin/bash
+      # /etc/letsencrypt/renewal-hooks/pre/ufw-allow-http.sh
+      ufw allow 80/tcp
+      echo "UFW: Temporarily allowed port 80 for certbot"
+
+    post_renewal_hook: |
+      #!/bin/bash
+      # /etc/letsencrypt/renewal-hooks/post/ufw-deny-http.sh
+      ufw delete allow 80/tcp
+      echo "UFW: Closed port 80 after certbot renewal"
+
+files:
+  configuration:
+    - path: "/etc/ufw/ufw.conf"
+      purpose: "UFW main configuration"
+
+    - path: "/etc/ufw/user.rules"
+      purpose: "User-defined firewall rules"
+
+  hooks:
+    - path: "/etc/letsencrypt/renewal-hooks/pre/ufw-allow-http.sh"
+      purpose: "Open port 80 before cert renewal"
+
+    - path: "/etc/letsencrypt/renewal-hooks/post/ufw-deny-http.sh"
+      purpose: "Close port 80 after cert renewal"
+
+  scripts:
+    - id: "script:ufw-setup"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/ufw-setup.sh"
+
+operational:
+  monitoring:
+    check_status: "ufw status verbose"
+    check_rules: "ufw status numbered"
+
+  validation:
+    - check: "UFW enabled"
+      command: "ufw status | grep 'Status: active'"
+
+    - check: "SSH allowed"
+      command: "ufw status | grep '${SSH_PORT}/tcp'"
+
+    - check: "HTTPS allowed"
+      command: "ufw status | grep '443/tcp'"
+
+    - check: "Port 80 blocked (except during renewal)"
+      command: "ufw status | grep '80/tcp' && echo 'WARN: Port 80 open' || echo 'OK: Port 80 closed'"
+
+troubleshooting:
+  common_issues:
+    - issue: "Cannot connect via SSH after enabling UFW"
+      symptoms:
+        - "SSH connection refused"
+        - "Locked out of server"
+      resolution: |
+        1. Access server via console (not SSH)
+        2. Check SSH port: grep Port /etc/ssh/sshd_config
+        3. Allow SSH port: ufw allow ${SSH_PORT}/tcp
+        4. Verify rule: ufw status | grep ${SSH_PORT}
+
+    - issue: "Certbot renewal fails (port 80 blocked)"
+      symptoms:
+        - "Certbot cannot bind to port 80"
+        - "ACME challenge fails"
+      resolution: |
+        1. Check hooks exist: ls /etc/letsencrypt/renewal-hooks/pre/ufw-allow-http.sh
+        2. Make hooks executable: chmod +x /etc/letsencrypt/renewal-hooks/{pre,post}/*.sh
+        3. Test renewal: certbot renew --dry-run
+        4. Manually allow if needed: ufw allow 80/tcp (temporary)
+
+    - issue: "Cannot access HTTPS site"
+      symptoms:
+        - "Connection timeout on https://notes.example.com"
+      resolution: |
+        1. Check UFW allows 443: ufw status | grep 443
+        2. Add rule if missing: ufw allow 443/tcp
+        3. Verify nginx is running
+        4. Check DNS resolution
+
+  commands:
+    status: "ufw status verbose"
+    enable: "ufw enable"
+    disable: "ufw disable"
+    allow_port: "ufw allow ${PORT}/tcp"
+    deny_port: "ufw delete allow ${PORT}/tcp"
+    reset: "ufw reset"
+
+references:
+  documentation:
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/security.md"
+
+  prd_sections:
+    - "SR-001: UFW Firewall Configuration"
+    - "SR-003: Port Management Strategy"
+
+  related_patterns:
+    - "pattern:certificate-management"

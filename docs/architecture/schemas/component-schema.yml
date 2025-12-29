@@ -1,0 +1,76 @@
+# Component Schema Template
+# Use this template for documenting infrastructure and application components
+
+metadata:
+  id: string                    # Unique identifier (e.g., component:couchdb)
+  name: string                  # Human-readable name
+  type: enum                    # [infrastructure, application, service]
+  category: string              # [database, proxy, firewall, storage, orchestration]
+  version: string               # Component version
+  status: enum                  # [active, deprecated, planned]
+  last_updated: date            # YYYY-MM-DD
+
+description:
+  summary: string               # One-line description
+  purpose: string               # What problem this solves
+  responsibilities: list        # List of key responsibilities
+
+technical_details:
+  technology: string            # Technology stack (Docker, CouchDB, Nginx, etc.)
+  deployment_mode: string       # How it's deployed
+  port_bindings: list           # Port mappings
+  volumes: list                 # Volume mounts
+  environment_variables: list   # Required env vars
+  resource_limits:
+    cpu: string
+    memory: string
+  health_check:
+    command: string
+    interval: string
+    timeout: string
+
+relationships:
+  depends_on: list              # Component IDs this depends on
+  used_by: list                 # Component IDs that use this
+  communicates_with: list       # Network communication partners
+  managed_by: list              # Scripts that manage this component
+  configured_by: list           # Configuration files
+
+security:
+  authentication: string        # Authentication mechanism
+  network_exposure: string      # Public/private/localhost
+  firewall_rules: list          # UFW rules
+  credentials: list             # Credential references
+
+files:
+  configuration: list           # Config file paths
+  scripts: list                 # Related script paths
+  templates: list               # Template file paths
+  data: list                    # Data directory paths
+
+operational:
+  monitoring:
+    health_endpoint: string
+    metrics: list
+  backup:
+    enabled: boolean
+    frequency: string
+    retention: string
+  logging:
+    location: string
+    rotation: string
+
+troubleshooting:
+  common_issues: list
+    - issue: string
+      symptoms: list
+      resolution: string
+  commands:
+    status: string
+    logs: string
+    restart: string
+
+references:
+  documentation: list           # Links to docs
+  prd_sections: list            # PRD references
+  related_patterns: list        # Pattern IDs

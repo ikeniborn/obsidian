@@ -1,0 +1,58 @@
+# Deployment Workflow Example
+
+metadata:
+  id: "workflow:deployment"
+  name: "Full Production Deployment Workflow"
+  type: "deployment"
+  trigger: "manual"
+  status: "active"
+  version: "2.0"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Complete deployment workflow from fresh system to production-ready server"
+  purpose: "Automate all deployment steps with validation and error handling"
+  scope: "Deploys CouchDB, nginx, SSL certificates, firewall, and backup system"
+
+phases:
+  - id: "phase:installation"
+    name: "System Preparation & Dependency Installation"
+    order: 1
+    type: "sequential"
+    steps:
+      - id: "install.1"
+        order: 1
+        action: "Install Docker and Docker Compose"
+        actor: "script:install"
+        duration: "2-3 minutes"
+
+      - id: "install.2"
+        order: 2
+        action: "Create /opt/notes directory structure"
+        actor: "script:install"
+
+  - id: "phase:deployment"
+    name: "Service Deployment"
+    order: 3
+    type: "sequential"
+    steps:
+      - id: "deploy.1"
+        order: 1
+        action: "Setup Docker network"
+        actor: "script:deploy (calls script:network-manager)"
+
+      - id: "deploy.2"
+        order: 2
+        action: "Deploy CouchDB via Docker Compose"
+        actor: "script:deploy"
+
+references:
+  implemented_by_scripts:
+    - "script:install"
+    - "script:setup"
+    - "script:deploy"
+
+  affects_components:
+    - "component:couchdb"
+    - "component:nginx"
+    - "component:docker-network"

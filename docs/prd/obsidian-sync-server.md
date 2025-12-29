@@ -1170,8 +1170,128 @@ curl https://your-domain.com/_up
 - [README.md](../../README.md) - Getting Started
 - [Phase Plans](../plans/) - Детальные планы для каждой фазы
 - [Scripts Documentation](../scripts/) - Документация для всех скриптов (будет создана)
+- [Architecture Documentation](../architecture/index.yml) - Архитектурная документация в формате YAML knowledge graph
 
-### B. Глоссарий
+### B. Архитектурная документация
+
+**Расположение:** `docs/architecture/`
+
+Детальная архитектурная документация в формате YAML-based knowledge graph, предоставляющая полное описание всех компонентов, скриптов, workflows и архитектурных паттернов проекта.
+
+**Что документировано:**
+
+1. **Компоненты инфраструктуры** (`components/infrastructure/`):
+   - CouchDB 3.3 - база данных для синхронизации заметок
+   - Nginx - reverse proxy с SSL termination
+   - Docker Network - гибкая сетевая архитектура (shared/isolated режимы)
+   - UFW Firewall - deny-by-default firewall policy
+   - Certbot - автоматическое управление Let's Encrypt сертификатами
+   - S3 Storage - S3-compatible хранилище для backups
+
+2. **Компоненты приложения** (`components/application/`):
+   - Backup System - автоматизированная система backup с S3 интеграцией
+   - Deployment System - 3-фазная система deployment
+   - Monitoring System - health checks и валидация
+
+3. **Скрипты** (`scripts/`):
+   - **Deployment:** install.sh, setup.sh, deploy.sh
+   - **Helpers:** network-manager.sh, nginx-setup.sh, ssl-setup.sh, ufw-setup.sh, couchdb-backup.sh
+   - **Testing:** test-backup.sh, test-network-modes.sh, test-ssl-renewal.sh, run-all-tests.sh
+
+4. **Workflows** (`workflows/`):
+   - Deployment Flow - полный процесс deployment от install до validation
+   - Network Setup Flow - конфигурация сети (shared/isolated mode selection)
+   - SSL Renewal Flow - автоматическое обновление сертификатов
+   - Backup Flow - процесс backup с S3 upload
+
+5. **Архитектурные паттерны** (`patterns/`):
+   - Flexible Network Architecture - shared/isolated/custom network modes
+   - Nginx Integration Pattern - 3 сценария интеграции с nginx
+   - Configuration Isolation - изоляция конфигурации в /opt/notes/.env
+   - Certificate Management - Let's Encrypt с UFW hooks
+   - Credential Management - безопасное хранение credentials
+
+6. **Data Flows** (`data-flows/`):
+   - User Request Flow - Internet → UFW → Nginx → CouchDB
+   - Backup Data Flow - CouchDB → Backup → S3
+   - Configuration Flow - .env → scripts → containers
+   - SSL Certificate Flow - Certbot → Let's Encrypt → Nginx
+
+7. **Network Topology** (`network-topology/`):
+   - Shared Mode - интеграция с существующей Docker сетью
+   - Isolated Mode - standalone deployment с obsidian_network
+   - Subnet Allocation - автоматический выбор свободной подсети (172.24-31.0.0/16)
+
+8. **Security Architecture** (`security/`):
+   - Firewall Rules - UFW configuration с deny-by-default policy
+   - SSL Configuration - TLS 1.2+, HSTS, Let's Encrypt
+   - Credential Storage - chmod 600, .env isolation
+   - Network Isolation - CouchDB port 5984 доступен только через nginx
+   - Attack Surface - минимизация exposed ports (22, 443)
+
+9. **Конфигурации** (`configurations/`):
+   - /opt/notes/.env - центральная конфигурация
+   - docker-compose.notes.yml - Docker Compose configuration
+   - local.ini - CouchDB server configuration
+   - notes.conf.template - Nginx configuration template
+   - Cron Jobs - scheduled tasks (backup, SSL renewal)
+
+10. **Зависимости** (`dependencies/`):
+    - Script Dependencies - граф зависимостей между скриптами
+    - Component Dependencies - связи между компонентами
+    - Package Dependencies - системные зависимости (Docker, UFW, Python, etc.)
+    - Runtime Dependencies - runtime requirements
+
+**Навигация:**
+
+Начните с файла `docs/architecture/index.yml`, который является точкой входа в knowledge graph. Каждый YAML файл содержит:
+- **metadata** - ID, название, тип, статус
+- **description** - описание назначения и функций
+- **relationships** - явные связи с другими компонентами/скриптами через ID references
+- **technical_details** - технические детали реализации
+
+**Примеры запросов:**
+
+```yaml
+# Запрос: "Какие скрипты управляют SSL сертификатами?"
+Путь: index.yml → patterns → pattern:certificate-management → implementation.scripts
+Результат: [script:ssl-setup, script:deploy]
+
+# Запрос: "Как работает процесс deployment?"
+Путь: index.yml → workflows → workflow:deployment → phases
+Результат: 4 фазы (Installation → Configuration → Deployment → Post-deployment)
+
+# Запрос: "Какие зависимости у deploy.sh?"
+Путь: index.yml → scripts.deployment → script:deploy → relationships
+Результат: depends_on=[script:install, script:setup], calls=[network-manager.sh, nginx-setup.sh, ssl-setup.sh]
+```
+
+**Формат документации:**
+
+Все файлы используют YAML format с strict schema (определены в `docs/architecture/schemas/`). Каждый файл самодостаточен, но связан с другими через ID-based references типа:
+- `component:couchdb` - ссылка на компонент CouchDB
+- `script:deploy` - ссылка на скрипт deploy.sh
+- `workflow:deployment` - ссылка на workflow deployment
+
+**Типы связей:**
+
+Документированы 15 типов связей (см. `schemas/relationship-types.yml`):
+- **Structural:** depends_on, used_by, contains, part_of
+- **Behavioral:** calls, triggers, validates, configures
+- **Data:** produces, consumes, reads, writes
+- **Network:** communicates_with
+- **Temporal:** precedes
+- **Semantic:** implements
+
+**Использование:**
+
+Данная документация предназначена для:
+1. **Claude Code** - эффективное извлечение контекста при работе с codebase
+2. **Разработчиков** - понимание архитектуры и зависимостей
+3. **DevOps** - референс для deployment и troubleshooting
+4. **Аудита** - отслеживание изменений в архитектуре
+
+### C. Глоссарий
 - **CouchDB:** Document-oriented NoSQL database
 - **CORS:** Cross-Origin Resource Sharing
 - **UFW:** Uncomplicated Firewall (frontend для iptables)
@@ -1181,7 +1301,7 @@ curl https://your-domain.com/_up
 - **RPO:** Recovery Point Objective
 - **ACME:** Automatic Certificate Management Environment
 
-### C. Версионирование документа
+### D. Версионирование документа
 - **v1.0 (2025-11-16):** Initial PRD creation
 - Будущие версии будут документировать изменения в requirements
 

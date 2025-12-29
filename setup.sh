@@ -362,6 +362,69 @@ configure_couchdb() {
     success "CouchDB container name: $COUCHDB_CONTAINER_NAME"
 }
 
+prompt_sync_backend() {
+    echo ""
+    info "Sync Backend Selection"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "1) CouchDB - Client-Server (HTTP REST API)"
+    echo "2) ServerPeer - P2P (WebSocket relay)"
+    echo ""
+
+    while true; do
+        read -p "Select backend [1-2] (default: 1): " choice
+        choice=${choice:-1}
+
+        case "$choice" in
+            1)
+                SYNC_BACKEND="couchdb"
+                S3_BACKUP_PREFIX="couchdb-backups/"
+                success "Selected: CouchDB"
+                break
+                ;;
+            2)
+                SYNC_BACKEND="serverpeer"
+                S3_BACKUP_PREFIX="serverpeer-backups/"
+                success "Selected: ServerPeer (Docker-based)"
+                info "All dependencies (Deno, Node.js) are containerized - no host installation needed"
+                break
+                ;;
+            *)
+                warning "Invalid choice"
+                ;;
+        esac
+    done
+}
+
+configure_serverpeer() {
+    [[ "$SYNC_BACKEND" != "serverpeer" ]] && return 0
+
+    echo ""
+    info "ServerPeer Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    # Generate secure passphrase (16 bytes = 32 hex chars)
+    local passphrase=$(openssl rand -hex 16)
+
+    # Generate room ID (12 bytes = UUID-like format)
+    local room_id=$(openssl rand -hex 6 | sed 's/\(..\)/\1-/g;s/-$//')
+
+    SERVERPEER_APPID=self-hosted-livesync
+    SERVERPEER_ROOMID=$room_id
+    SERVERPEER_PASSPHRASE=$passphrase
+    SERVERPEER_RELAYS=wss://exp-relay.vrtmrz.net/
+    SERVERPEER_NAME=${NOTES_DOMAIN}-peer
+    SERVERPEER_VAULT_NAME=headless-vault
+    SERVERPEER_AUTOBROADCAST=true
+    SERVERPEER_AUTOSTART=true
+    SERVERPEER_PORT=3000
+    SERVERPEER_VAULT_DIR=/opt/notes/serverpeer-vault
+    SERVERPEER_CONTAINER_NAME=serverpeer-notes
+
+    success "ServerPeer configured"
+    echo "  Room ID: $room_id"
+    echo "  Passphrase: [hidden - saved in .env]"
+}
+
 prompt_s3_credentials() {
     echo ""
     info "S3 Backup Configuration (Optional)"
@@ -487,6 +550,43 @@ S3_BACKUP_PREFIX=$S3_BACKUP_PREFIX
 EOF
     fi
 
+    # Backend-specific configuration
+    if [[ "$SYNC_BACKEND" == "serverpeer" ]]; then
+        cat >> "$ENV_FILE" << EOF
+
+# =============================================================================
+# Sync Backend Configuration
+# =============================================================================
+
+SYNC_BACKEND=serverpeer
+
+# =============================================================================
+# ServerPeer Configuration
+# =============================================================================
+
+SERVERPEER_APPID=$SERVERPEER_APPID
+SERVERPEER_ROOMID=$SERVERPEER_ROOMID
+SERVERPEER_PASSPHRASE=$SERVERPEER_PASSPHRASE
+SERVERPEER_RELAYS=$SERVERPEER_RELAYS
+SERVERPEER_NAME=$SERVERPEER_NAME
+SERVERPEER_AUTOBROADCAST=$SERVERPEER_AUTOBROADCAST
+SERVERPEER_AUTOSTART=$SERVERPEER_AUTOSTART
+SERVERPEER_PORT=$SERVERPEER_PORT
+SERVERPEER_VAULT_NAME=$SERVERPEER_VAULT_NAME
+SERVERPEER_VAULT_DIR=$SERVERPEER_VAULT_DIR
+SERVERPEER_CONTAINER_NAME=$SERVERPEER_CONTAINER_NAME
+EOF
+    else
+        cat >> "$ENV_FILE" << EOF
+
+# =============================================================================
+# Sync Backend Configuration
+# =============================================================================
+
+SYNC_BACKEND=couchdb
+EOF
+    fi
+
     chmod 600 "$ENV_FILE"
 
     success "Configuration file created: $ENV_FILE"
@@ -495,8 +595,18 @@ EOF
 setup_backup_cron() {
     info "Setting up automatic backups..."
 
+    # Select backup script based on backend
+    local backup_script
+    if [[ "${SYNC_BACKEND:-couchdb}" == "serverpeer" ]]; then
+        backup_script="/opt/notes/scripts/serverpeer-backup.sh"
+    else
+        backup_script="/opt/notes/scripts/couchdb-backup.sh"
+    fi
+
     echo ""
     echo "Automatic backups configuration:"
+    echo "  Backend: ${SYNC_BACKEND:-couchdb}"
+    echo "  Script: ${backup_script}"
     echo "  Schedule: Daily at 3:00 AM"
     echo "  Target: S3 (if configured) + local /opt/notes/backups/"
     echo ""
@@ -504,11 +614,12 @@ setup_backup_cron() {
     echo ""
 
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        CRON_JOB="0 3 * * * /bin/bash /opt/notes/scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+        CRON_JOB="0 3 * * * /bin/bash ${backup_script} >> /opt/notes/logs/backup.log 2>&1"
 
-        if crontab -l 2>/dev/null | grep -q "couchdb-backup.sh"; then
-            info "Removing old backup cron job..."
-            crontab -l 2>/dev/null | grep -v "couchdb-backup.sh" | crontab -
+        # Remove old backup cron jobs (both couchdb and serverpeer)
+        if crontab -l 2>/dev/null | grep -qE "couchdb-backup.sh|serverpeer-backup.sh"; then
+            info "Removing old backup cron jobs..."
+            crontab -l 2>/dev/null | grep -vE "couchdb-backup.sh|serverpeer-backup.sh" | crontab -
             info "Installing updated backup cron job..."
             (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
             success "Backup cron job updated (daily at 3:00 AM)"
@@ -521,7 +632,7 @@ setup_backup_cron() {
         chmod 644 /opt/notes/logs/backup.log
     else
         info "Automatic backups not configured"
-        info "You can run backups manually: bash scripts/couchdb-backup.sh"
+        info "You can run backups manually: bash ${backup_script}"
     fi
 }
 
@@ -589,9 +700,21 @@ main() {
 
     configure_network
     configure_nginx
-    configure_couchdb
-    prompt_certbot_email
+
+    # Domain and email configuration (needed before backend setup)
     prompt_notes_domain
+    prompt_certbot_email
+
+    # Backend selection
+    prompt_sync_backend
+
+    # Conditional backend configuration
+    if [[ "${SYNC_BACKEND:-couchdb}" == "serverpeer" ]]; then
+        configure_serverpeer
+    else
+        configure_couchdb
+    fi
+
     prompt_s3_credentials
 
     echo ""

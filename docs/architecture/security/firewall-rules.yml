@@ -1,0 +1,47 @@
+# UFW Firewall Rules
+
+metadata:
+  id: "security:firewall-rules"
+  name: "UFW Firewall Rules"
+  category: "security"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Deny-by-default firewall policy with minimal port exposure"
+  purpose: "Restrict network access to only SSH and HTTPS"
+
+rules:
+  default_policies:
+    incoming: "deny"
+    outgoing: "allow"
+
+  allowed_ports:
+    - port: 22
+      protocol: "tcp"
+      purpose: "SSH access"
+      permanent: true
+
+    - port: 443
+      protocol: "tcp"
+      purpose: "HTTPS access to CouchDB via nginx"
+      permanent: true
+
+    - port: 80
+      protocol: "tcp"
+      purpose: "HTTP for certbot ACME challenge only"
+      permanent: false
+      managed_by: "UFW hooks (pre/post renewal)"
+
+threat_model:
+  attack_surface:
+    exposed_ports: [22, 443]
+    blocked_ports: "All others (including 5984)"
+
+  mitigations:
+    - threat: "Unauthorized access to CouchDB"
+      mitigation: "Port 5984 blocked externally, accessible only via nginx reverse proxy"
+
+references:
+  prd_sections:
+    - "SR-001: UFW Firewall Configuration"

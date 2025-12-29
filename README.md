@@ -1,13 +1,14 @@
-# Notes - CouchDB Obsidian Sync
+# Notes - Obsidian Sync Server
 
-Изолированное приложение для синхронизации заметок Obsidian через CouchDB.
+Гибкое приложение для синхронизации заметок Obsidian с поддержкой двух бэкендов: CouchDB (client-server) и livesync-serverpeer (P2P).
 
 ## 📋 Описание
 
-Notes - это **гибкое приложение** для хранения и синхронизации заметок Obsidian. Использует:
-- **CouchDB** - база данных для хранения заметок
+Notes - это **гибкое приложение** для хранения и синхронизации заметок Obsidian с выбором бэкенда. Использует:
+- **Sync Backend** - CouchDB (database) или livesync-serverpeer (P2P WebSocket, file-based vault)
 - **Nginx** - reverse proxy (существующий или собственный)
 - **Docker Compose** - контейнерное развертывание
+- **S3 Backups** - автоматические резервные копии (работают с обоими бэкендами)
 
 ## 🏗️ Архитектура
 
@@ -40,6 +41,32 @@ Docker Network: obsidian_network (auto-created, 172.24-31.0.0/16)
    - Автоматическое определение или запрос config directory
 3. **Валидация** сетевой связности после deployment
 
+### Sync Backend Selection
+
+При запуске `setup.sh` выбирается один из двух бэкендов:
+
+**1. CouchDB (по умолчанию)** - Client-Server
+- Протокол: HTTP REST API
+- Хранение: База данных (document-oriented)
+- Backup: Дампы БД → S3 (через `couchdb-backup.sh`)
+- Порт: 5984 (localhost only)
+- Контейнер: `couchdb-notes`
+
+**2. livesync-serverpeer** - P2P
+- Протокол: WebSocket relay (WSS)
+- Хранение: Headless vault (файловая система)
+- Backup: Архив директории → S3 (через `serverpeer-backup.sh`, **БЕЗ зависимости от CouchDB**)
+- Порт: 3000 (localhost only)
+- Контейнер: `serverpeer-notes`
+- Технология: Deno-based (все зависимости в контейнере)
+
+**Общие возможности:**
+- ✅ S3 резервное копирование (backend-независимое)
+- ✅ Nginx reverse proxy
+- ✅ UFW firewall
+- ✅ SSL/TLS (Let's Encrypt)
+- ✅ Health checks
+
 ## 🚀 Быстрый старт
 
 ### Production (Рекомендуется)
@@ -62,11 +89,12 @@ sudo ./install.sh
 ```
 
 Настроит:
-- Генерация безопасного COUCHDB_PASSWORD
+- **Выбор sync бэкенда** (CouchDB или serverpeer)
+- Генерация безопасных credentials (COUCHDB_PASSWORD или SERVERPEER_PASSPHRASE/ROOMID)
 - Запрос NOTES_DOMAIN (например: notes.example.com)
 - Запрос CERTBOT_EMAIL (для Let's Encrypt уведомлений)
 - Запрос S3 credentials (опционально)
-- Создание cron job для автоматических backups (3:00 AM)
+- Создание cron job для автоматических backups (3:00 AM, backend-specific script)
 
 **Шаг 3: Deployment**
 ```bash
@@ -76,7 +104,7 @@ sudo ./install.sh
 Выполнит:
 - Nginx setup (детекция/интеграция или запуск своего)
 - SSL сертификаты (Let's Encrypt через certbot)
-- CouchDB deployment
+- **Conditional deployment** (CouchDB или serverpeer в зависимости от выбора)
 - Валидация всех компонентов
 
 **Доступ:**
@@ -116,19 +144,28 @@ sudo ./deploy.sh
 
 ```
 notes/
-├── docker-compose.notes.yml  # Изолированный docker-compose
-├── .env.example              # Template переменных
-├── README.md                 # Эта документация
-├── install.sh                # Установка зависимостей
-├── setup.sh                  # Конфигурация (/opt/notes/.env)
-├── deploy.sh                 # Production deployment
-├── local.ini                 # CouchDB server config
-└── scripts/                  # Вспомогательные скрипты
-    ├── couchdb-backup.sh     # Backup script
-    ├── nginx-setup.sh        # Nginx configuration
-    ├── ssl-setup.sh          # SSL/certbot setup
-    ├── ufw-setup.sh          # Firewall configuration
-    ├── network-manager.sh    # Network configuration helper
+├── docker-compose.notes.yml      # CouchDB docker-compose
+├── docker-compose.serverpeer.yml # ServerPeer docker-compose
+├── .env.example                  # Template переменных
+├── README.md                     # Эта документация
+├── install.sh                    # Установка зависимостей
+├── setup.sh                      # Конфигурация (/opt/notes/.env) + выбор бэкенда
+├── deploy.sh                     # Production deployment (conditional)
+├── local.ini                     # CouchDB server config
+├── serverpeer/                   # ServerPeer Docker build
+│   └── Dockerfile                # Multi-stage build (Deno + Node.js)
+├── templates/                    # Nginx templates
+│   ├── couchdb.conf.template     # CouchDB HTTP proxy
+│   └── serverpeer.conf.template  # ServerPeer WebSocket proxy
+└── scripts/                      # Вспомогательные скрипты
+    ├── couchdb-backup.sh         # CouchDB backup script
+    ├── serverpeer-backup.sh      # ServerPeer backup script (NO CouchDB)
+    ├── test-serverpeer.sh        # ServerPeer integration tests
+    ├── nginx-setup.sh            # Nginx configuration (backend-aware)
+    ├── ssl-setup.sh              # SSL/certbot setup
+    ├── ufw-setup.sh              # Firewall configuration
+    ├── network-manager.sh        # Network configuration helper
+    ├── s3_upload.py              # S3 upload (backend-agnostic)
     └── ... (other utilities)
 ```
 
@@ -378,8 +415,30 @@ du -sh /opt/notes/data
 du -sh /opt/notes/backups
 ```
 
+## 📖 Documentation
+
+### Architecture Documentation
+
+Comprehensive YAML-based architecture documentation is available at `docs/architecture/`. This knowledge graph documents all components, scripts, workflows, and architectural patterns.
+
+**Start here:** [`docs/architecture/index.yml`](docs/architecture/index.yml)
+
+**What's documented:**
+- Infrastructure components (CouchDB, Nginx, Docker, UFW, Certbot, S3)
+- Application components (Backup, Deployment, Monitoring)
+- Scripts (deployment, helpers, testing)
+- Workflows (deployment flow, network setup, SSL renewal, backup)
+- Architectural patterns (flexible networking, nginx integration)
+- Security architecture and threat model
+- Network topology diagrams (shared/isolated modes)
+- Configuration files structure
+
+**For developers:** Use the knowledge graph to understand component relationships, script dependencies, and execution flows. Each YAML file contains detailed technical information with cross-references to related components.
+
 ## 🔗 Links
 
+- [Architecture Documentation](docs/architecture/index.yml) - YAML knowledge graph
+- [Product Requirements (PRD)](docs/prd/obsidian-sync-server.md) - Full specification
 - [CouchDB Documentation](https://docs.couchdb.org/)
 - [Obsidian Self-hosted LiveSync](https://github.com/vrtmrz/obsidian-livesync)
 - [Family Budget Main App](../README.md)

@@ -259,6 +259,52 @@ copy_scripts_to_workdir() {
     success "Scripts copied to $NOTES_DEPLOY_DIR/scripts/"
 }
 
+deploy_serverpeer() {
+    info "Building and starting ServerPeer container..."
+
+    local compose_file="$SCRIPT_DIR/docker-compose.serverpeer.yml"
+
+    if [[ ! -f "$compose_file" ]]; then
+        error "docker-compose.serverpeer.yml not found at $compose_file"
+    fi
+
+    # Create vault directory
+    sudo mkdir -p "${SERVERPEER_VAULT_DIR:-/opt/notes/serverpeer-vault}"
+    sudo chown -R $(whoami):$(whoami) "${SERVERPEER_VAULT_DIR}"
+
+    # Export variables for docker compose interpolation
+    export NETWORK_NAME NETWORK_EXTERNAL SERVERPEER_VAULT_DIR
+    export SERVERPEER_CONTAINER_NAME SERVERPEER_APPID SERVERPEER_ROOMID
+    export SERVERPEER_PASSPHRASE SERVERPEER_RELAYS SERVERPEER_NAME
+    export SERVERPEER_AUTOBROADCAST SERVERPEER_AUTOSTART
+    export SERVERPEER_VAULT_NAME SERVERPEER_PORT
+
+    docker compose -f "$compose_file" build
+    docker compose -f "$compose_file" up -d --remove-orphans
+
+    success "ServerPeer deployed"
+}
+
+wait_for_serverpeer_healthy() {
+    info "Waiting for ServerPeer health check..."
+
+    local container="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+    local max_attempts=30
+    local attempt=1
+
+    while [[ $attempt -le $max_attempts ]]; do
+        if docker ps --filter "name=$container" --filter "health=healthy" | grep -q "$container"; then
+            success "ServerPeer is healthy"
+            return 0
+        fi
+        echo -n "."
+        sleep 2
+        ((attempt++))
+    done
+
+    warning "Health check timeout (container may still be starting)"
+}
+
 deploy_couchdb() {
     info "Deploying CouchDB..."
 
@@ -468,9 +514,18 @@ main() {
 
     copy_scripts_to_workdir
 
-    deploy_couchdb
+    # Conditional deployment based on backend
+    source "$NOTES_DEPLOY_DIR/.env"
 
-    wait_for_couchdb_healthy
+    if [[ "${SYNC_BACKEND:-couchdb}" == "serverpeer" ]]; then
+        info "Deploying ServerPeer backend..."
+        deploy_serverpeer
+        wait_for_serverpeer_healthy
+    else
+        info "Deploying CouchDB backend..."
+        deploy_couchdb
+        wait_for_couchdb_healthy
+    fi
 
     if ! validate_deployment; then
         error "Deployment validation failed"

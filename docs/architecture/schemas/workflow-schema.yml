@@ -1,0 +1,92 @@
+# Workflow Schema Template
+# Use this template for documenting process flows and orchestration
+
+metadata:
+  id: string                    # Unique identifier (e.g., workflow:deployment)
+  name: string
+  type: enum                    # [deployment, configuration, maintenance, recovery]
+  trigger: enum                 # [manual, automated, scheduled, event]
+  status: enum                  # [active, deprecated, planned]
+  version: string
+  last_updated: date
+
+description:
+  summary: string
+  purpose: string
+  scope: string                 # What this workflow accomplishes
+  preconditions: list           # Required state before execution
+  postconditions: list          # Expected state after execution
+
+participants:
+  human_actors: list
+    - role: string
+      responsibilities: list
+  automated_actors: list
+    - type: string              # [script, cron, systemd, hook]
+      identifier: string
+
+phases:
+  - id: string
+    name: string
+    order: integer
+    type: enum                  # [sequential, parallel, conditional]
+    steps:
+      - id: string
+        order: integer
+        action: string
+        actor: string           # Script ID or component ID
+        inputs: list
+          - source: string
+            type: string
+        outputs: list
+          - destination: string
+            type: string
+        duration: string
+        validation:
+          method: string
+          success_criteria: list
+        error_handling:
+          strategy: string
+          rollback_steps: list
+          retry_policy:
+            max_attempts: integer
+            backoff: string
+    dependencies:
+      requires_phases: list     # Phase IDs that must complete first
+      provides_for_phases: list # Phase IDs that depend on this
+
+data_flow:
+  - from: string                # Source component/script ID
+    to: string                  # Destination component/script ID
+    data_type: string
+    protocol: string
+    transformation: string
+
+state_transitions:
+  - from_state: string
+    to_state: string
+    trigger: string
+    validation: string
+
+decision_points:
+  - id: string
+    condition: string
+    true_path: string           # Phase/step ID
+    false_path: string          # Phase/step ID
+    criteria: string
+
+monitoring:
+  progress_indicators: list
+  health_checks: list
+  logging: string
+
+rollback_procedure:
+  enabled: boolean
+  automatic: boolean
+  steps: list
+
+references:
+  implemented_by_scripts: list  # Script IDs
+  affects_components: list      # Component IDs
+  implements_patterns: list     # Pattern IDs
+  documented_in: list           # Doc references

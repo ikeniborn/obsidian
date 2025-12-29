@@ -1,0 +1,186 @@
+# Monitoring & Health Check System
+
+metadata:
+  id: "component:monitoring-system"
+  name: "Monitoring & Health Check System"
+  type: "application"
+  category: "monitoring"
+  version: "1.0"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Health check and monitoring system for all Obsidian Sync Server components"
+  purpose: "Ensure system availability and detect issues proactively"
+  responsibilities:
+    - "Monitor CouchDB health and availability"
+    - "Check nginx proxy functionality"
+    - "Validate SSL certificate expiration"
+    - "Monitor Docker container status"
+    - "Track UFW firewall status"
+    - "Validate network connectivity"
+
+technical_details:
+  health_checks:
+    - component_id: "component:couchdb"
+      endpoint: "http://localhost:5984/_up"
+      expected: "200 OK"
+      interval: "30s (Docker healthcheck)"
+      timeout: "10s"
+
+    - component_id: "component:nginx"
+      endpoint: "https://${NOTES_DOMAIN}/_up"
+      expected: "200 OK"
+      method: "curl -f"
+
+    - component_id: "component:certbot"
+      check: "Certificate expiration"
+      command: "certbot certificates"
+      warning_threshold: "7 days"
+
+    - component_id: "component:ufw-firewall"
+      check: "Firewall status"
+      command: "ufw status"
+      expected: "Status: active"
+
+    - component_id: "component:docker-network"
+      check: "Network connectivity"
+      command: "docker network inspect ${NETWORK_NAME}"
+
+  metrics:
+    - metric: "CPU usage"
+      command: "docker stats --no-stream --format '{{.CPUPerc}}'"
+
+    - metric: "Memory usage"
+      command: "docker stats --no-stream --format '{{.MemUsage}}'"
+
+    - metric: "Disk usage"
+      command: "df -h /opt/notes"
+
+    - metric: "Database count"
+      command: "curl -s -u admin:password http://localhost:5984/_all_dbs | jq length"
+
+relationships:
+  monitors:
+    - id: "component:couchdb"
+      checks: ["health", "resource_usage", "database_count"]
+
+    - id: "component:nginx"
+      checks: ["proxy_health", "ssl_cert"]
+
+    - id: "component:docker-network"
+      checks: ["connectivity"]
+
+    - id: "component:ufw-firewall"
+      checks: ["status", "rules"]
+
+    - id: "component:certbot"
+      checks: ["certificate_expiration"]
+
+  implemented_by:
+    - id: "script:check-ssl-expiration"
+      checks: ["SSL certificate validity and expiration"]
+
+    - id: "script:run-all-tests"
+      checks: ["Comprehensive system validation"]
+
+  configured_by:
+    - id: "config:docker-compose"
+      aspects: ["CouchDB healthcheck configuration"]
+
+operational:
+  automated_checks:
+    - check: "CouchDB healthcheck"
+      interval: "30s"
+      method: "Docker healthcheck"
+      action_on_failure: "Docker marks container as unhealthy"
+
+    - check: "SSL expiration"
+      interval: "daily"
+      script: "check-ssl-expiration.sh"
+      warning: "7 days before expiration"
+
+  manual_checks:
+    - check: "Full system validation"
+      command: "bash scripts/run-all-tests.sh"
+      includes:
+        - "SSL renewal test (dry run)"
+        - "Backup test"
+        - "Network mode validation"
+        - "Deployment validation"
+
+  alerting:
+    methods:
+      - "Logs (/var/log/syslog, /opt/notes/logs/)"
+      - "Email (via certbot for SSL expiration)"
+
+    future_enhancements:
+      - "Prometheus metrics export"
+      - "Grafana dashboards"
+      - "PagerDuty/Slack integration"
+
+files:
+  scripts:
+    - id: "script:check-ssl-expiration"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/check-ssl-expiration.sh"
+
+    - id: "script:run-all-tests"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/run-all-tests.sh"
+
+    - id: "script:test-ssl-renewal"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/test-ssl-renewal.sh"
+
+    - id: "script:test-backup"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/test-backup.sh"
+
+  logs:
+    - path: "/var/log/syslog"
+      purpose: "System logs"
+
+    - path: "/opt/notes/logs/backup.log"
+      purpose: "Backup execution logs"
+
+troubleshooting:
+  common_issues:
+    - issue: "Healthcheck failing but CouchDB responsive"
+      symptoms:
+        - "Docker shows container as unhealthy"
+        - "curl http://localhost:5984/_up returns 200"
+      resolution: |
+        1. Check healthcheck credentials in docker-compose.yml
+        2. Verify COUCHDB_PASSWORD in .env
+        3. Test healthcheck manually: docker exec couchdb-notes curl -u admin:password http://localhost:5984/_up
+        4. Restart container: docker compose restart
+
+    - issue: "SSL certificate expiring soon"
+      symptoms:
+        - "check-ssl-expiration.sh warns of expiration < 7 days"
+      resolution: |
+        1. Test renewal: certbot renew --dry-run
+        2. Force renewal: certbot renew --force-renewal
+        3. Check renewal logs: /var/log/letsencrypt/letsencrypt.log
+
+    - issue: "High CPU/memory usage"
+      symptoms:
+        - "docker stats shows high resource usage"
+      resolution: |
+        1. Check CouchDB logs for errors
+        2. Review database sizes: curl -u admin:password http://localhost:5984/_all_dbs
+        3. Consider increasing resource limits in docker-compose.yml
+
+  commands:
+    check_all: "bash scripts/run-all-tests.sh"
+    check_health: "curl http://localhost:5984/_up"
+    check_ssl: "bash scripts/check-ssl-expiration.sh"
+    check_containers: "docker ps"
+    check_resources: "docker stats --no-stream"
+
+references:
+  documentation:
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+
+  prd_sections:
+    - "FR-008: Health Checks"
+
+  related_patterns:
+    - "pattern:resource-management"

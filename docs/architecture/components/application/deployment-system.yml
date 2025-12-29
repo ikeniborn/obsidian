@@ -1,0 +1,201 @@
+# Deployment Orchestration System
+
+metadata:
+  id: "component:deployment-system"
+  name: "Deployment Orchestration System"
+  type: "application"
+  category: "orchestration"
+  version: "2.0"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Automated deployment orchestration for Obsidian Sync Server"
+  purpose: "Coordinate installation, configuration, and deployment of all components"
+  responsibilities:
+    - "Install system dependencies (Docker, Python, UFW)"
+    - "Generate secure configuration"
+    - "Deploy network infrastructure"
+    - "Configure nginx reverse proxy"
+    - "Obtain SSL certificates"
+    - "Deploy and validate CouchDB"
+    - "Setup automated backups"
+
+technical_details:
+  deployment_phases:
+    - phase: "Installation"
+      script_id: "script:install"
+      operations:
+        - "Install Docker and Docker Compose"
+        - "Create /opt/notes directory structure"
+        - "Install Python dependencies (boto3)"
+        - "Configure UFW firewall"
+
+    - phase: "Configuration"
+      script_id: "script:setup"
+      operations:
+        - "Prompt for domain and email"
+        - "Generate secure CouchDB password"
+        - "Interactive network mode selection"
+        - "Interactive nginx selection"
+        - "Configure S3 backup (optional)"
+        - "Generate /opt/notes/.env"
+        - "Setup backup cron job"
+
+    - phase: "Deployment"
+      script_id: "script:deploy"
+      operations:
+        - "Validate environment configuration"
+        - "Setup Docker network"
+        - "Configure nginx reverse proxy"
+        - "Obtain SSL certificates"
+        - "Deploy CouchDB via Docker Compose"
+        - "Validate deployment"
+
+  network_modes:
+    - mode: "shared"
+      description: "Use existing Docker network"
+      use_case: "Integration with Family Budget or other services"
+
+    - mode: "isolated"
+      description: "Create dedicated obsidian_network"
+      use_case: "Standalone deployment"
+
+    - mode: "custom"
+      description: "User-specified network"
+      use_case: "Enterprise environments"
+
+  validation_checks:
+    - check: "Docker installation"
+      command: "docker --version && docker compose version"
+
+    - check: "Network connectivity"
+      command: "docker network inspect ${NETWORK_NAME}"
+
+    - check: "CouchDB health"
+      command: "curl http://localhost:5984/_up"
+
+    - check: "Nginx proxy"
+      command: "curl https://${NOTES_DOMAIN}/_up"
+
+    - check: "SSL certificate"
+      command: "openssl s_client -connect ${NOTES_DOMAIN}:443"
+
+relationships:
+  depends_on:
+    - id: "component:docker-network"
+      reason: "Network must exist before deployment"
+
+    - id: "component:ufw-firewall"
+      reason: "Firewall configured during installation"
+
+  manages:
+    - id: "component:couchdb"
+      operations: ["deploy", "configure", "validate"]
+
+    - id: "component:nginx"
+      operations: ["detect", "configure", "deploy"]
+
+    - id: "component:certbot"
+      operations: ["obtain_certificate", "install_hooks"]
+
+    - id: "component:backup-system"
+      operations: ["schedule"]
+
+  orchestrated_by:
+    - id: "script:install"
+      phase: "Installation"
+
+    - id: "script:setup"
+      phase: "Configuration"
+
+    - id: "script:deploy"
+      phase: "Deployment"
+
+operational:
+  deployment_flow:
+    sequential: true
+    phases:
+      - order: 1
+        name: "Installation"
+        duration: "2-3 minutes"
+        requires_sudo: true
+
+      - order: 2
+        name: "Configuration"
+        duration: "user-dependent (interactive)"
+        requires_sudo: false
+
+      - order: 3
+        name: "Deployment"
+        duration: "5-10 minutes"
+        requires_sudo: false
+
+  rollback:
+    automatic: false
+    manual_steps:
+      - "Stop CouchDB: docker compose -f docker-compose.notes.yml down"
+      - "Remove network: docker network rm ${NETWORK_NAME}"
+      - "Remove nginx config: rm /etc/nginx/sites-available/notes.conf"
+      - "Revoke SSL: certbot revoke --cert-path /etc/letsencrypt/live/${NOTES_DOMAIN}/cert.pem"
+
+files:
+  scripts:
+    - id: "script:install"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/install.sh"
+
+    - id: "script:setup"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/setup.sh"
+
+    - id: "script:deploy"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/deploy.sh"
+
+troubleshooting:
+  common_issues:
+    - issue: "Deployment fails at network setup"
+      symptoms:
+        - "Network creation fails"
+        - "Subnet conflict"
+      resolution: |
+        1. Check existing networks: docker network ls
+        2. Remove conflicting network: docker network rm <network>
+        3. Re-run deploy.sh
+
+    - issue: "SSL certificate acquisition fails"
+      symptoms:
+        - "ACME challenge fails"
+        - "DNS not resolving"
+      resolution: |
+        1. Verify DNS: host ${NOTES_DOMAIN}
+        2. Check UFW allows port 80: ufw status | grep 80
+        3. Test with staging cert: certbot --test-cert
+
+    - issue: "CouchDB deployment fails"
+      symptoms:
+        - "Container not starting"
+        - "Health check timeout"
+      resolution: |
+        1. Check .env file: cat /opt/notes/.env
+        2. Verify network: docker network inspect ${NETWORK_NAME}
+        3. Check logs: docker logs couchdb-notes
+
+  commands:
+    install: "sudo ./install.sh"
+    configure: "./setup.sh"
+    deploy: "./deploy.sh"
+    validate: "bash scripts/run-all-tests.sh"
+
+references:
+  documentation:
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/CLAUDE.md"
+
+  prd_sections:
+    - "FR-001: Automated Dependency Installation"
+    - "FR-002: Interactive Configuration"
+    - "Deployment Workflow"
+
+  related_patterns:
+    - "pattern:configuration-isolation"
+    - "pattern:flexible-network-architecture"
+    - "pattern:nginx-integration"

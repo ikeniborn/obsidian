@@ -1,0 +1,175 @@
+# deploy.sh - Production Deployment Script
+
+metadata:
+  id: "script:deploy"
+  name: "Production Deployment Script"
+  file_path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/deploy.sh"
+  type: "deployment"
+  language: "bash"
+  version: "2.0.0"
+  status: "active"
+  last_updated: "2025-11-16"
+  lines_of_code: 489
+
+description:
+  summary: "Orchestrates full production deployment of Obsidian Sync Server"
+  purpose: "Deploy CouchDB, configure Nginx, obtain SSL certificates, validate deployment"
+  use_cases:
+    - "Initial production deployment after install.sh and setup.sh"
+    - "Redeploying after configuration changes"
+    - "Recovery from failed deployment"
+
+interface:
+  usage: "./deploy.sh"
+  arguments: []
+  options: []
+  exit_codes:
+    - code: 0
+      meaning: "Deployment successful"
+    - code: 1
+      meaning: "Validation failed or deployment error"
+
+execution:
+  requires_sudo: false
+  prerequisites:
+    - "install.sh must have been run"
+    - "setup.sh must have been run"
+    - "/opt/notes/.env must exist"
+    - "DNS must point to server"
+    - "UFW firewall configured (ports 22, 443 open)"
+
+  environment_variables:
+    - name: "NOTES_DOMAIN"
+      source: "/opt/notes/.env"
+      required: true
+    - name: "COUCHDB_PASSWORD"
+      source: "/opt/notes/.env"
+      required: true
+    - name: "NETWORK_NAME"
+      source: "/opt/notes/.env"
+      required: true
+
+  runtime_dependencies:
+    - "docker"
+    - "docker compose"
+    - "curl"
+    - "bash 4.0+"
+
+  execution_time: "5-10 minutes (includes SSL certificate acquisition)"
+
+behavior:
+  idempotent: true
+  destructive: false
+  interactive: false
+  logging:
+    enabled: true
+    location: "stdout/stderr"
+  error_handling:
+    strategy: "set -e (exit on error)"
+    rollback: false
+
+key_functions:
+  - name: "check_env_file"
+    line_number: 82
+    purpose: "Validates /opt/notes/.env exists and has required variables"
+    parameters: []
+    returns: "exit 1 if validation fails"
+
+  - name: "setup_network"
+    line_number: 141
+    purpose: "Creates or validates Docker network based on NETWORK_MODE"
+    parameters: []
+    calls: ["network-manager.sh functions"]
+
+  - name: "setup_nginx"
+    line_number: 187
+    purpose: "Detects existing nginx or deploys own, generates config"
+    parameters: []
+    calls: ["scripts/nginx-setup.sh"]
+
+  - name: "setup_ssl"
+    line_number: 234
+    purpose: "Obtains Let's Encrypt SSL certificates via certbot"
+    parameters: []
+    calls: ["scripts/ssl-setup.sh"]
+
+  - name: "deploy_couchdb"
+    line_number: 312
+    purpose: "Deploys CouchDB via docker compose"
+    parameters: []
+    returns: "exit 1 if deployment fails"
+
+  - name: "validate_deployment"
+    line_number: 356
+    purpose: "Validates CouchDB health and nginx proxy"
+    parameters: []
+    validations:
+      - "CouchDB responds to /_up endpoint"
+      - "Nginx proxy returns 200 for /_up"
+      - "SSL certificate is valid"
+
+relationships:
+  calls_scripts:
+    - id: "script:network-manager"
+      function: "setup_network"
+
+    - id: "script:nginx-setup"
+      function: "setup_nginx"
+
+    - id: "script:ssl-setup"
+      function: "setup_ssl"
+
+  configures_components:
+    - id: "component:couchdb"
+      operations: ["deploy", "start"]
+
+    - id: "component:nginx"
+      operations: ["configure", "reload"]
+
+    - id: "component:docker-network"
+      operations: ["create", "validate"]
+
+  depends_on_patterns:
+    - id: "pattern:configuration-isolation"
+    - id: "pattern:nginx-integration"
+    - id: "pattern:certificate-management"
+
+workflow:
+  sequential_steps:
+    - step: 1
+      action: "Validate environment configuration"
+      function: "check_env_file"
+      validation: "Required .env variables present"
+
+    - step: 2
+      action: "Setup Docker network"
+      function: "setup_network"
+      components_affected: ["component:docker-network"]
+
+    - step: 3
+      action: "Setup nginx reverse proxy"
+      function: "setup_nginx"
+      components_affected: ["component:nginx"]
+
+    - step: 4
+      action: "Obtain SSL certificates"
+      function: "setup_ssl"
+      components_affected: ["component:certbot"]
+
+    - step: 5
+      action: "Deploy CouchDB container"
+      function: "deploy_couchdb"
+      components_affected: ["component:couchdb"]
+
+    - step: 6
+      action: "Validate deployment"
+      function: "validate_deployment"
+
+references:
+  prd_requirements:
+    - "FR-001: CouchDB Setup"
+    - "FR-003: Nginx Configuration"
+    - "FR-004: SSL Certificate Management"
+
+  related_workflows:
+    - "workflow:deployment"

@@ -72,26 +72,50 @@ generate_nginx_config() {
         error "NOTES_DOMAIN not set in .env"
     fi
 
-    if [[ ! -f "$TEMPLATE_FILE" ]]; then
-        error "Nginx template not found at $TEMPLATE_FILE"
-    fi
+    local sync_backend="${SYNC_BACKEND:-couchdb}"
 
-    source "$ENV_FILE"
+    if [[ "$sync_backend" == "serverpeer" ]]; then
+        # ServerPeer WebSocket proxy
+        local template_file="${PROJECT_ROOT}/templates/serverpeer.conf.template"
 
-    if [ "$nginx_mode" = "docker" ]; then
-        export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+        if [[ ! -f "$template_file" ]]; then
+            error "ServerPeer nginx template not found at $template_file"
+        fi
+
+        if [ "$nginx_mode" = "docker" ]; then
+            export SERVERPEER_UPSTREAM="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+        else
+            export SERVERPEER_UPSTREAM="127.0.0.1"
+        fi
+
+        local output_file="${PROJECT_ROOT}/serverpeer.conf"
+        export NOTES_DOMAIN
+        envsubst '$SERVERPEER_UPSTREAM,$NOTES_DOMAIN' < "$template_file" > "$output_file"
+
+        info "Generated serverpeer nginx config: $output_file (upstream: ${SERVERPEER_UPSTREAM})" >&2
+        echo "$output_file"
     else
-        export COUCHDB_UPSTREAM="127.0.0.1"
+        # CouchDB HTTP proxy
+        local template_file="${PROJECT_ROOT}/templates/couchdb.conf.template"
+
+        if [[ ! -f "$template_file" ]]; then
+            error "CouchDB nginx template not found at $template_file"
+        fi
+
+        if [ "$nginx_mode" = "docker" ]; then
+            export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+        else
+            export COUCHDB_UPSTREAM="127.0.0.1"
+        fi
+
+        local output_file="${PROJECT_ROOT}/couchdb.conf"
+        export NOTES_DOMAIN
+        export COUCHDB_UPSTREAM
+        envsubst '$COUCHDB_UPSTREAM,$NOTES_DOMAIN' < "$template_file" > "$output_file"
+
+        info "Generated CouchDB nginx config: $output_file (upstream: ${COUCHDB_UPSTREAM})" >&2
+        echo "$output_file"
     fi
-
-    local output_file="${PROJECT_ROOT}/notes.conf"
-
-    export NOTES_DOMAIN
-    export COUCHDB_UPSTREAM
-    envsubst '$COUCHDB_UPSTREAM,$NOTES_DOMAIN' < "$TEMPLATE_FILE" > "$output_file"
-
-    info "Generated nginx config: $output_file (upstream: ${COUCHDB_UPSTREAM})" >&2
-    echo "$output_file"
 }
 
 detect_nginx_containers() {
