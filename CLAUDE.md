@@ -247,7 +247,7 @@ CouchDB configuration:
 **install.sh**
 - Validates Docker/Docker Compose
 - Creates `/opt/notes` directory structure
-- Installs Python dependencies (boto3 for S3)
+- Installs Python dependencies (python3-boto3 from system packages, PEP 668 compliant)
 - Optionally runs UFW setup
 - Must run with sudo
 
@@ -442,7 +442,7 @@ obsidian/
 ### System Requirements
 - Docker 20.10+
 - Docker Compose v2+
-- Python 3 + boto3 (for S3 backups)
+- Python 3 + python3-boto3 package (for S3 backups)
 - openssl (for password generation)
 - UFW (firewall)
 

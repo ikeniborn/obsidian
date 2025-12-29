@@ -1,0 +1,290 @@
+# install.sh - Dependency Installation Script
+
+metadata:
+  id: "script:install"
+  name: "Dependency Installation Script"
+  file_path: "/home/ikeniborn/Documents/Project/obsidian/install.sh"
+  type: "deployment"
+  language: "bash"
+  version: "2.0.0"
+  status: "active"
+  last_updated: "2025-12-29"
+  lines_of_code: 328
+
+description:
+  summary: "Installs system dependencies and creates directory structure for Obsidian Sync Server"
+  purpose: "Prepare system for Obsidian Sync Server deployment by validating Docker, creating directories, and installing Python dependencies"
+  use_cases:
+    - "Initial system setup before running setup.sh and deploy.sh"
+    - "Post-clone repository setup on new server"
+    - "Recovery from corrupted /opt/notes directory"
+
+interface:
+  usage: "sudo ./install.sh"
+  arguments: []
+  options: []
+  exit_codes:
+    - code: 0
+      meaning: "Installation successful"
+    - code: 1
+      meaning: "Validation failed (missing Docker/sudo) or installation error"
+
+execution:
+  requires_sudo: true
+  prerequisites:
+    - "Ubuntu/Debian Linux system"
+    - "Internet connection (for package downloads)"
+
+  environment_variables: []
+
+  runtime_dependencies:
+    - "docker 20.10+"
+    - "docker compose v2+"
+    - "apt-get (Debian/Ubuntu package manager)"
+    - "bash 4.0+"
+
+  execution_time: "1-3 minutes (depends on network speed for package downloads)"
+
+behavior:
+  idempotent: true
+  destructive: false
+  interactive: true  # Prompts for UFW setup
+  logging:
+    enabled: true
+    location: "/var/log/notes_install.log"
+  error_handling:
+    strategy: "set -e (exit on error), set -u (exit on undefined variable)"
+    rollback: false
+
+key_functions:
+  - name: "check_root"
+    line_number: 78
+    purpose: "Validates script is run with sudo/root privileges"
+    parameters: []
+    returns: "exit 1 if not root"
+
+  - name: "check_docker"
+    line_number: 88
+    purpose: "Validates Docker is installed and running"
+    parameters: []
+    returns: "exit 1 if Docker missing or not running"
+
+  - name: "check_docker_compose"
+    line_number: 111
+    purpose: "Validates Docker Compose v2+ is installed"
+    parameters: []
+    returns: "exit 1 if Docker Compose missing"
+
+  - name: "check_ufw"
+    line_number: 132
+    purpose: "Detects UFW firewall installation and status"
+    parameters: []
+    returns: "0 if UFW active, 1 if missing/inactive (non-fatal)"
+
+  - name: "detect_nginx"
+    line_number: 150
+    purpose: "Detects existing nginx instances (Docker/systemd/process)"
+    parameters: []
+    returns: "Creates /tmp/nginx_detected and /tmp/nginx_type"
+
+  - name: "check_ports"
+    line_number: 185
+    purpose: "Checks availability of ports 80 and 443"
+    parameters: []
+    returns: "Warnings if ports in use (non-fatal)"
+
+  - name: "create_directories"
+    line_number: 222
+    purpose: "Creates /opt/notes directory structure with correct permissions"
+    parameters: []
+    returns: "exit 1 on failure"
+
+  - name: "install_python_deps"
+    line_number: 243
+    purpose: "Installs Python 3 and boto3 from system packages (PEP 668 compliant)"
+    parameters: []
+    returns: "exit 1 on failure"
+    notes:
+      - "Changed in v2.0.0: Uses apt-get install python3-boto3 instead of pip3"
+      - "Respects PEP 668 (externally-managed-environment) on Ubuntu 23.04+"
+      - "System package ensures compatibility with OS Python environment"
+
+relationships:
+  calls_scripts:
+    - "script:ufw-setup"  # Optionally called via interactive prompt
+
+  called_by_scripts: []
+
+  sources: []
+
+  configures_components:
+    - "component:docker-network"  # Indirectly (validates Docker)
+    - "component:s3-storage"  # Installs boto3 dependency
+
+  modifies_files:
+    - path: "/opt/notes/"
+      action: "creates directory structure"
+    - path: "/opt/notes/data/"
+      action: "creates"
+    - path: "/opt/notes/backups/"
+      action: "creates"
+    - path: "/opt/notes/logs/"
+      action: "creates"
+    - path: "/var/log/notes_install.log"
+      action: "appends logs"
+
+  depends_on_patterns: []
+
+workflow:
+  sequential_steps:
+    - step: 1
+      action: "Validate root/sudo privileges"
+      components_affected: []
+      validation: "check_root()"
+      error_handling: "exit 1 if not root"
+
+    - step: 2
+      action: "Validate Docker installation and running status"
+      components_affected:
+        - "component:docker-network"
+      validation: "docker ps"
+      error_handling: "exit 1 with installation instructions"
+
+    - step: 3
+      action: "Validate Docker Compose v2+"
+      components_affected:
+        - "component:docker-network"
+      validation: "docker compose version"
+      error_handling: "exit 1 with installation instructions"
+
+    - step: 4
+      action: "Check UFW firewall (optional)"
+      components_affected:
+        - "component:ufw-firewall"
+      validation: "ufw status"
+      error_handling: "warning if missing (non-fatal)"
+
+    - step: 5
+      action: "Detect existing nginx instances"
+      components_affected:
+        - "component:nginx"
+      validation: "docker ps | grep nginx, systemctl status nginx"
+      error_handling: "warning if none found (non-fatal)"
+
+    - step: 6
+      action: "Check port availability (80, 443)"
+      components_affected:
+        - "component:nginx"
+      validation: "netstat -tuln or ss -tuln"
+      error_handling: "warning if in use (non-fatal)"
+
+    - step: 7
+      action: "Create /opt/notes directory structure"
+      components_affected: []
+      validation: "Directory permissions check"
+      error_handling: "exit 1 on failure"
+
+    - step: 8
+      action: "Install Python 3 and python3-boto3 package"
+      components_affected:
+        - "component:s3-storage"
+      validation: "python3 -c 'import boto3'"
+      error_handling: "exit 1 if apt-get fails"
+
+    - step: 9
+      action: "Optionally run UFW setup (interactive prompt)"
+      components_affected:
+        - "component:ufw-firewall"
+      validation: "User confirmation"
+      error_handling: "Skip if user declines"
+
+validation:
+  pre_execution_checks:
+    - "Root/sudo privileges (check_root)"
+    - "Docker installed and running (check_docker)"
+    - "Docker Compose v2+ installed (check_docker_compose)"
+
+  post_execution_checks:
+    - "Directory /opt/notes exists with correct permissions"
+    - "Directory /opt/notes/data exists"
+    - "Directory /opt/notes/backups exists"
+    - "Directory /opt/notes/logs exists"
+    - "Python 3 available (python3 --version)"
+    - "boto3 importable (python3 -c 'import boto3')"
+
+  test_coverage:
+    test_scripts: []
+    coverage_percentage: 0
+
+examples:
+  - scenario: "Fresh server installation"
+    command: "sudo ./install.sh"
+    expected_output: |
+      [INFO] Checking Docker installation...
+      [SUCCESS] Docker 20.10.21 is installed and running
+      [INFO] Checking Docker Compose installation...
+      [SUCCESS] Docker Compose 2.12.2 is installed
+      [INFO] Creating /opt/notes directory structure...
+      [SUCCESS] Created directory structure
+      [INFO] Installing Python dependencies...
+      [SUCCESS] Python dependencies installed
+      Configure UFW now? (y/N):
+
+  - scenario: "Reinstallation (idempotent)"
+    command: "sudo ./install.sh"
+    expected_output: |
+      [INFO] Checking Docker installation...
+      [SUCCESS] Docker already installed
+      [SUCCESS] Directories already exist
+      [INFO] boto3 already installed (skipped)
+
+troubleshooting:
+  common_errors:
+    - error_message: "Docker is not installed"
+      cause: "Docker not present on system"
+      resolution: "Run: curl -fsSL https://get.docker.com | sh"
+
+    - error_message: "Docker is not running"
+      cause: "Docker daemon stopped"
+      resolution: "Run: sudo systemctl start docker"
+
+    - error_message: "This script must be run as root"
+      cause: "Script executed without sudo"
+      resolution: "Run: sudo ./install.sh"
+
+    - error_message: "externally-managed-environment (PEP 668)"
+      cause: "OBSOLETE: Fixed in v2.0.0 - old versions used pip3 instead of apt-get"
+      resolution: "Update to install.sh v2.0.0+ which uses python3-boto3 system package"
+
+    - error_message: "apt-get install python3-boto3 failed"
+      cause: "Package repository unavailable or package name incorrect"
+      resolution: |
+        1. Run: sudo apt-get update
+        2. Verify package exists: apt-cache search python3-boto3
+        3. If missing, check Ubuntu/Debian version compatibility
+
+references:
+  documentation:
+    - "CLAUDE.md - Script Architecture section"
+    - "README.md - Installation instructions"
+
+  prd_requirements:
+    - "FR-001: System must support Docker-based deployment"
+    - "FR-010: System must support S3-compatible backups (requires boto3)"
+    - "NFR-002: Installation must be idempotent"
+
+  related_workflows:
+    - "workflow:deployment"  # install.sh is step 1 of deployment flow
+
+changelog:
+  - version: "2.0.0"
+    date: "2025-12-29"
+    changes:
+      - "Fixed PEP 668 compliance: Use python3-boto3 system package instead of pip3"
+      - "Removed pip3 installation (no longer needed)"
+      - "Added comprehensive inline comments explaining PEP 668"
+
+  - version: "1.0.0"
+    date: "2025-11-16"
+    changes:
+      - "Initial version with pip3 install boto3 (caused PEP 668 errors)"

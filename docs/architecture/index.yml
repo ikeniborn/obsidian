@@ -73,9 +73,9 @@ navigation:
           name: "Production Deployment Script"
 
         - id: "script:install"
-          path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/install.sh"
+          file: "scripts/deployment/install.yml"
+          path: "/home/ikeniborn/Documents/Project/obsidian/install.sh"
           name: "Dependency Installation Script"
-          note: "Documentation pending - see CLAUDE.md for details"
 
         - id: "script:setup"
           path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/setup.sh"

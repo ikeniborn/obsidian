@@ -246,19 +246,14 @@ install_python_deps() {
     if ! command_exists python3; then
         info "Installing Python 3..."
         apt-get update -qq
-        apt-get install -y python3 python3-pip
+        apt-get install -y python3
     fi
 
-    # Separately check for pip3 (may be missing even if python3 is present)
-    if ! command_exists pip3; then
-        info "Installing pip3..."
-        apt-get update -qq
-        apt-get install -y python3-pip
-    fi
-
+    # Install boto3 from system package (respects PEP 668)
     if ! python3 -c "import boto3" 2>/dev/null; then
         info "Installing boto3..."
-        pip3 install boto3 --quiet
+        apt-get update -qq
+        apt-get install -y python3-boto3
     fi
 
     success "Python dependencies installed"

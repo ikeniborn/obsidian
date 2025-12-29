@@ -564,12 +564,11 @@ sudo ./install.sh
 ```
 
 **Что делает install.sh:**
-- Устанавливает Docker, Docker Compose
-- Устанавливает и настраивает UFW
-- Устанавливает Nginx (если отсутствует)
-- Устанавливает Certbot
-- Устанавливает AWS CLI
-- Активирует базовые firewall правила (SSH:22, HTTPS:443)
+- Проверяет наличие Docker и Docker Compose (не устанавливает - пользователь должен установить заранее)
+- Проверяет наличие UFW (опционально предлагает запустить scripts/ufw-setup.sh)
+- Создает директорию /opt/notes с подкаталогами (data, backups, logs)
+- Устанавливает Python 3 и python3-boto3 для S3 бэкапов (PEP 668 compliant)
+- Обнаруживает существующие nginx инстансы (docker/systemd/standalone)
 
 **Шаг 3: Настройка конфигурации**
 ```bash
