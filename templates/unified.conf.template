@@ -1,15 +1,9 @@
 # Unified nginx configuration for both CouchDB and ServerPeer
 # Allows running both backends simultaneously on different location paths
 
-upstream couchdb_backend {
-    server ${COUCHDB_UPSTREAM}:5984;
-    keepalive 32;
-}
-
-upstream serverpeer_backend {
-    server ${SERVERPEER_UPSTREAM}:3000;
-    keepalive 32;
-}
+# Docker DNS resolver (allows dynamic resolution of container names)
+resolver 127.0.0.11 valid=10s;
+resolver_timeout 5s;
 
 server {
     listen 80;
@@ -33,8 +27,11 @@ server {
 
     # CouchDB HTTP REST API
     location ${COUCHDB_LOCATION} {
+        # Dynamic upstream resolution (allows backend to start after nginx)
+        set $couchdb_upstream ${COUCHDB_UPSTREAM}:5984;
+
         rewrite ^${COUCHDB_LOCATION}(.*)$ /$1 break;
-        proxy_pass http://couchdb_backend;
+        proxy_pass http://$couchdb_upstream;
 
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -50,8 +47,11 @@ server {
 
     # ServerPeer WebSocket relay
     location ${SERVERPEER_LOCATION} {
+        # Dynamic upstream resolution (allows backend to start after nginx)
+        set $serverpeer_upstream ${SERVERPEER_UPSTREAM}:3000;
+
         rewrite ^${SERVERPEER_LOCATION}(.*)$ /$1 break;
-        proxy_pass http://serverpeer_backend;
+        proxy_pass http://$serverpeer_upstream;
 
         # WebSocket upgrade
         proxy_http_version 1.1;

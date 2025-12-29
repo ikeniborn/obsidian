@@ -344,6 +344,35 @@ integrate_with_existing_nginx() {
     case "$nginx_type" in
         docker)
             local container_name=$(docker ps --format '{{.Names}}' | grep nginx | head -1)
+
+            if [[ -z "$container_name" ]]; then
+                error "Nginx container not found or not running"
+                error "Cannot test configuration without running nginx container"
+                return 1
+            fi
+
+            # Wait for container to stabilize if it's restarting
+            local max_wait=30
+            local waited=0
+            while docker ps --filter "name=$container_name" --format '{{.Status}}' | grep -q "Restarting"; do
+                if [[ $waited -ge $max_wait ]]; then
+                    error "Nginx container stuck in restart loop"
+                    error "Check logs: docker logs $container_name"
+                    return 1
+                fi
+                info "Waiting for nginx container to stabilize... ($waited/$max_wait)"
+                sleep 2
+                ((waited+=2))
+            done
+
+            # Check if container is running
+            if ! docker ps --filter "name=$container_name" --format '{{.Status}}' | grep -q "Up"; then
+                error "Nginx container is not running"
+                error "Status: $(docker ps -a --filter "name=$container_name" --format '{{.Status}}')"
+                error "Check logs: docker logs $container_name"
+                return 1
+            fi
+
             info "Testing nginx configuration..."
             if docker exec "$container_name" nginx -t 2>&1 | tee /tmp/nginx-test.log; then
                 info "Reloading nginx container..."
