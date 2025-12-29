@@ -675,97 +675,73 @@ configure_serverpeer() {
     [[ "$SYNC_BACKEND" != "serverpeer" && "$SYNC_BACKEND" != "both" ]] && return 0
 
     echo ""
-    info "ServerPeer Configuration"
+    info "ServerPeer Configuration - Multiple Vaults Support"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-    # ServerPeer passphrase configuration
     echo ""
-    info "ServerPeer Passphrase Configuration"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "1. Generate secure random passphrase (recommended)"
-    echo "2. Enter passphrase manually"
+    echo "You can configure multiple independent vaults."
+    echo "Each vault will have its own Room ID, Passphrase, and ServerPeer container."
+    echo ""
+    read -p "How many vaults do you want to configure? [1]: " vault_count
+    VAULT_COUNT=${vault_count:-1}
+
+    if [[ ! "$VAULT_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+        warning "Invalid number. Using 1 vault."
+        VAULT_COUNT=1
+    fi
+
+    success "Configuring $VAULT_COUNT vault(s)"
     echo ""
 
-    local passphrase
-    while true; do
-        read -p "Choose option (1/2): " -n 1 -r passphrase_choice
+    # Loop through each vault
+    for ((vault_num=1; vault_num<=VAULT_COUNT; vault_num++)); do
         echo ""
+        info "Vault #$vault_num Configuration"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-        if [[ "$passphrase_choice" == "1" ]]; then
-            # Generate secure passphrase (16 bytes = 32 hex chars)
-            passphrase=$(openssl rand -hex 16)
-            success "Generated secure 32-character passphrase"
-            break
-        elif [[ "$passphrase_choice" == "2" ]]; then
-            echo ""
-            warning "Manual passphrase requirements:"
-            echo "  - Minimum 12 characters"
-            echo "  - Use strong passphrase for production"
-            echo ""
+        # Vault name
+        read -p "Vault #$vault_num name (e.g., Work, Personal) [Vault$vault_num]: " vault_name
+        vault_name=${vault_name:-"Vault$vault_num"}
 
-            while true; do
-                read -s -p "Enter ServerPeer passphrase: " pass1
-                echo ""
-                read -s -p "Confirm passphrase: " pass2
-                echo ""
+        # Auto-generate Room ID and Passphrase for this vault
+        local room_id=$(openssl rand -hex 3 | sed 's/\(..\)/\1-/g;s/-$//')
+        local passphrase=$(openssl rand -hex 16)
 
-                if [[ -z "$pass1" ]]; then
-                    error "Passphrase cannot be empty"
-                    continue
-                fi
+        # Calculate port (3001 for vault1, 3002 for vault2, etc.)
+        local port=$((3000 + vault_num))
 
-                if [[ ${#pass1} -lt 12 ]]; then
-                    error "Passphrase must be at least 12 characters"
-                    continue
-                fi
+        # Generate container name and vault dir from vault name
+        local vault_name_lower=$(echo "$vault_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+        local container="notes-serverpeer-$vault_name_lower"
+        local vault_dir="/opt/notes/serverpeer-vault-$vault_name_lower"
 
-                if [[ "$pass1" != "$pass2" ]]; then
-                    error "Passphrases do not match"
-                    continue
-                fi
+        # Save vault variables using indexed names
+        eval "VAULT_${vault_num}_NAME='$vault_name'"
+        eval "VAULT_${vault_num}_ROOMID='$room_id'"
+        eval "VAULT_${vault_num}_PASSPHRASE='$passphrase'"
+        eval "VAULT_${vault_num}_PORT='$port'"
+        eval "VAULT_${vault_num}_CONTAINER='$container'"
+        eval "VAULT_${vault_num}_VAULT_DIR='$vault_dir'"
 
-                passphrase="$pass1"
-                success "Passphrase accepted"
-                break
-            done
-            break
-        else
-            warning "Invalid option. Please choose 1 or 2"
-        fi
+        success "Vault '$vault_name' configured"
+        echo "  Room ID:    $room_id"
+        echo "  Passphrase: $passphrase"
+        echo "  Port:       127.0.0.1:$port"
+        echo "  Container:  $container"
     done
     echo ""
 
-    # Generate room ID (12 bytes = UUID-like format)
-    local room_id=$(openssl rand -hex 6 | sed 's/\(..\)/\1-/g;s/-$//')
-
-    # Use local WebSocket relay (own server) instead of external
-    local default_relay="wss://${NOTES_DOMAIN}${SERVERPEER_LOCATION:-/}"
-
-    echo ""
-    echo "WebSocket Relay Configuration:"
+    # Configure WebSocket Relay (shared for all vaults)
+    info "WebSocket Relay Configuration (Shared for all vaults)"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "ServerPeer uses WebSocket relay for P2P synchronization."
-    echo ""
-    echo "Recommended: Use your own server as relay (best performance & privacy)"
-    echo "  Default: $default_relay"
-    echo ""
-    echo "Alternative: Use external relay (e.g., wss://exp-relay.vrtmrz.net/)"
-    echo "  Note: External relay adds latency and external dependency"
-    echo ""
-    read -p "WebSocket relay URL [$default_relay]: " relay_input
+    echo "All vaults will use the same Nostr Relay for WebSocket signaling."
 
-    SERVERPEER_RELAYS="${relay_input:-$default_relay}"
+    local default_relay="wss://${NOTES_DOMAIN}${SERVERPEER_LOCATION:-/serverpeer}"
+    SERVERPEER_RELAYS="$default_relay"
 
+    # Common ServerPeer settings (shared by all vault instances)
     SERVERPEER_APPID=self-hosted-livesync
-    SERVERPEER_ROOMID=$room_id
-    SERVERPEER_PASSPHRASE=$passphrase
-    SERVERPEER_NAME=${NOTES_DOMAIN}-peer
-    SERVERPEER_VAULT_NAME=headless-vault
     SERVERPEER_AUTOBROADCAST=true
     SERVERPEER_AUTOSTART=true
-    SERVERPEER_PORT=3000
-    SERVERPEER_VAULT_DIR=/opt/notes/serverpeer-vault
-    SERVERPEER_CONTAINER_NAME=notes-serverpeer
 
     # Nostr Relay configuration (WebSocket signaling server for P2P)
     NOSTR_RELAY_PORT=7000
@@ -773,11 +749,10 @@ configure_serverpeer() {
     NOSTR_RELAY_CONTAINER_NAME=notes-nostr-relay
     NOSTR_RELAY_UPSTREAM=notes-nostr-relay
 
-    success "ServerPeer configured"
-    echo "  Room ID: $room_id"
-    echo "  Passphrase: [hidden - saved in .env]"
-    echo "  Relay: $SERVERPEER_RELAYS"
-    echo "  Nostr Relay: Will be deployed as WebSocket signaling server"
+    success "All vaults configured"
+    echo "  Total vaults: $VAULT_COUNT"
+    echo "  Relay URL:    $SERVERPEER_RELAYS"
+    echo "  Nostr Relay:  Will be deployed as WebSocket signaling server"
 }
 
 prompt_s3_credentials() {
@@ -1017,22 +992,43 @@ EOF
         cat >> "$ENV_FILE" << EOF
 
 # =============================================================================
-# ServerPeer Configuration
+# ServerPeer Configuration - Multiple Vaults Support
 # =============================================================================
 
+# Number of vaults
+VAULT_COUNT=${VAULT_COUNT:-1}
+
+# Common ServerPeer settings (shared by all vault instances)
 SERVERPEER_APPID=$SERVERPEER_APPID
-SERVERPEER_ROOMID=$SERVERPEER_ROOMID
-SERVERPEER_PASSPHRASE=$SERVERPEER_PASSPHRASE
 SERVERPEER_RELAYS=$SERVERPEER_RELAYS
-SERVERPEER_NAME=$SERVERPEER_NAME
 SERVERPEER_AUTOBROADCAST=$SERVERPEER_AUTOBROADCAST
 SERVERPEER_AUTOSTART=$SERVERPEER_AUTOSTART
-SERVERPEER_PORT=$SERVERPEER_PORT
-SERVERPEER_VAULT_NAME=$SERVERPEER_VAULT_NAME
-SERVERPEER_VAULT_DIR=$SERVERPEER_VAULT_DIR
-SERVERPEER_CONTAINER_NAME=$SERVERPEER_CONTAINER_NAME
-SERVERPEER_LOCATION=${SERVERPEER_LOCATION:-/}
+SERVERPEER_LOCATION=${SERVERPEER_LOCATION:-/serverpeer}
 
+EOF
+
+        # Write vault-specific variables
+        for ((i=1; i<=VAULT_COUNT; i++)); do
+            local vault_name_var="VAULT_${i}_NAME"
+            local vault_roomid_var="VAULT_${i}_ROOMID"
+            local vault_passphrase_var="VAULT_${i}_PASSPHRASE"
+            local vault_port_var="VAULT_${i}_PORT"
+            local vault_container_var="VAULT_${i}_CONTAINER"
+            local vault_dir_var="VAULT_${i}_VAULT_DIR"
+
+            cat >> "$ENV_FILE" << EOF
+# Vault #$i: ${!vault_name_var}
+VAULT_${i}_NAME=${!vault_name_var}
+VAULT_${i}_ROOMID=${!vault_roomid_var}
+VAULT_${i}_PASSPHRASE=${!vault_passphrase_var}
+VAULT_${i}_PORT=${!vault_port_var}
+VAULT_${i}_CONTAINER=${!vault_container_var}
+VAULT_${i}_VAULT_DIR=${!vault_dir_var}
+
+EOF
+        done
+
+        cat >> "$ENV_FILE" << EOF
 # =============================================================================
 # Nostr Relay Configuration (WebSocket signaling server for P2P)
 # =============================================================================

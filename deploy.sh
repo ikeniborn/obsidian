@@ -306,53 +306,85 @@ prepull_serverpeer_images() {
 }
 
 deploy_serverpeer() {
-    info "Building and starting ServerPeer container..."
+    info "Building and starting ServerPeer containers..."
 
-    local compose_file="$SCRIPT_DIR/docker-compose.serverpeer.yml"
+    # Generate docker-compose file for multiple vaults
+    info "Generating docker-compose.serverpeers.yml for $VAULT_COUNT vault(s)..."
+    bash "$SCRIPT_DIR/scripts/generate-serverpeer-compose.sh"
+
+    local compose_file="$SCRIPT_DIR/docker-compose.serverpeers.yml"
 
     if [[ ! -f "$compose_file" ]]; then
-        error "docker-compose.serverpeer.yml not found at $compose_file"
+        error "docker-compose.serverpeers.yml not found at $compose_file"
+        error "Generation script may have failed"
+        return 1
     fi
 
-    # Create vault directory
-    sudo mkdir -p "${SERVERPEER_VAULT_DIR:-/opt/notes/serverpeer-vault}"
-    sudo chown -R $(whoami):$(whoami) "${SERVERPEER_VAULT_DIR}"
+    # Create vault directories for all vaults
+    for ((i=1; i<=VAULT_COUNT; i++)); do
+        local vault_dir_var="VAULT_${i}_VAULT_DIR"
+        local vault_name_var="VAULT_${i}_NAME"
+        local vault_dir="${!vault_dir_var}"
+        local vault_name="${!vault_name_var}"
+
+        sudo mkdir -p "$vault_dir"
+        sudo chown -R $(whoami):$(whoami) "$vault_dir"
+        info "Created vault directory: $vault_dir (${vault_name})"
+    done
 
     # Pre-pull base images (respects Docker daemon proxy)
     prepull_serverpeer_images
 
-    # Export variables for docker compose interpolation
-    export NETWORK_NAME NETWORK_EXTERNAL SERVERPEER_VAULT_DIR
-    export SERVERPEER_CONTAINER_NAME SERVERPEER_APPID SERVERPEER_ROOMID
-    export SERVERPEER_PASSPHRASE SERVERPEER_RELAYS SERVERPEER_NAME
+    # Export common variables
+    export NETWORK_NAME NETWORK_EXTERNAL
+    export SERVERPEER_APPID SERVERPEER_RELAYS
     export SERVERPEER_AUTOBROADCAST SERVERPEER_AUTOSTART
-    export SERVERPEER_VAULT_NAME SERVERPEER_PORT
+    export VAULT_COUNT
+
+    # Export vault-specific variables
+    for ((i=1; i<=VAULT_COUNT; i++)); do
+        eval "export VAULT_${i}_NAME VAULT_${i}_ROOMID VAULT_${i}_PASSPHRASE"
+        eval "export VAULT_${i}_PORT VAULT_${i}_CONTAINER VAULT_${i}_VAULT_DIR"
+    done
 
     docker compose -f "$compose_file" build
     # Note: Don't use --remove-orphans when using multiple compose files
     docker compose -f "$compose_file" up -d
 
-    success "ServerPeer deployed"
+    success "ServerPeer deployed ($VAULT_COUNT vault(s))"
 }
 
 wait_for_serverpeer_healthy() {
-    info "Waiting for ServerPeer health check..."
+    info "Waiting for ServerPeer health checks (${VAULT_COUNT} vault(s))..."
 
-    local container="${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}"
     local max_attempts=30
-    local attempt=1
 
-    while [[ $attempt -le $max_attempts ]]; do
-        if docker ps --filter "name=$container" --filter "health=healthy" | grep -q "$container"; then
-            success "ServerPeer is healthy"
-            return 0
+    # Wait for each ServerPeer container
+    for ((i=1; i<=VAULT_COUNT; i++)); do
+        local container_var="VAULT_${i}_CONTAINER"
+        local vault_name_var="VAULT_${i}_NAME"
+        local container="${!container_var}"
+        local vault_name="${!vault_name_var}"
+        local attempt=1
+
+        info "Checking vault: $vault_name ($container)"
+
+        while [[ $attempt -le $max_attempts ]]; do
+            if docker ps --filter "name=$container" --filter "health=healthy" | grep -q "$container"; then
+                success "ServerPeer '$vault_name' is healthy"
+                break
+            fi
+            echo -n "."
+            sleep 2
+            ((attempt++))
+        done
+
+        if [[ $attempt -gt $max_attempts ]]; then
+            warning "Health check timeout for '$vault_name' (container may still be starting)"
         fi
-        echo -n "."
-        sleep 2
-        ((attempt++))
     done
 
-    warning "Health check timeout (container may still be starting)"
+    success "All ServerPeer containers checked"
 }
 
 prepull_nostr_relay_images() {
