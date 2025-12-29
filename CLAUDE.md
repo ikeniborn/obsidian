@@ -109,6 +109,8 @@ The server supports two sync backends, selected during `setup.sh`:
 
 **Backend-Independent Features**:
 - ✅ S3 backups (shared `s3_upload.py` script)
+  - **Single backend**: Uses `S3_BACKUP_PREFIX` (couchdb-backups/ or serverpeer-backups/)
+  - **Dual mode**: Uses separate prefixes (`COUCHDB_S3_BACKUP_PREFIX` and `SERVERPEER_S3_BACKUP_PREFIX`)
 - ✅ Nginx reverse proxy (backend-aware templates)
 - ✅ UFW firewall
 - ✅ SSL/TLS (Let's Encrypt)

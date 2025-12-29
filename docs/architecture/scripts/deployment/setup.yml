@@ -6,10 +6,10 @@ metadata:
   file_path: "/home/ikeniborn/Documents/Project/obsidian/setup.sh"
   type: "deployment"
   language: "bash"
-  version: "5.1.3"
+  version: "5.1.4"
   status: "active"
   last_updated: "2025-12-29"
-  lines_of_code: 954
+  lines_of_code: 987
 
 description:
   summary: "Interactive script for configuring Obsidian Sync Server environment"
@@ -90,13 +90,15 @@ key_functions:
       - "Local relay advantages: better performance, privacy, no external dependencies"
 
   - name: "prompt_s3_credentials"
-    line_number: 457
-    purpose: "Configure S3 backup credentials (optional)"
+    line_number: 476
+    purpose: "Configure S3 backup credentials and backend-specific prefixes"
     parameters: []
-    returns: "Sets S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET_NAME, S3_ENDPOINT_URL, S3_REGION, S3_BACKUP_PREFIX"
+    returns: "Sets S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET_NAME, S3_ENDPOINT_URL, S3_REGION"
     notes:
-      - "Uses backend-specific S3_BACKUP_PREFIX default (set in prompt_sync_backend)"
-      - "Fixed in v5.1.1: Preserves backend-aware prefix instead of hardcoded 'couchdb-backups/'"
+      - "Single backend: Sets S3_BACKUP_PREFIX (couchdb-backups/ or serverpeer-backups/)"
+      - "Dual mode: Sets COUCHDB_S3_BACKUP_PREFIX and SERVERPEER_S3_BACKUP_PREFIX separately"
+      - "NEW in v5.1.4: Interactive prompt for customizing dual mode prefixes"
+      - "Fixed in v5.1.4: Prevents S3 backup conflicts in dual mode by using separate prefixes"
 
   - name: "create_env_file"
     line_number: 501
@@ -331,6 +333,16 @@ references:
     - "workflow:deployment"  # setup.sh is step 2 of deployment flow
 
 changelog:
+  - version: "5.1.4"
+    date: "2025-12-29"
+    changes:
+      - "Fixed: S3 backup prefix conflict in dual mode - now uses separate prefixes for each backend"
+      - "Dual mode S3: COUCHDB_S3_BACKUP_PREFIX=couchdb-backups/ and SERVERPEER_S3_BACKUP_PREFIX=serverpeer-backups/"
+      - "Single backend S3: Continues using S3_BACKUP_PREFIX (no changes)"
+      - "Updated backup scripts: Support backend-specific S3 prefix variables with fallback chain"
+      - "Added interactive prompt to customize dual mode S3 prefixes"
+      - "Prevention: Avoids file conflicts when both backends upload to same S3 bucket"
+
   - version: "5.1.3"
     date: "2025-12-29"
     changes:

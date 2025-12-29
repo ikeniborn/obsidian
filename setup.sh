@@ -393,7 +393,9 @@ prompt_sync_backend() {
                 ;;
             3)
                 SYNC_BACKEND="both"
-                S3_BACKUP_PREFIX="backups/"
+                # Use separate S3 prefixes for each backend to avoid conflicts
+                COUCHDB_S3_BACKUP_PREFIX="couchdb-backups/"
+                SERVERPEER_S3_BACKUP_PREFIX="serverpeer-backups/"
                 success "Selected: Both backends (dual mode)"
                 info "All dependencies (Deno, Node.js) are containerized - no host installation needed"
 
@@ -507,9 +509,27 @@ prompt_s3_credentials() {
         read -p "S3 Region [ru-central1]: " S3_REGION
         S3_REGION=${S3_REGION:-ru-central1}
 
-        # Use backend-specific default prefix (set in prompt_sync_backend)
-        read -p "S3 Backup Prefix [${S3_BACKUP_PREFIX}]: " user_prefix
-        S3_BACKUP_PREFIX=${user_prefix:-${S3_BACKUP_PREFIX}}
+        # Backend-specific S3 prefix configuration
+        if [[ "$SYNC_BACKEND" == "both" ]]; then
+            echo ""
+            info "Dual mode: Using separate S3 prefixes for each backend"
+            echo "  CouchDB:    ${COUCHDB_S3_BACKUP_PREFIX}"
+            echo "  ServerPeer: ${SERVERPEER_S3_BACKUP_PREFIX}"
+            echo ""
+            read -p "Customize prefixes? (y/N): " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                read -p "CouchDB S3 prefix [${COUCHDB_S3_BACKUP_PREFIX}]: " couchdb_prefix
+                COUCHDB_S3_BACKUP_PREFIX=${couchdb_prefix:-${COUCHDB_S3_BACKUP_PREFIX}}
+
+                read -p "ServerPeer S3 prefix [${SERVERPEER_S3_BACKUP_PREFIX}]: " serverpeer_prefix
+                SERVERPEER_S3_BACKUP_PREFIX=${serverpeer_prefix:-${SERVERPEER_S3_BACKUP_PREFIX}}
+            fi
+        else
+            # Single backend - use backend-specific default prefix
+            read -p "S3 Backup Prefix [${S3_BACKUP_PREFIX}]: " user_prefix
+            S3_BACKUP_PREFIX=${user_prefix:-${S3_BACKUP_PREFIX}}
+        fi
 
         success "S3 configuration saved"
     else
@@ -588,8 +608,26 @@ S3_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY
 S3_BUCKET_NAME=$S3_BUCKET_NAME
 S3_ENDPOINT_URL=$S3_ENDPOINT_URL
 S3_REGION=$S3_REGION
+EOF
+
+        # Backend-specific S3 prefixes
+        if [[ "$SYNC_BACKEND" == "both" ]]; then
+            cat >> "$ENV_FILE" << EOF
+
+# Backend-specific S3 backup prefixes (dual mode)
+COUCHDB_S3_BACKUP_PREFIX=$COUCHDB_S3_BACKUP_PREFIX
+SERVERPEER_S3_BACKUP_PREFIX=$SERVERPEER_S3_BACKUP_PREFIX
+EOF
+        elif [[ "$SYNC_BACKEND" == "serverpeer" ]]; then
+            cat >> "$ENV_FILE" << EOF
 S3_BACKUP_PREFIX=$S3_BACKUP_PREFIX
 EOF
+        else
+            # CouchDB only
+            cat >> "$ENV_FILE" << EOF
+S3_BACKUP_PREFIX=$S3_BACKUP_PREFIX
+EOF
+        fi
     fi
 
     # Backend-specific configuration

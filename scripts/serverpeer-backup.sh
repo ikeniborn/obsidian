@@ -38,7 +38,10 @@ S3_SECRET_ACCESS_KEY="${S3_SECRET_ACCESS_KEY:-}"
 S3_BUCKET_NAME="${S3_BUCKET_NAME:-}"
 S3_ENDPOINT_URL="${S3_ENDPOINT_URL:-https://storage.yandexcloud.net}"
 S3_REGION="${S3_REGION:-ru-central1}"
-S3_BACKUP_PREFIX="${S3_BACKUP_PREFIX:-serverpeer-backups/}"
+
+# Backend-specific S3 prefix with fallback chain
+# Priority: SERVERPEER_S3_BACKUP_PREFIX > S3_BACKUP_PREFIX > default
+S3_BACKUP_PREFIX="${SERVERPEER_S3_BACKUP_PREFIX:-${S3_BACKUP_PREFIX:-serverpeer-backups/}}"
 
 # SHARED s3_upload.py script (works with ANY file)
 S3_UPLOAD_SCRIPT="/opt/notes/scripts/s3_upload.py"
