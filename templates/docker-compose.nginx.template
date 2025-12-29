@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   nginx:
     image: nginx:alpine
@@ -14,8 +12,6 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - notes-network
-    depends_on:
-      - couchdb
 
 networks:
   notes-network:

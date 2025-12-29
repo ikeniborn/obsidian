@@ -410,6 +410,7 @@ prompt_sync_backend() {
                 COUCHDB_LOCATION=${COUCHDB_LOCATION:-/couchdb}
                 # Ensure leading slash
                 [[ "$COUCHDB_LOCATION" != /* ]] && COUCHDB_LOCATION="/$COUCHDB_LOCATION"
+                echo ""  # Explicit newline to ensure clean prompt
 
                 read -p "ServerPeer location path (default: /serverpeer): " SERVERPEER_LOCATION
                 SERVERPEER_LOCATION=${SERVERPEER_LOCATION:-/serverpeer}
