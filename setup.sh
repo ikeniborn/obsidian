@@ -683,20 +683,81 @@ setup_backup_cron() {
 setup_systemd_timer() {
     info "Setting up systemd timer for backups..."
 
-    if [[ ! -f "$SCRIPT_DIR/systemd/couchdb-backup.service" ]]; then
-        warning "Systemd service file not found, skipping"
-        return 1
-    fi
+    # Determine backup script based on backend
+    local backup_script=""
+    local service_name=""
+    local service_description=""
 
-    sudo cp "$SCRIPT_DIR/systemd/couchdb-backup.service" /etc/systemd/system/
-    sudo cp "$SCRIPT_DIR/systemd/couchdb-backup.timer" /etc/systemd/system/
+    case "${SYNC_BACKEND:-couchdb}" in
+        couchdb)
+            backup_script="/opt/notes/scripts/couchdb-backup.sh"
+            service_name="couchdb-backup"
+            service_description="CouchDB Backup to S3"
+            ;;
+        serverpeer)
+            backup_script="/opt/notes/scripts/serverpeer-backup.sh"
+            service_name="serverpeer-backup"
+            service_description="ServerPeer Backup to S3"
+            ;;
+        both)
+            # For dual mode, we'll create two separate timers
+            info "Creating systemd timers for both backends..."
+            setup_systemd_timer_for_backend "couchdb" "/opt/notes/scripts/couchdb-backup.sh" "CouchDB Backup to S3"
+            setup_systemd_timer_for_backend "serverpeer" "/opt/notes/scripts/serverpeer-backup.sh" "ServerPeer Backup to S3"
+            success "Systemd timers configured for both backends (daily at 3:00 AM)"
+            info "Check status: systemctl status couchdb-backup.timer serverpeer-backup.timer"
+            return 0
+            ;;
+        *)
+            error "Unknown backend: ${SYNC_BACKEND}"
+            ;;
+    esac
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable couchdb-backup.timer
-    sudo systemctl start couchdb-backup.timer
-
+    setup_systemd_timer_for_backend "$service_name" "$backup_script" "$service_description"
     success "Systemd timer configured (daily at 3:00 AM)"
-    info "Check status: systemctl status couchdb-backup.timer"
+    info "Check status: systemctl status ${service_name}.timer"
+}
+
+setup_systemd_timer_for_backend() {
+    local service_name="$1"
+    local backup_script="$2"
+    local service_description="$3"
+
+    # Create systemd service file
+    sudo tee /etc/systemd/system/${service_name}.service > /dev/null << EOF
+[Unit]
+Description=${service_description}
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/notes
+ExecStart=/bin/bash ${backup_script}
+StandardOutput=append:/opt/notes/logs/backup.log
+StandardError=append:/opt/notes/logs/backup.log
+User=root
+EOF
+
+    # Create systemd timer file
+    sudo tee /etc/systemd/system/${service_name}.timer > /dev/null << EOF
+[Unit]
+Description=Daily ${service_description} Timer
+
+[Timer]
+OnCalendar=daily
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    # Reload and enable
+    sudo systemctl daemon-reload
+    sudo systemctl enable ${service_name}.timer
+    sudo systemctl start ${service_name}.timer
+
+    info "Created and started ${service_name}.timer"
 }
 
 display_summary() {

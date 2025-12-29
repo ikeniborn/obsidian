@@ -6,10 +6,10 @@ metadata:
   file_path: "/home/ikeniborn/Documents/Project/obsidian/setup.sh"
   type: "deployment"
   language: "bash"
-  version: "5.1.1"
+  version: "5.1.2"
   status: "active"
   last_updated: "2025-12-29"
-  lines_of_code: 881
+  lines_of_code: 937
 
 description:
   summary: "Interactive script for configuring Obsidian Sync Server environment"
@@ -115,6 +115,43 @@ key_functions:
     purpose: "Nginx reverse proxy configuration"
     parameters: []
     returns: "Sets NGINX_CONTAINER_NAME, NGINX_CONFIG_DIR, DEPLOY_OWN_NGINX"
+
+  - name: "setup_backup_cron"
+    line_number: 629
+    purpose: "Create backend-aware cron jobs for automatic backups"
+    parameters: []
+    returns: "Installs cron jobs based on SYNC_BACKEND"
+    notes:
+      - "CouchDB only: creates couchdb-backup.sh cron at 3:00 AM"
+      - "ServerPeer only: creates serverpeer-backup.sh cron at 3:00 AM"
+      - "Both: creates both cron jobs (CouchDB at 3:00, ServerPeer at 3:05)"
+      - "Removes old cron jobs before adding new ones"
+
+  - name: "setup_systemd_timer"
+    line_number: 683
+    purpose: "Create backend-aware systemd timers for automatic backups"
+    parameters: []
+    returns: "Creates and enables systemd timer(s) based on SYNC_BACKEND"
+    notes:
+      - "Fixed in v5.1.2: Dynamically creates systemd unit files instead of copying static templates"
+      - "CouchDB only: creates couchdb-backup.timer/service"
+      - "ServerPeer only: creates serverpeer-backup.timer/service"
+      - "Both: calls setup_systemd_timer_for_backend twice for each backend"
+      - "Uses sudo tee to create files in /etc/systemd/system/"
+
+  - name: "setup_systemd_timer_for_backend"
+    line_number: 721
+    purpose: "Create systemd service and timer files for a specific backend"
+    parameters:
+      - "service_name: couchdb-backup or serverpeer-backup"
+      - "backup_script: /opt/notes/scripts/{backend}-backup.sh"
+      - "service_description: Service description for unit files"
+    returns: "Creates .service and .timer files, enables and starts timer"
+    notes:
+      - "NEW in v5.1.2: Helper function for creating systemd units"
+      - "Creates /etc/systemd/system/{service_name}.service"
+      - "Creates /etc/systemd/system/{service_name}.timer"
+      - "Runs systemctl daemon-reload, enable, and start"
 
 relationships:
   calls_scripts: []
@@ -263,6 +300,10 @@ troubleshooting:
       cause: "OBSOLETE: Fixed in v5.1.1 - old versions hardcoded S3 prefix prompt default"
       resolution: "Update to setup.sh v5.1.1+ which preserves backend-aware S3 prefix defaults"
 
+    - error_message: "Systemd service file not found, skipping"
+      cause: "OBSOLETE: Fixed in v5.1.2 - old versions relied on static systemd/ template files"
+      resolution: "Update to setup.sh v5.1.2+ which dynamically creates backend-aware systemd unit files"
+
     - error_message: "/opt/notes does not exist"
       cause: "install.sh was not run"
       resolution: "Run: sudo ./install.sh"
@@ -286,6 +327,14 @@ references:
     - "workflow:deployment"  # setup.sh is step 2 of deployment flow
 
 changelog:
+  - version: "5.1.2"
+    date: "2025-12-29"
+    changes:
+      - "Fixed: Systemd timer setup failure - dynamically creates unit files instead of copying static templates"
+      - "Added: setup_systemd_timer_for_backend() helper function"
+      - "Improved: Backend-aware systemd timer creation (couchdb-backup.timer, serverpeer-backup.timer, or both)"
+      - "Removed dependency on systemd/ directory static files"
+
   - version: "5.1.1"
     date: "2025-12-29"
     changes:

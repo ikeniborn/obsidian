@@ -258,8 +258,12 @@ CouchDB configuration:
 - Generates secure CouchDB password (when CouchDB backend selected)
 - Configures backend-specific settings (container names, ports, locations)
 - Optionally configures S3 backup with backend-aware prefix defaults
-- Sets up cron/systemd for automatic backups
-- No sudo required
+- Sets up cron/systemd for automatic backups (backend-aware):
+  - Dynamically creates systemd unit files matching selected backend
+  - CouchDB only: couchdb-backup.timer/service
+  - ServerPeer only: serverpeer-backup.timer/service
+  - Both: creates both timers (CouchDB at 3:00 AM, ServerPeer at 3:05 AM)
+- No sudo required (except for systemd timer creation)
 - **Important:** Backend-specific variables (COUCHDB_CONTAINER_NAME, SERVERPEER_CONTAINER_NAME) are only added to .env when their respective backend is selected
 
 **deploy.sh**
