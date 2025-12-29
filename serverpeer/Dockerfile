@@ -1,4 +1,4 @@
-FROM denoland/deno:latest AS deno-bin
+FROM denoland/deno:bin AS deno-bin
 FROM node:22.14-bookworm-slim
 
 COPY --from=deno-bin /deno /usr/local/bin/deno
