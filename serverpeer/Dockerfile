@@ -1,4 +1,4 @@
-FROM denoland/deno:bin-2.2.11 AS deno-bin
+FROM denoland/deno:bin-latest AS deno-bin
 FROM node:22.14-bookworm-slim
 
 COPY --from=deno-bin /deno /usr/local/bin/deno
@@ -12,7 +12,7 @@ RUN apt-get update && \
 RUN git clone https://github.com/vrtmrz/livesync-serverpeer.git --recursive /app/livesync-serverpeer
 
 WORKDIR /app/livesync-serverpeer
-RUN deno task install
+RUN deno task install || deno install --allow-scripts
 
 RUN mkdir -p /app/vault
 
