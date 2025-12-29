@@ -1,8 +1,8 @@
 # WebSocket proxy for livesync-serverpeer
-
-# Docker DNS resolver (allows dynamic resolution of container names)
-resolver 127.0.0.11 valid=10s;
-resolver_timeout 5s;
+upstream serverpeer_backend {
+    server ${SERVERPEER_UPSTREAM}:3000 max_fails=0;
+    keepalive 32;
+}
 
 server {
     listen 80;
@@ -25,13 +25,10 @@ server {
     add_header Strict-Transport-Security "max-age=31536000" always;
 
     location ${SERVERPEER_LOCATION} {
-        # Dynamic upstream resolution (allows backend to start after nginx)
-        set $serverpeer_upstream ${SERVERPEER_UPSTREAM}:3000;
-
         # Strip location prefix before proxying to backend
         rewrite ^${SERVERPEER_LOCATION}(.*)$ /$1 break;
 
-        proxy_pass http://$serverpeer_upstream;
+        proxy_pass http://serverpeer_backend;
 
         # WebSocket upgrade
         proxy_http_version 1.1;
