@@ -392,6 +392,16 @@ deploy_own_nginx() {
     export NETWORK_NAME NETWORK_EXTERNAL
     envsubst < templates/docker-compose.nginx.template > /opt/notes/docker-compose.nginx.yml
 
+    # Pre-pull nginx image (respects Docker daemon proxy)
+    info "Pre-pulling nginx image..."
+    info "This ensures proxy settings are used for image download"
+    if docker pull nginx:alpine; then
+        success "Pulled: nginx:alpine"
+    else
+        warning "Failed to pull nginx:alpine - deployment may fail"
+        warning "If you're behind a proxy, ensure Docker daemon proxy is configured"
+    fi
+
     info "Starting nginx container..."
     docker compose -f /opt/notes/docker-compose.nginx.yml up -d
 
