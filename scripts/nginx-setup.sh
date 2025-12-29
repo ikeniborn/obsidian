@@ -275,6 +275,7 @@ integrate_with_existing_nginx() {
     local config_dir="${NGINX_CONFIG_DIR}"
     local use_docker_cp=false
 
+    # Try auto-detection if not set in .env
     if [ -z "$config_dir" ]; then
         warning "NGINX_CONFIG_DIR not set in .env, using auto-detection"
         if ! config_dir=$(get_nginx_config_dir "$nginx_type" 2>&1); then
@@ -289,6 +290,16 @@ integrate_with_existing_nginx() {
                 return 1
             fi
         fi
+    fi
+
+    # Validate config_dir from .env (if it was set)
+    # For Docker nginx, if path doesn't exist on host, use docker cp
+    if [[ "$nginx_type" == "docker" ]] && [[ ! -d "$config_dir" ]] && [[ "$use_docker_cp" == "false" ]]; then
+        warning "Config directory from .env not found on host: $config_dir"
+        warning "This is normal for Docker nginx without volume mounts"
+        info "Will use 'docker cp' to copy config directly into container"
+        use_docker_cp=true
+        # config_dir is already set (from .env), use it as container path
     fi
 
     local config_file=$(generate_nginx_config "$nginx_type")
