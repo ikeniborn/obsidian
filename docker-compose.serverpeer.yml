@@ -28,8 +28,10 @@ services:
     networks:
       - notes-network
 
+    # ServerPeer is a P2P client, not an HTTP server
+    # Check if deno process is running instead of HTTP endpoint
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "sh", "-c", "pgrep -f 'deno.*main.ts' > /dev/null"]
       interval: 30s
       timeout: 10s
       retries: 3
