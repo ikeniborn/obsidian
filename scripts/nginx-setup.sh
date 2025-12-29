@@ -313,10 +313,18 @@ integrate_with_existing_nginx() {
         local dest_file="${config_dir}/notes.conf"
 
         info "Copying config into container using 'docker cp'..."
-        if docker cp "$config_file" "${container_name}:${dest_file}"; then
+        # docker cp may show "mounted volume is marked read-only" warning after successful copy
+        # This warning is harmless - the file is copied successfully before the warning
+        local cp_output=$(docker cp "$config_file" "${container_name}:${dest_file}" 2>&1)
+        local cp_status=$?
+
+        if [[ $cp_status -eq 0 ]] || echo "$cp_output" | grep -q "Successfully copied"; then
             success "Config copied to container: ${container_name}:${dest_file}"
+            # Suppress read-only volume warning (cosmetic issue, doesn't affect functionality)
+            [[ "$cp_output" =~ "read-only" ]] && info "Note: read-only volume warning is harmless"
         else
             error "Failed to copy config into container"
+            echo "$cp_output"
             return 1
         fi
     else

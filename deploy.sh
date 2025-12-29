@@ -264,7 +264,7 @@ prepull_serverpeer_images() {
     info "This ensures proxy settings are used for image downloads"
 
     local images=(
-        "denoland/deno:bin-latest"
+        "denoland/deno:latest"
         "node:22.14-bookworm-slim"
     )
 
