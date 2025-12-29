@@ -454,6 +454,26 @@ deploy_own_nginx() {
         warning "If you're behind a proxy, ensure Docker daemon proxy is configured"
     fi
 
+    # Prepare nginx config directory and files BEFORE starting container
+    # This prevents Docker from creating notes.conf as a directory
+    info "Preparing nginx config directory..."
+    sudo mkdir -p /opt/notes/nginx/ssl
+
+    # Generate initial nginx config
+    info "Generating initial nginx config..."
+    local initial_config=$(generate_nginx_config "docker")
+    if [[ -f "$initial_config" ]]; then
+        # Remove old notes.conf if it exists (file or directory)
+        sudo rm -rf /opt/notes/nginx/notes.conf
+
+        # Copy generated config
+        sudo cp "$initial_config" /opt/notes/nginx/notes.conf
+        sudo chmod 644 /opt/notes/nginx/notes.conf
+        success "Initial nginx config created: /opt/notes/nginx/notes.conf"
+    else
+        error "Failed to generate initial nginx config"
+    fi
+
     info "Starting nginx container..."
     docker compose -f /opt/notes/docker-compose.nginx.yml up -d
 

@@ -306,7 +306,8 @@ deploy_serverpeer() {
     export SERVERPEER_VAULT_NAME SERVERPEER_PORT
 
     docker compose -f "$compose_file" build
-    docker compose -f "$compose_file" up -d --remove-orphans
+    # Note: Don't use --remove-orphans when using multiple compose files
+    docker compose -f "$compose_file" up -d
 
     success "ServerPeer deployed"
 }
@@ -371,7 +372,8 @@ deploy_couchdb() {
     export COUCHDB_PORT
 
     # Note: Image already pulled by prepull_couchdb_images(), no need for docker compose pull
-    docker compose -f "$compose_file" up -d --remove-orphans
+    # Note: Don't use --remove-orphans when using multiple compose files
+    docker compose -f "$compose_file" up -d
 
     success "CouchDB deployed"
 }
@@ -550,16 +552,10 @@ main() {
 
     prepare_network
 
-    setup_nginx
-
-    setup_ssl
-    verify_ssl
-
-    apply_nginx_config
-
     copy_scripts_to_workdir
 
     # Conditional deployment based on backend
+    # Deploy backends BEFORE nginx to ensure DNS resolution works
     source "$NOTES_DEPLOY_DIR/.env"
 
     if [[ "${SYNC_BACKEND:-couchdb}" == "both" ]]; then
@@ -578,6 +574,14 @@ main() {
         deploy_couchdb
         wait_for_couchdb_healthy
     fi
+
+    # Setup nginx AFTER backends are running (for DNS resolution)
+    setup_nginx
+
+    setup_ssl
+    verify_ssl
+
+    apply_nginx_config
 
     if ! validate_deployment; then
         error "Deployment validation failed"
