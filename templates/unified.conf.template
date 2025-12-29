@@ -1,0 +1,80 @@
+# Unified nginx configuration for both CouchDB and ServerPeer
+# Allows running both backends simultaneously on different location paths
+
+upstream couchdb_backend {
+    server ${COUCHDB_UPSTREAM}:5984;
+    keepalive 32;
+}
+
+upstream serverpeer_backend {
+    server ${SERVERPEER_UPSTREAM}:3000;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name ${NOTES_DOMAIN};
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${NOTES_DOMAIN};
+
+    ssl_certificate /etc/letsencrypt/live/${NOTES_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${NOTES_DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    # CouchDB HTTP REST API
+    location ${COUCHDB_LOCATION} {
+        rewrite ^${COUCHDB_LOCATION}(.*)$ /$1 break;
+        proxy_pass http://couchdb_backend;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_redirect off;
+
+        client_max_body_size 50M;
+    }
+
+    # ServerPeer WebSocket relay
+    location ${SERVERPEER_LOCATION} {
+        rewrite ^${SERVERPEER_LOCATION}(.*)$ /$1 break;
+        proxy_pass http://serverpeer_backend;
+
+        # WebSocket upgrade
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Proxy headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket timeouts (7 days)
+        proxy_connect_timeout 7d;
+        proxy_send_timeout 7d;
+        proxy_read_timeout 7d;
+
+        proxy_buffering off;
+    }
+
+    # Root location - show info page or redirect
+    location = / {
+        return 200 'Obsidian Sync Server\n\nAvailable backends:\n- CouchDB: ${COUCHDB_LOCATION}\n- ServerPeer: ${SERVERPEER_LOCATION}\n';
+        add_header Content-Type text/plain;
+    }
+}

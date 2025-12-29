@@ -366,26 +366,56 @@ prompt_sync_backend() {
     echo ""
     info "Sync Backend Selection"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "1) CouchDB - Client-Server (HTTP REST API)"
-    echo "2) ServerPeer - P2P (WebSocket relay)"
+    echo "1) CouchDB only - Client-Server (HTTP REST API)"
+    echo "2) ServerPeer only - P2P (WebSocket relay)"
+    echo "3) Both - Run both backends simultaneously"
     echo ""
 
     while true; do
-        read -p "Select backend [1-2] (default: 1): " choice
+        read -p "Select backend [1-3] (default: 1): " choice
         choice=${choice:-1}
 
         case "$choice" in
             1)
                 SYNC_BACKEND="couchdb"
                 S3_BACKUP_PREFIX="couchdb-backups/"
-                success "Selected: CouchDB"
+                COUCHDB_LOCATION="/"
+                success "Selected: CouchDB only"
                 break
                 ;;
             2)
                 SYNC_BACKEND="serverpeer"
                 S3_BACKUP_PREFIX="serverpeer-backups/"
-                success "Selected: ServerPeer (Docker-based)"
+                SERVERPEER_LOCATION="/"
+                success "Selected: ServerPeer only (Docker-based)"
                 info "All dependencies (Deno, Node.js) are containerized - no host installation needed"
+                break
+                ;;
+            3)
+                SYNC_BACKEND="both"
+                S3_BACKUP_PREFIX="backups/"
+                success "Selected: Both backends (dual mode)"
+                info "All dependencies (Deno, Node.js) are containerized - no host installation needed"
+
+                # Prompt for location paths
+                echo ""
+                info "Nginx Location Paths Configuration"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "Configure URL paths for each backend on ${NOTES_DOMAIN:-your-domain}"
+                echo ""
+
+                read -p "CouchDB location path (default: /couchdb): " COUCHDB_LOCATION
+                COUCHDB_LOCATION=${COUCHDB_LOCATION:-/couchdb}
+                # Ensure leading slash
+                [[ "$COUCHDB_LOCATION" != /* ]] && COUCHDB_LOCATION="/$COUCHDB_LOCATION"
+
+                read -p "ServerPeer location path (default: /serverpeer): " SERVERPEER_LOCATION
+                SERVERPEER_LOCATION=${SERVERPEER_LOCATION:-/serverpeer}
+                # Ensure leading slash
+                [[ "$SERVERPEER_LOCATION" != /* ]] && SERVERPEER_LOCATION="/$SERVERPEER_LOCATION"
+
+                success "CouchDB will be available at: https://${NOTES_DOMAIN:-domain}${COUCHDB_LOCATION}"
+                success "ServerPeer will be available at: https://${NOTES_DOMAIN:-domain}${SERVERPEER_LOCATION}"
                 break
                 ;;
             *)
@@ -396,7 +426,7 @@ prompt_sync_backend() {
 }
 
 configure_serverpeer() {
-    [[ "$SYNC_BACKEND" != "serverpeer" ]] && return 0
+    [[ "$SYNC_BACKEND" != "serverpeer" && "$SYNC_BACKEND" != "both" ]] && return 0
 
     echo ""
     info "ServerPeer Configuration"
@@ -551,14 +581,25 @@ EOF
     fi
 
     # Backend-specific configuration
-    if [[ "$SYNC_BACKEND" == "serverpeer" ]]; then
-        cat >> "$ENV_FILE" << EOF
+    cat >> "$ENV_FILE" << EOF
 
 # =============================================================================
 # Sync Backend Configuration
 # =============================================================================
 
-SYNC_BACKEND=serverpeer
+SYNC_BACKEND=$SYNC_BACKEND
+EOF
+
+    # CouchDB location (if enabled)
+    if [[ "$SYNC_BACKEND" == "couchdb" || "$SYNC_BACKEND" == "both" ]]; then
+        cat >> "$ENV_FILE" << EOF
+COUCHDB_LOCATION=${COUCHDB_LOCATION:-/}
+EOF
+    fi
+
+    # ServerPeer configuration (if enabled)
+    if [[ "$SYNC_BACKEND" == "serverpeer" || "$SYNC_BACKEND" == "both" ]]; then
+        cat >> "$ENV_FILE" << EOF
 
 # =============================================================================
 # ServerPeer Configuration
@@ -575,15 +616,7 @@ SERVERPEER_PORT=$SERVERPEER_PORT
 SERVERPEER_VAULT_NAME=$SERVERPEER_VAULT_NAME
 SERVERPEER_VAULT_DIR=$SERVERPEER_VAULT_DIR
 SERVERPEER_CONTAINER_NAME=$SERVERPEER_CONTAINER_NAME
-EOF
-    else
-        cat >> "$ENV_FILE" << EOF
-
-# =============================================================================
-# Sync Backend Configuration
-# =============================================================================
-
-SYNC_BACKEND=couchdb
+SERVERPEER_LOCATION=${SERVERPEER_LOCATION:-/}
 EOF
     fi
 
@@ -595,18 +628,9 @@ EOF
 setup_backup_cron() {
     info "Setting up automatic backups..."
 
-    # Select backup script based on backend
-    local backup_script
-    if [[ "${SYNC_BACKEND:-couchdb}" == "serverpeer" ]]; then
-        backup_script="/opt/notes/scripts/serverpeer-backup.sh"
-    else
-        backup_script="/opt/notes/scripts/couchdb-backup.sh"
-    fi
-
     echo ""
     echo "Automatic backups configuration:"
     echo "  Backend: ${SYNC_BACKEND:-couchdb}"
-    echo "  Script: ${backup_script}"
     echo "  Schedule: Daily at 3:00 AM"
     echo "  Target: S3 (if configured) + local /opt/notes/backups/"
     echo ""
@@ -614,25 +638,44 @@ setup_backup_cron() {
     echo ""
 
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        CRON_JOB="0 3 * * * /bin/bash ${backup_script} >> /opt/notes/logs/backup.log 2>&1"
-
         # Remove old backup cron jobs (both couchdb and serverpeer)
         if crontab -l 2>/dev/null | grep -qE "couchdb-backup.sh|serverpeer-backup.sh"; then
             info "Removing old backup cron jobs..."
             crontab -l 2>/dev/null | grep -vE "couchdb-backup.sh|serverpeer-backup.sh" | crontab -
-            info "Installing updated backup cron job..."
+        fi
+
+        # Add cron jobs based on backend
+        if [[ "${SYNC_BACKEND}" == "both" ]]; then
+            info "Installing backup cron jobs for both backends..."
+            COUCHDB_CRON="0 3 * * * /bin/bash /opt/notes/scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+            SERVERPEER_CRON="5 3 * * * /bin/bash /opt/notes/scripts/serverpeer-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+            (crontab -l 2>/dev/null; echo "$COUCHDB_CRON"; echo "$SERVERPEER_CRON") | crontab -
+            success "Backup cron jobs created:"
+            echo "  - CouchDB: daily at 3:00 AM"
+            echo "  - ServerPeer: daily at 3:05 AM"
+        elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
+            CRON_JOB="0 3 * * * /bin/bash /opt/notes/scripts/serverpeer-backup.sh >> /opt/notes/logs/backup.log 2>&1"
             (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-            success "Backup cron job updated (daily at 3:00 AM)"
+            success "Backup cron job created (ServerPeer, daily at 3:00 AM)"
         else
+            CRON_JOB="0 3 * * * /bin/bash /opt/notes/scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
             (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-            success "Backup cron job created (daily at 3:00 AM)"
+            success "Backup cron job created (CouchDB, daily at 3:00 AM)"
         fi
 
         touch /opt/notes/logs/backup.log
         chmod 644 /opt/notes/logs/backup.log
     else
         info "Automatic backups not configured"
-        info "You can run backups manually: bash ${backup_script}"
+        if [[ "${SYNC_BACKEND}" == "both" ]]; then
+            info "You can run backups manually:"
+            info "  bash /opt/notes/scripts/couchdb-backup.sh"
+            info "  bash /opt/notes/scripts/serverpeer-backup.sh"
+        elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
+            info "You can run backups manually: bash /opt/notes/scripts/serverpeer-backup.sh"
+        else
+            info "You can run backups manually: bash /opt/notes/scripts/couchdb-backup.sh"
+        fi
     fi
 }
 
@@ -709,7 +752,10 @@ main() {
     prompt_sync_backend
 
     # Conditional backend configuration
-    if [[ "${SYNC_BACKEND:-couchdb}" == "serverpeer" ]]; then
+    if [[ "${SYNC_BACKEND:-couchdb}" == "both" ]]; then
+        configure_couchdb
+        configure_serverpeer
+    elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
         configure_serverpeer
     else
         configure_couchdb

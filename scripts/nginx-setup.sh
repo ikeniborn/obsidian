@@ -74,7 +74,36 @@ generate_nginx_config() {
 
     local sync_backend="${SYNC_BACKEND:-couchdb}"
 
-    if [[ "$sync_backend" == "serverpeer" ]]; then
+    if [[ "$sync_backend" == "both" ]]; then
+        # Unified configuration for both backends
+        local template_file="${PROJECT_ROOT}/templates/unified.conf.template"
+
+        if [[ ! -f "$template_file" ]]; then
+            error "Unified nginx template not found at $template_file"
+        fi
+
+        # Set upstreams for both backends
+        if [ "$nginx_mode" = "docker" ]; then
+            export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+            export SERVERPEER_UPSTREAM="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+        else
+            export COUCHDB_UPSTREAM="127.0.0.1"
+            export SERVERPEER_UPSTREAM="127.0.0.1"
+        fi
+
+        # Export location paths
+        export COUCHDB_LOCATION="${COUCHDB_LOCATION:-/couchdb}"
+        export SERVERPEER_LOCATION="${SERVERPEER_LOCATION:-/serverpeer}"
+
+        local output_file="${PROJECT_ROOT}/unified.conf"
+        export NOTES_DOMAIN
+        envsubst '$COUCHDB_UPSTREAM,$SERVERPEER_UPSTREAM,$COUCHDB_LOCATION,$SERVERPEER_LOCATION,$NOTES_DOMAIN' < "$template_file" > "$output_file"
+
+        info "Generated unified nginx config: $output_file" >&2
+        info "  CouchDB upstream: ${COUCHDB_UPSTREAM}, location: ${COUCHDB_LOCATION}" >&2
+        info "  ServerPeer upstream: ${SERVERPEER_UPSTREAM}, location: ${SERVERPEER_LOCATION}" >&2
+        echo "$output_file"
+    elif [[ "$sync_backend" == "serverpeer" ]]; then
         # ServerPeer WebSocket proxy
         local template_file="${PROJECT_ROOT}/templates/serverpeer.conf.template"
 

@@ -517,7 +517,14 @@ main() {
     # Conditional deployment based on backend
     source "$NOTES_DEPLOY_DIR/.env"
 
-    if [[ "${SYNC_BACKEND:-couchdb}" == "serverpeer" ]]; then
+    if [[ "${SYNC_BACKEND:-couchdb}" == "both" ]]; then
+        info "Deploying both backends (dual mode)..."
+        deploy_couchdb
+        deploy_serverpeer
+        wait_for_couchdb_healthy
+        wait_for_serverpeer_healthy
+        success "Both backends deployed successfully"
+    elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
         info "Deploying ServerPeer backend..."
         deploy_serverpeer
         wait_for_serverpeer_healthy
