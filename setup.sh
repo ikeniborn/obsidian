@@ -678,8 +678,62 @@ configure_serverpeer() {
     info "ServerPeer Configuration"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    # Generate secure passphrase (16 bytes = 32 hex chars)
-    local passphrase=$(openssl rand -hex 16)
+    # ServerPeer passphrase configuration
+    echo ""
+    info "ServerPeer Passphrase Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "1. Generate secure random passphrase (recommended)"
+    echo "2. Enter passphrase manually"
+    echo ""
+
+    local passphrase
+    while true; do
+        read -p "Choose option (1/2): " -n 1 -r passphrase_choice
+        echo ""
+
+        if [[ "$passphrase_choice" == "1" ]]; then
+            # Generate secure passphrase (16 bytes = 32 hex chars)
+            passphrase=$(openssl rand -hex 16)
+            success "Generated secure 32-character passphrase"
+            break
+        elif [[ "$passphrase_choice" == "2" ]]; then
+            echo ""
+            warning "Manual passphrase requirements:"
+            echo "  - Minimum 12 characters"
+            echo "  - Use strong passphrase for production"
+            echo ""
+
+            while true; do
+                read -s -p "Enter ServerPeer passphrase: " pass1
+                echo ""
+                read -s -p "Confirm passphrase: " pass2
+                echo ""
+
+                if [[ -z "$pass1" ]]; then
+                    error "Passphrase cannot be empty"
+                    continue
+                fi
+
+                if [[ ${#pass1} -lt 12 ]]; then
+                    error "Passphrase must be at least 12 characters"
+                    continue
+                fi
+
+                if [[ "$pass1" != "$pass2" ]]; then
+                    error "Passphrases do not match"
+                    continue
+                fi
+
+                passphrase="$pass1"
+                success "Passphrase accepted"
+                break
+            done
+            break
+        else
+            warning "Invalid option. Please choose 1 or 2"
+        fi
+    done
+    echo ""
 
     # Generate room ID (12 bytes = UUID-like format)
     local room_id=$(openssl rand -hex 6 | sed 's/\(..\)/\1-/g;s/-$//')
@@ -784,8 +838,61 @@ prompt_s3_credentials() {
 create_env_file() {
     info "Creating configuration file: $ENV_FILE"
 
+    # CouchDB password configuration
+    echo ""
+    info "CouchDB Password Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "1. Generate secure random password (recommended)"
+    echo "2. Enter password manually"
+    echo ""
+
     local couchdb_password
-    couchdb_password=$(generate_password 32)
+    while true; do
+        read -p "Choose option (1/2): " -n 1 -r password_choice
+        echo ""
+
+        if [[ "$password_choice" == "1" ]]; then
+            couchdb_password=$(generate_password 32)
+            success "Generated secure 64-character password"
+            break
+        elif [[ "$password_choice" == "2" ]]; then
+            echo ""
+            warning "Manual password requirements:"
+            echo "  - Minimum 12 characters"
+            echo "  - Use strong password for production"
+            echo ""
+
+            while true; do
+                read -s -p "Enter CouchDB password: " password1
+                echo ""
+                read -s -p "Confirm password: " password2
+                echo ""
+
+                if [[ -z "$password1" ]]; then
+                    error "Password cannot be empty"
+                    continue
+                fi
+
+                if [[ ${#password1} -lt 12 ]]; then
+                    error "Password must be at least 12 characters"
+                    continue
+                fi
+
+                if [[ "$password1" != "$password2" ]]; then
+                    error "Passwords do not match"
+                    continue
+                fi
+
+                couchdb_password="$password1"
+                success "Password accepted"
+                break
+            done
+            break
+        else
+            warning "Invalid option. Please choose 1 or 2"
+        fi
+    done
+    echo ""
 
     cat > "$ENV_FILE" << EOF
 # =============================================================================
