@@ -190,10 +190,14 @@ bash scripts/test-ssl-renewal.sh
 sudo ./install.sh
 
 # Step 2: Configure environment
-./setup.sh
+sudo ./setup.sh  # Use sudo if configuring Docker proxy
 # Prompts for:
+# - Docker proxy (optional, for restricted networks/blocked Docker Hub)
+#   * Supports HTTP, HTTPS, SOCKS5 proxies
+#   * Configures NO_PROXY for bypassing specific addresses
 # - CERTBOT_EMAIL (for Let's Encrypt)
 # - NOTES_DOMAIN (e.g., notes.example.com)
+# - Sync backend selection (CouchDB/ServerPeer/Both)
 # - S3 credentials (optional)
 # Generates: /opt/notes/.env
 
@@ -212,6 +216,78 @@ sudo ./install.sh
 - UFW must allow ports 22 (SSH) and 443 (HTTPS)
 - Port 80 remains closed (opened temporarily only for certbot renewal via UFW hooks)
 - Auto-detection of existing nginx (docker/systemd/standalone)
+
+### Docker Proxy Configuration
+
+**NEW:** setup.sh now supports configuring Docker daemon to use HTTP/HTTPS/SOCKS5 proxy for image pulls. This is essential in restricted networks or when Docker Hub is blocked.
+
+**When to use:**
+- Docker Hub is blocked or throttled in your region
+- Corporate/network firewall restricts Docker image pulls
+- Need to route Docker traffic through authenticated proxy
+- Want to bypass regional restrictions
+
+**Configuration (setup.sh:100-212):**
+```bash
+sudo ./setup.sh
+# When prompted:
+Configure Docker proxy? (y/N): y
+Proxy URL: https://user:pass@proxy.example.com:8080
+NO_PROXY addresses [default]: localhost,127.0.0.1,::1
+```
+
+**Supported proxy protocols:**
+- HTTP: `http://proxy:3128`
+- HTTPS: `https://user:pass@proxy:8080`
+- SOCKS5: `socks5://proxy:1080`
+
+**What it does:**
+1. Creates `/etc/systemd/system/docker.service.d/http-proxy.conf`
+2. Sets `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` environment variables
+3. Reloads systemd and restarts Docker daemon
+4. Verifies configuration with test pull
+
+**NO_PROXY configuration:**
+Comma-separated list of addresses that bypass proxy:
+- `localhost,127.0.0.1,::1` - localhost addresses
+- `docker-registry.local` - private registries
+- `192.168.0.0/16` - internal networks
+
+**Manual configuration:**
+If setup.sh didn't configure proxy or you need to change it:
+```bash
+# Create/edit proxy config
+sudo mkdir -p /etc/systemd/system/docker.service.d
+sudo nano /etc/systemd/system/docker.service.d/http-proxy.conf
+
+# Add:
+[Service]
+Environment="HTTP_PROXY=https://proxy:8080"
+Environment="HTTPS_PROXY=https://proxy:8080"
+Environment="NO_PROXY=localhost,127.0.0.1"
+
+# Apply changes
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+# Verify
+systemctl show --property=Environment docker
+docker pull hello-world
+```
+
+**Remove proxy configuration:**
+```bash
+sudo rm /etc/systemd/system/docker.service.d/http-proxy.conf
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+```
+
+**Troubleshooting:**
+- Test with: `docker pull hello-world`
+- Check logs: `journalctl -u docker.service`
+- Verify config: `systemctl show --property=Environment docker | grep -i proxy`
+- Common issue: Proxy authentication failed → check credentials in URL
+- Common issue: SOCKS5 not working → some Docker versions have limited SOCKS5 support
 
 ## Configuration Files
 

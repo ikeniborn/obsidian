@@ -97,6 +97,120 @@ check_existing_env() {
     fi
 }
 
+configure_docker_proxy() {
+    echo ""
+    info "Docker Proxy Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configure Docker daemon to use HTTP/HTTPS/SOCKS5 proxy for image pulls"
+    echo "This is useful in restricted networks or when Docker Hub is blocked"
+    echo ""
+
+    read -p "Configure Docker proxy? (y/N): " -n 1 -r
+    echo ""
+
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        info "Skipping Docker proxy configuration"
+        return 0
+    fi
+
+    # Check if running as root
+    if [[ $EUID -ne 0 ]]; then
+        error "Docker proxy configuration requires root privileges"
+        error "Please run setup.sh with sudo to configure Docker proxy"
+        error "Alternatively, manually configure /etc/systemd/system/docker.service.d/http-proxy.conf"
+        read -p "Continue without proxy? (Y/n): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            exit 1
+        fi
+        return 0
+    fi
+
+    echo ""
+    info "Proxy URL Examples:"
+    echo "  HTTPS: https://user:pass@proxy.example.com:8080"
+    echo "  HTTP:  http://proxy.example.com:3128"
+    echo "  SOCKS5: socks5://proxy.example.com:1080"
+    echo ""
+
+    read -p "Proxy URL: " DOCKER_PROXY_URL
+
+    if [[ -z "$DOCKER_PROXY_URL" ]]; then
+        warning "No proxy URL provided, skipping"
+        return 0
+    fi
+
+    # Validate proxy URL format
+    if [[ ! "$DOCKER_PROXY_URL" =~ ^(https?|socks5):// ]]; then
+        error "Invalid proxy URL format. Must start with http://, https://, or socks5://"
+        return 1
+    fi
+
+    echo ""
+    info "NO_PROXY Configuration"
+    echo "Specify addresses that should bypass the proxy (comma-separated)"
+    echo "Default: localhost,127.0.0.1,::1,docker-registry.local"
+    echo ""
+
+    read -p "NO_PROXY addresses [default]: " DOCKER_NO_PROXY
+    DOCKER_NO_PROXY=${DOCKER_NO_PROXY:-localhost,127.0.0.1,::1,docker-registry.local}
+
+    info "Configuring Docker daemon proxy..."
+
+    # Create systemd override directory
+    mkdir -p /etc/systemd/system/docker.service.d
+
+    # Create proxy configuration
+    cat > /etc/systemd/system/docker.service.d/http-proxy.conf << EOF
+[Service]
+Environment="HTTP_PROXY=${DOCKER_PROXY_URL}"
+Environment="HTTPS_PROXY=${DOCKER_PROXY_URL}"
+Environment="NO_PROXY=${DOCKER_NO_PROXY}"
+EOF
+
+    success "Docker daemon proxy configuration created"
+    info "  HTTP_PROXY: ${DOCKER_PROXY_URL}"
+    info "  HTTPS_PROXY: ${DOCKER_PROXY_URL}"
+    info "  NO_PROXY: ${DOCKER_NO_PROXY}"
+
+    # Reload systemd and restart Docker
+    info "Reloading systemd daemon..."
+    systemctl daemon-reload
+
+    info "Restarting Docker service..."
+    if systemctl restart docker; then
+        success "Docker service restarted with proxy configuration"
+    else
+        error "Failed to restart Docker service"
+        error "Please check: journalctl -u docker.service"
+        return 1
+    fi
+
+    # Verify configuration
+    info "Verifying Docker proxy configuration..."
+    sleep 2
+
+    if systemctl show --property=Environment docker | grep -qi proxy; then
+        success "Docker proxy configuration active"
+    else
+        warning "Docker proxy configuration not detected"
+    fi
+
+    echo ""
+    info "Testing Docker pull through proxy..."
+    if timeout 30 docker pull hello-world:latest &>/dev/null; then
+        success "Docker can pull images through proxy"
+        docker rmi hello-world:latest 2>/dev/null || true
+    else
+        warning "Docker pull test failed or timed out"
+        warning "This may be normal if proxy requires authentication or has restrictions"
+        warning "You can test manually: docker pull hello-world"
+    fi
+
+    echo ""
+    success "Docker proxy configuration completed"
+}
+
 validate_network_config() {
     if [ "$NETWORK_MODE" = "custom" ] && [ -z "$NETWORK_NAME" ]; then
         error "NETWORK_NAME required for custom mode"
@@ -859,6 +973,9 @@ main() {
 
     check_notes_directory
     check_existing_env
+
+    # Docker proxy configuration (optional, for restricted networks)
+    configure_docker_proxy
 
     configure_network
     configure_nginx
