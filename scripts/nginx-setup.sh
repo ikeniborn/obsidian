@@ -346,15 +346,67 @@ deploy_own_nginx() {
     sleep 3
 
     source "$ENV_FILE"
-    local couchdb_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+    local sync_backend="${SYNC_BACKEND:-couchdb}"
     local nginx_container="${NGINX_CONTAINER_NAME:-notes-nginx}"
 
+    # Determine which backend container(s) to check based on SYNC_BACKEND
     info "Validating network connectivity..."
-    if validate_network_connectivity "${network_name}" "$nginx_container" "$couchdb_container"; then
-        success "Network connectivity validated"
-    else
+    local connectivity_ok=true
+
+    case "$sync_backend" in
+        couchdb)
+            local backend_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+            if docker ps --format '{{.Names}}' | grep -q "^${backend_container}$"; then
+                if validate_network_connectivity "${network_name}" "$nginx_container" "$backend_container"; then
+                    success "Network connectivity validated (CouchDB)"
+                else
+                    connectivity_ok=false
+                fi
+            else
+                info "CouchDB container not yet created, skipping connectivity check"
+            fi
+            ;;
+        serverpeer)
+            local backend_container="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+            if docker ps --format '{{.Names}}' | grep -q "^${backend_container}$"; then
+                if validate_network_connectivity "${network_name}" "$nginx_container" "$backend_container"; then
+                    success "Network connectivity validated (ServerPeer)"
+                else
+                    connectivity_ok=false
+                fi
+            else
+                info "ServerPeer container not yet created, skipping connectivity check"
+            fi
+            ;;
+        both)
+            local couchdb_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+            local serverpeer_container="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
+
+            if docker ps --format '{{.Names}}' | grep -q "^${couchdb_container}$"; then
+                if validate_network_connectivity "${network_name}" "$nginx_container" "$couchdb_container"; then
+                    success "Network connectivity validated (CouchDB)"
+                else
+                    connectivity_ok=false
+                fi
+            else
+                info "CouchDB container not yet created, skipping connectivity check"
+            fi
+
+            if docker ps --format '{{.Names}}' | grep -q "^${serverpeer_container}$"; then
+                if validate_network_connectivity "${network_name}" "$nginx_container" "$serverpeer_container"; then
+                    success "Network connectivity validated (ServerPeer)"
+                else
+                    connectivity_ok=false
+                fi
+            else
+                info "ServerPeer container not yet created, skipping connectivity check"
+            fi
+            ;;
+    esac
+
+    if [ "$connectivity_ok" = false ]; then
         error "Network connectivity check failed"
-        error "Nginx and CouchDB may not be able to communicate"
+        error "Nginx and backend containers may not be able to communicate"
         exit 1
     fi
 
