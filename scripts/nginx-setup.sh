@@ -41,7 +41,30 @@ get_nginx_config_dir() {
     case "$nginx_type" in
         docker)
             local container_name=$(docker ps --format '{{.Names}}' | grep nginx | head -1)
-            docker inspect "$container_name" --format '{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || echo "/etc/nginx"
+            if [[ -z "$container_name" ]]; then
+                error "No nginx container found"
+                return 1
+            fi
+
+            # Try to find mount for /etc/nginx/conf.d first (most common)
+            local config_dir=$(docker inspect "$container_name" --format '{{range .Mounts}}{{if eq .Destination "/etc/nginx/conf.d"}}{{.Source}}{{end}}{{end}}' 2>/dev/null)
+
+            # If not found, try /etc/nginx
+            if [[ -z "$config_dir" ]]; then
+                config_dir=$(docker inspect "$container_name" --format '{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' 2>/dev/null)
+                if [[ -n "$config_dir" ]]; then
+                    config_dir="${config_dir}/conf.d"
+                fi
+            fi
+
+            # If still not found, return empty (caller should handle)
+            if [[ -z "$config_dir" ]]; then
+                warning "No volume mount found for nginx config directory"
+                warning "Container $container_name does not have /etc/nginx or /etc/nginx/conf.d mounted"
+                return 1
+            fi
+
+            echo "$config_dir"
             ;;
         systemd)
             if [[ -d "/etc/nginx/sites-available" ]]; then
@@ -250,25 +273,54 @@ integrate_with_existing_nginx() {
     source "$ENV_FILE"
 
     local config_dir="${NGINX_CONFIG_DIR}"
+    local use_docker_cp=false
+
     if [ -z "$config_dir" ]; then
         warning "NGINX_CONFIG_DIR not set in .env, using auto-detection"
-        config_dir=$(get_nginx_config_dir "$nginx_type")
+        if ! config_dir=$(get_nginx_config_dir "$nginx_type" 2>&1); then
+            # get_nginx_config_dir failed - no volume mount found
+            if [[ "$nginx_type" == "docker" ]]; then
+                warning "No volume mount found for nginx config"
+                info "Will use 'docker cp' to copy config directly into container"
+                use_docker_cp=true
+                config_dir="/etc/nginx/conf.d"  # Path inside container
+            else
+                error "Failed to detect nginx config directory"
+                return 1
+            fi
+        fi
     fi
 
     local config_file=$(generate_nginx_config "$nginx_type")
 
     info "Integrating with existing nginx ($nginx_type)"
-    info "Config directory: $config_dir"
+    info "Config destination: $config_dir"
 
-    if [[ ! -d "$config_dir" ]]; then
-        error "Nginx config directory not found: $config_dir"
+    if [[ "$use_docker_cp" == "true" ]]; then
+        # Use docker cp to copy config directly into container
+        local container_name=$(docker ps --format '{{.Names}}' | grep nginx | head -1)
+        local dest_file="${config_dir}/notes.conf"
+
+        info "Copying config into container using 'docker cp'..."
+        if docker cp "$config_file" "${container_name}:${dest_file}"; then
+            success "Config copied to container: ${container_name}:${dest_file}"
+        else
+            error "Failed to copy config into container"
+            return 1
+        fi
+    else
+        # Use regular file copy for volume-mounted configs
+        if [[ ! -d "$config_dir" ]]; then
+            error "Nginx config directory not found: $config_dir"
+            return 1
+        fi
+
+        local dest_file="${config_dir}/notes.conf"
+        sudo cp "$config_file" "$dest_file"
+        sudo chmod 644 "$dest_file"
+
+        info "Copied config to $dest_file"
     fi
-
-    local dest_file="${config_dir}/notes.conf"
-    sudo cp "$config_file" "$dest_file"
-    sudo chmod 644 "$dest_file"
-
-    info "Copied config to $dest_file"
 
     case "$nginx_type" in
         docker)
