@@ -42,6 +42,68 @@ threat_model:
     - threat: "Unauthorized access to CouchDB"
       mitigation: "Port 5984 blocked externally, accessible only via nginx reverse proxy"
 
+dynamic_firewall:
+  provider: "fail2ban"
+  mechanism: "Log analysis + UFW rule injection"
+  description: |
+    fail2ban provides dynamic IP-based banning to complement static UFW rules.
+    Monitors system logs and automatically bans malicious IPs by inserting
+    deny rules into UFW firewall.
+
+  protection_layers:
+    layer_1_ssh:
+      name: "SSH Brute-Force Protection"
+      jail: "sshd"
+      maxretry: 5
+      findtime: "10 minutes"
+      bantime: "1 hour"
+      purpose: "Blocks password guessing attacks"
+
+    layer_2_http:
+      name: "HTTP Scanning & DoS Protection"
+      jails:
+        - "nginx-http-auth"
+        - "nginx-noscript"
+        - "nginx-badbots"
+        - "nginx-noproxy"
+      maxretry: 10
+      findtime: "10 minutes"
+      bantime: "1 hour"
+      purpose: "Blocks directory scanning, script injection, malicious bots"
+
+    layer_3_api:
+      name: "API Authentication Abuse Protection"
+      jails:
+        - "notes-couchdb (if enabled)"
+        - "notes-serverpeer (if enabled)"
+      maxretry: 3
+      findtime: "5 minutes"
+      bantime: "2 hours"
+      purpose: "Blocks CouchDB/ServerPeer authentication abuse"
+
+  integration:
+    with_ufw: "fail2ban inserts deny rules into UFW"
+    rule_format: "ufw insert 1 deny from <IP> to any"
+    rule_priority: "Position 1 (highest priority)"
+    persistence: "Rules persist across reboots (UFW maintains them)"
+
+  monitoring:
+    log_file: "/var/log/fail2ban/fail2ban.log"
+    status_check: "fail2ban-client status"
+    banned_ips: "fail2ban-client get <jail> banip"
+    unban: "fail2ban-client set <jail> unbanip <IP>"
+
+  backend_awareness:
+    mechanism: "Jails created based on SYNC_BACKEND variable"
+    couchdb_only: "notes-couchdb jail enabled"
+    serverpeer_only: "notes-serverpeer jail enabled"
+    both: "Both jails enabled"
+
 references:
   prd_sections:
     - "SR-001: UFW Firewall Configuration"
+
+  related_components:
+    - "component:fail2ban"
+    - "component:ufw-firewall"
+    - "component:nginx"

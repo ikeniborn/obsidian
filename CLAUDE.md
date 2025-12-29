@@ -560,6 +560,91 @@ curl -u admin:password http://localhost:5984/_all_dbs
 - Port 80: HTTP (closed, opened only during certbot renewal via hooks)
 - Port 5984: CouchDB (bind to 127.0.0.1, not exposed)
 
+### fail2ban Integration
+
+**NEW (v5.2.0):** Dynamic intrusion prevention via fail2ban
+
+**Purpose:** Automatically ban IP addresses showing malicious activity (brute-force, scanning, API abuse)
+
+**Architecture:**
+```
+UFW (Static Rules) ←─── fail2ban (Dynamic IP Bans)
+         ↓                        ↑
+   Nginx Proxy                    │
+         ↓                         │
+   Backend APIs ──────(logs)──────┘
+```
+
+**Protected Services:**
+- SSH (port 22): 5 failures in 10 min → 1 hour ban
+- HTTP (nginx): 10 suspicious requests in 10 min → 1 hour ban
+- CouchDB API: 3 auth failures in 5 min → 2 hour ban
+- ServerPeer WebSocket (WSS): 3 auth failures in 5 min → 2 hour ban
+
+**Integration Point:** `deploy.sh` → after `check_ufw_configured()`, before `deploy_couchdb()`
+
+**Configuration Files:**
+- `/etc/fail2ban/jail.local` - Main jail configuration
+- `/etc/fail2ban/filter.d/notes-couchdb.conf` - CouchDB API filter (custom)
+- `/etc/fail2ban/filter.d/notes-serverpeer.conf` - ServerPeer WSS filter (custom)
+
+**UFW Integration:**
+- fail2ban uses `banaction = ufw`
+- Bans insert rules: `ufw insert 1 deny from <IP> to any`
+- Compatible with SSL renewal UFW hooks (different rule types)
+
+**Common Commands:**
+```bash
+# View status
+sudo fail2ban-client status
+
+# Check specific jail
+sudo fail2ban-client status notes-couchdb
+
+# View banned IPs
+sudo fail2ban-client get notes-couchdb banip
+
+# Manual unban
+sudo fail2ban-client set notes-couchdb unbanip 192.168.1.100
+
+# View logs
+tail -f /var/log/fail2ban/fail2ban.log
+
+# Test filters
+sudo fail2ban-regex /var/log/nginx/access.log /etc/fail2ban/filter.d/notes-couchdb.conf
+```
+
+**Docker Nginx Requirement:**
+If using Docker nginx, logs MUST be volume-mounted:
+```yaml
+volumes:
+  - /opt/notes/logs/nginx:/var/log/nginx  # Required for fail2ban
+```
+
+**Backend-Aware Jails:**
+- CouchDB only: `notes-couchdb` jail enabled
+- ServerPeer only: `notes-serverpeer` jail enabled
+- Both: Both jails enabled
+
+**WebSocket Secure (WSS) Support:**
+- ServerPeer filter monitors WSS connections over HTTPS (port 443)
+- Ignores HTTP 101 Switching Protocols (successful WebSocket upgrades)
+- Only bans failed authentication attempts (HTTP 401/403)
+
+**Troubleshooting:**
+- "Jail not found" → check backend in `/opt/notes/.env`
+- "No log file" → verify nginx logging enabled in templates
+- "Docker logs not accessible" → add volume mount to docker-compose
+- False positives → adjust maxretry or add to ignoreip whitelist
+
+**Rollback:**
+```bash
+sudo systemctl stop fail2ban
+sudo systemctl disable fail2ban
+sudo rm -f /etc/fail2ban/jail.local
+sudo apt-get purge -y fail2ban  # Optional
+```
+
 ### Password Security
 - Production: 64-char hex (256-bit) via `openssl rand -hex 32`
 - Development: Fixed insecure password (dev_password_insecure)

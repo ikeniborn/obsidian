@@ -75,6 +75,9 @@ command_exists() {
 # Source network manager
 source "${SCRIPT_DIR}/scripts/network-manager.sh"
 
+# Source fail2ban setup (optional, non-blocking)
+source "${SCRIPT_DIR}/scripts/fail2ban-setup.sh" 2>/dev/null || true
+
 # =============================================================================
 # VALIDATION FUNCTIONS
 # =============================================================================
@@ -130,6 +133,26 @@ check_ufw_configured() {
     fi
 
     success "UFW is configured"
+}
+
+setup_fail2ban() {
+    info "Setting up fail2ban intrusion prevention..."
+
+    # Check if script exists
+    if [[ ! -f "$NOTES_DEPLOY_DIR/scripts/fail2ban-setup.sh" ]]; then
+        warning "fail2ban-setup.sh not found - skipping intrusion prevention"
+        warning "Server will use UFW firewall only (static rules)"
+        return 0
+    fi
+
+    # Run fail2ban setup (non-blocking)
+    if sudo bash "$NOTES_DEPLOY_DIR/scripts/fail2ban-setup.sh"; then
+        success "fail2ban intrusion prevention enabled"
+    else
+        warning "fail2ban setup failed - continuing without intrusion prevention"
+        warning "Server will use UFW firewall only (static rules)"
+        warning "You can run manually: sudo bash /opt/notes/scripts/fail2ban-setup.sh"
+    fi
 }
 
 check_rsync() {
@@ -617,8 +640,10 @@ main() {
     check_ufw_configured
 
     prepare_network
-
     copy_scripts_to_workdir
+
+    # Setup fail2ban AFTER copying scripts to /opt/notes/scripts/
+    setup_fail2ban
 
     # Conditional deployment based on backend
     # Deploy backends BEFORE nginx to ensure DNS resolution works

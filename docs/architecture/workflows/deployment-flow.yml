@@ -41,6 +41,28 @@ phases:
         action: "Setup Docker network"
         actor: "script:deploy (calls script:network-manager)"
 
+      - id: "deploy.1.5"
+        order: 1.5
+        action: "Setup fail2ban intrusion prevention"
+        actor: "script:deploy (calls script:fail2ban-setup)"
+        duration: "1-2 minutes"
+        inputs:
+          - "UFW must be active (dependency)"
+          - "/opt/notes/.env (for backend detection)"
+        outputs:
+          - "fail2ban service running"
+          - "Jails enabled: sshd, nginx-*, notes-couchdb/notes-serverpeer"
+          - "UFW integration validated (banaction = ufw)"
+        error_handling:
+          blocking: false
+          degraded_mode: "UFW only (static rules)"
+          message: "Deployment continues with warning"
+        validation:
+          - "systemctl is-active fail2ban"
+          - "fail2ban-client status shows active jails"
+          - "fail2ban-client get <jail> banaction returns 'ufw'"
+        backend_awareness: true
+
       - id: "deploy.2"
         order: 2
         action: "Deploy CouchDB via Docker Compose"
@@ -56,3 +78,7 @@ references:
     - "component:couchdb"
     - "component:nginx"
     - "component:docker-network"
+    - "component:fail2ban"
+
+  related_scripts:
+    - "script:fail2ban-setup"

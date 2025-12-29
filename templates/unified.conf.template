@@ -24,6 +24,10 @@ server {
     http2 on;
     server_name ${NOTES_DOMAIN};
 
+    # Logging (for fail2ban monitoring)
+    access_log /var/log/nginx/access.log combined;
+    error_log /var/log/nginx/error.log warn;
+
     ssl_certificate /etc/letsencrypt/live/${NOTES_DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${NOTES_DOMAIN}/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
