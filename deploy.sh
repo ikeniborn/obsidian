@@ -370,7 +370,7 @@ deploy_couchdb() {
     export NOTES_DATA_DIR
     export COUCHDB_PORT
 
-    docker compose -f "$compose_file" pull
+    # Note: Image already pulled by prepull_couchdb_images(), no need for docker compose pull
     docker compose -f "$compose_file" up -d --remove-orphans
 
     success "CouchDB deployed"
