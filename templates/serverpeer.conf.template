@@ -24,7 +24,10 @@ server {
 
     add_header Strict-Transport-Security "max-age=31536000" always;
 
-    location / {
+    location ${SERVERPEER_LOCATION} {
+        # Strip location prefix before proxying to backend
+        rewrite ^${SERVERPEER_LOCATION}(.*)$ /$1 break;
+
         proxy_pass http://serverpeer_backend;
 
         # WebSocket upgrade

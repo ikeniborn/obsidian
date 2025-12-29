@@ -32,7 +32,10 @@ server {
     # HSTS
     add_header Strict-Transport-Security "max-age=31536000" always;
 
-    location / {
+    location ${COUCHDB_LOCATION} {
+        # Strip location prefix before proxying to backend
+        rewrite ^${COUCHDB_LOCATION}(.*)$ /$1 break;
+
         proxy_pass http://couchdb_backend;
         proxy_redirect off;
         proxy_buffering off;
@@ -45,5 +48,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+
+        client_max_body_size 50M;
     }
 }

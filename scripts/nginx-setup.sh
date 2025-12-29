@@ -117,11 +117,13 @@ generate_nginx_config() {
             export SERVERPEER_UPSTREAM="127.0.0.1"
         fi
 
+        export SERVERPEER_LOCATION="${SERVERPEER_LOCATION:-/}"
+
         local output_file="${PROJECT_ROOT}/serverpeer.conf"
         export NOTES_DOMAIN
-        envsubst '$SERVERPEER_UPSTREAM,$NOTES_DOMAIN' < "$template_file" > "$output_file"
+        envsubst '$SERVERPEER_UPSTREAM,$SERVERPEER_LOCATION,$NOTES_DOMAIN' < "$template_file" > "$output_file"
 
-        info "Generated serverpeer nginx config: $output_file (upstream: ${SERVERPEER_UPSTREAM})" >&2
+        info "Generated serverpeer nginx config: $output_file (upstream: ${SERVERPEER_UPSTREAM}, location: ${SERVERPEER_LOCATION})" >&2
         echo "$output_file"
     else
         # CouchDB HTTP proxy
@@ -137,12 +139,14 @@ generate_nginx_config() {
             export COUCHDB_UPSTREAM="127.0.0.1"
         fi
 
+        export COUCHDB_LOCATION="${COUCHDB_LOCATION:-/}"
+
         local output_file="${PROJECT_ROOT}/couchdb.conf"
         export NOTES_DOMAIN
         export COUCHDB_UPSTREAM
-        envsubst '$COUCHDB_UPSTREAM,$NOTES_DOMAIN' < "$template_file" > "$output_file"
+        envsubst '$COUCHDB_UPSTREAM,$COUCHDB_LOCATION,$NOTES_DOMAIN' < "$template_file" > "$output_file"
 
-        info "Generated CouchDB nginx config: $output_file (upstream: ${COUCHDB_UPSTREAM})" >&2
+        info "Generated CouchDB nginx config: $output_file (upstream: ${COUCHDB_UPSTREAM}, location: ${COUCHDB_LOCATION})" >&2
         echo "$output_file"
     fi
 }
