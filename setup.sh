@@ -97,6 +97,71 @@ check_existing_env() {
     fi
 }
 
+fix_docker_hub_dns() {
+    echo ""
+    info "Docker Hub DNS Fix"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "In restricted networks, DNS may redirect docker.io to blocked mirrors"
+    echo "This adds correct Docker Hub IPs to /etc/hosts to bypass DNS hijacking"
+    echo ""
+
+    read -p "Fix Docker Hub DNS (recommended for restricted networks)? (Y/n): " -n 1 -r
+    echo ""
+
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        info "Skipping Docker Hub DNS fix"
+        return 0
+    fi
+
+    info "Resolving real Docker Hub IPs (using Google DNS 8.8.8.8)..."
+
+    local registry_ip=$(host -t A registry-1.docker.io 8.8.8.8 2>/dev/null | grep "has address" | head -1 | awk '{print $NF}')
+    local auth_ip=$(host -t A auth.docker.io 8.8.8.8 2>/dev/null | grep "has address" | head -1 | awk '{print $NF}')
+    local cloudflare_ip=$(host -t A production.cloudflare.docker.com 8.8.8.8 2>/dev/null | grep "has address" | head -1 | awk '{print $NF}')
+
+    if [[ -z "$registry_ip" ]] || [[ -z "$auth_ip" ]]; then
+        warning "Failed to resolve Docker Hub IPs"
+        warning "You may need to configure DNS manually"
+        return 1
+    fi
+
+    info "  registry-1.docker.io: $registry_ip"
+    info "  auth.docker.io: $auth_ip"
+    [[ -n "$cloudflare_ip" ]] && info "  production.cloudflare.docker.com: $cloudflare_ip"
+
+    # Backup /etc/hosts
+    cp /etc/hosts /etc/hosts.backup.$(date +%Y%m%d_%H%M%S)
+    success "Backed up /etc/hosts"
+
+    # Remove old Docker Hub entries
+    sed -i '/# Docker Hub fix/d' /etc/hosts
+    sed -i '/registry-1.docker.io/d' /etc/hosts
+    sed -i '/auth.docker.io/d' /etc/hosts
+    sed -i '/production.cloudflare.docker.com/d' /etc/hosts
+
+    # Add new entries
+    echo "" >> /etc/hosts
+    echo "# Docker Hub fix - bypass DNS hijacking (added by setup.sh)" >> /etc/hosts
+    echo "$registry_ip registry-1.docker.io" >> /etc/hosts
+    echo "$auth_ip auth.docker.io" >> /etc/hosts
+    [[ -n "$cloudflare_ip" ]] && echo "$cloudflare_ip production.cloudflare.docker.com" >> /etc/hosts
+
+    success "/etc/hosts updated with Docker Hub IPs"
+
+    # Test
+    info "Testing Docker pull..."
+    if timeout 15 docker pull hello-world:latest &>/dev/null; then
+        success "Docker pull works! DNS fix successful"
+        docker rmi hello-world:latest 2>/dev/null || true
+    else
+        warning "Docker pull test failed"
+        warning "You may need additional network configuration"
+    fi
+
+    echo ""
+    success "Docker Hub DNS fix completed"
+}
+
 configure_docker_proxy() {
     echo ""
     info "Docker Proxy Configuration"
@@ -203,8 +268,16 @@ EOF
         docker rmi hello-world:latest 2>/dev/null || true
     else
         warning "Docker pull test failed or timed out"
-        warning "This may be normal if proxy requires authentication or has restrictions"
+        warning "This may be caused by DNS hijacking (redirecting to blocked mirrors)"
         warning "You can test manually: docker pull hello-world"
+
+        # Offer DNS fix
+        echo ""
+        read -p "Try fixing Docker Hub DNS now? (Y/n): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            fix_docker_hub_dns
+        fi
     fi
 
     echo ""
