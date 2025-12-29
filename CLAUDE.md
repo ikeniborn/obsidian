@@ -289,6 +289,66 @@ sudo systemctl restart docker
 - Common issue: Proxy authentication failed → check credentials in URL
 - Common issue: SOCKS5 not working → some Docker versions have limited SOCKS5 support
 
+**Common Issue: DNS Hijacking (504 Gateway Time-out)**
+
+Even with proxy configured, Docker pull may fail with:
+```
+unexpected status from HEAD request to https://dockerhub.hostkey.ru/v2/.../manifests/...:
+504 Gateway Time-out
+```
+
+**Root cause - ISP DNS hijacking:**
+- ISP intercepts DNS queries for docker.io
+- Redirects to blocked/unstable mirrors (dockerhub.hostkey.ru in Russia)
+- Docker resolves DNS BEFORE applying proxy
+- Proxy can't fix already-hijacked domain resolution
+
+**Solution - Docker Hub DNS Fix (setup.sh:100-163):**
+
+Automatically offered if proxy test fails:
+```bash
+sudo ./setup.sh
+# Configure proxy? y
+# ...
+# [WARNING] Docker pull test failed
+# [WARNING] This may be caused by DNS hijacking
+# Try fixing Docker Hub DNS now? (Y/n): y
+```
+
+What it does:
+1. Resolves real Docker Hub IPs using Google DNS (8.8.8.8)
+2. Adds correct IPs to /etc/hosts:
+   ```
+   3.226.190.193 registry-1.docker.io
+   18.205.34.3 auth.docker.io
+   104.16.100.215 production.cloudflare.docker.com
+   ```
+3. Bypasses local DNS hijacking (/etc/hosts has priority)
+4. Tests with `docker pull hello-world`
+
+**Manual DNS fix:**
+```bash
+# Resolve real IPs
+host -t A registry-1.docker.io 8.8.8.8
+host -t A auth.docker.io 8.8.8.8
+
+# Add to /etc/hosts
+sudo nano /etc/hosts
+# Add lines:
+# <IP> registry-1.docker.io
+# <IP> auth.docker.io
+# <IP> production.cloudflare.docker.com
+```
+
+**Verification:**
+```bash
+# Check /etc/hosts
+grep "Docker Hub" /etc/hosts
+
+# Test
+docker pull hello-world
+```
+
 **Important: BuildKit vs Docker Daemon Proxy**
 
 Docker daemon proxy (`/etc/systemd/system/docker.service.d/http-proxy.conf`) affects:
