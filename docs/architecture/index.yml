@@ -11,8 +11,11 @@ metadata:
     - "Development Team"
 
 overview:
-  description: "Production-ready self-hosted CouchDB server for Obsidian note synchronization"
+  description: "Production-ready self-hosted sync server for Obsidian with dual backend support (CouchDB + P2P)"
   key_features:
+    - "Dual sync backends: CouchDB (client-server) and ServerPeer (P2P with WebRTC)"
+    - "Multi-vault P2P support with isolated Room IDs"
+    - "Nostr Relay WebSocket signaling server"
     - "Flexible network architecture (shared/isolated modes)"
     - "Automated SSL certificate management"
     - "S3-compatible backup system"
@@ -28,6 +31,14 @@ navigation:
         - id: "component:couchdb"
           file: "components/infrastructure/couchdb.yml"
           name: "CouchDB Database"
+
+        - id: "component:serverpeer"
+          file: "components/infrastructure/serverpeer.yml"
+          name: "ServerPeer P2P Client (Multi-Vault)"
+
+        - id: "component:nostr-relay"
+          file: "components/infrastructure/nostr-relay.yml"
+          name: "Nostr Relay WebSocket Server"
 
         - id: "component:nginx"
           file: "components/infrastructure/nginx.yml"

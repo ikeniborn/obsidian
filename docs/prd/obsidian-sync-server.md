@@ -1,9 +1,9 @@
 # PRD: Obsidian Sync Server
 
-**Версия:** 1.0
-**Дата:** 2025-11-16
+**Версия:** 2.0
+**Дата:** 2025-12-29
 **Автор:** Development Team
-**Статус:** Draft
+**Статус:** Active
 
 ---
 
@@ -22,78 +22,169 @@
 
 ## Executive Summary
 
-Obsidian Sync Server - это production-ready self-hosted решение для синхронизации заметок Obsidian через CouchDB. Проект предоставляет полностью автоматизированную установку и настройку сервера с упором на безопасность, надежность и простоту использования.
+Obsidian Sync Server - это production-ready self-hosted решение для синхронизации заметок Obsidian с поддержкой двух режимов: традиционная синхронизация через CouchDB (client-server) и P2P синхронизация через ServerPeer с WebRTC. Проект предоставляет полностью автоматизированную установку и настройку сервера с упором на безопасность, надежность и простоту использования.
 
 **Ключевые возможности:**
+
+**Синхронизация:**
+- Dual backend support: CouchDB (client-server) + ServerPeer (P2P)
+- Multi-vault P2P: поддержка неограниченного количества независимых хранилищ
+- WebRTC P2P через Nostr Relay для прямой синхронизации между устройствами
+- ServerPeer как "always-on" буфер для P2P (опционально)
+
+**Автоматизация:**
 - Автоматическая установка всех зависимостей
-- Интеграция с существующим Nginx или запуск собственного
+- Интерактивная настройка множественных vaults
+- Динамическая генерация docker-compose для всех vaults
+- Автоматическая генерация Room ID и Passphrase
+
+**Безопасность:**
+- Изоляция vaults через уникальные Room ID
+- End-to-end шифрование с Passphrase (128-bit entropy)
 - Автоматическое получение SSL сертификатов через Let's Encrypt
 - Встроенная firewall защита (UFW)
-- Автоматические S3 бэкапы
-- Health checks и мониторинг
+
+**Надежность:**
+- Интеграция с существующим Nginx или запуск собственного
+- Автоматические S3 бэкапы (поддержка обоих backend)
+- Health checks и мониторинг для всех контейнеров
+- Graceful degradation (P2P работает даже если ServerPeer offline)
 
 ---
 
 ## Architecture
 
-### Общая архитектура
+### Общая архитектура (Dual Backend Support)
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     INTERNET                            │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     │ HTTPS (443)
-                     │
-            ┌────────▼─────────┐
-            │   UFW FIREWALL   │
-            │  (SSH:22, 443)   │
-            └────────┬─────────┘
-                     │
-                     │
-            ┌────────▼─────────┐
-            │      NGINX       │
-            │  (Reverse Proxy) │
-            │   SSL Termination│
-            └────────┬─────────┘
-                     │
-                     │ HTTP (127.0.0.1:5984)
-                     │
-            ┌────────▼─────────┐
-            │     CouchDB      │
-            │   (Docker)       │
-            │  Port: 5984      │
-            │  Bind: localhost │
-            └──────────────────┘
-                     │
-                     │ Backup
-                     │
-            ┌────────▼─────────┐
-            │    S3 Bucket     │
-            │  (Daily backups) │
-            └──────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                          INTERNET                                   │
+└────────────────────────┬────────────────────────────────────────────┘
+                         │
+                         │ HTTPS (443)
+                         │
+                ┌────────▼─────────┐
+                │   UFW FIREWALL   │
+                │  (SSH:22, 443)   │
+                └────────┬─────────┘
+                         │
+                         │
+                ┌────────▼─────────┐
+                │      NGINX       │
+                │  (Reverse Proxy) │
+                │  SSL Termination │
+                └─────┬────────┬───┘
+                      │        │
+        ┌─────────────┘        └──────────────────┐
+        │                                         │
+        │ /couchdb                                │ /serverpeer (WSS)
+        │ HTTP (127.0.0.1:5984)                   │ WebSocket (127.0.0.1:7000)
+        │                                         │
+┌───────▼────────┐                       ┌────────▼─────────┐
+│   CouchDB 3.3  │                       │   Nostr Relay    │
+│   (Docker)     │                       │   (WebSocket)    │
+│  Port: 5984    │                       │   Port: 7000     │
+│  Bind: localhost│                      │   Bind: localhost│
+└───────┬────────┘                       └────────┬─────────┘
+        │                                         │
+        │ Backup                         ┌────────┴────────┐
+        │                                │   P2P Signaling │
+┌───────▼────────┐                       │   (Room-based)  │
+│   S3 Bucket    │                       └────────┬────────┘
+│ (CouchDB       │                                │
+│  daily backups)│                                │
+└────────────────┘                  ┌─────────────┴──────────────┐
+                                    │                            │
+                           ┌────────▼────────┐         ┌────────▼────────┐
+                           │ ServerPeer #1   │   ...   │ ServerPeer #N   │
+                           │ (Vault: Work)   │         │ (Vault: Personal)│
+                           │ Port: 3001      │         │ Port: 300N      │
+                           │ Room: f6-9f-93  │         │ Room: a7-4f-e2  │
+                           └────────┬────────┘         └────────┬────────┘
+                                    │                            │
+                                    │ Backup                     │ Backup
+                                    │                            │
+                           ┌────────▼────────┐         ┌────────▼────────┐
+                           │   S3 Bucket     │         │   S3 Bucket     │
+                           │ (Work vault     │         │ (Personal vault │
+                           │  daily backups) │         │  daily backups) │
+                           └─────────────────┘         └─────────────────┘
+
+                           ┌──────────────────────────────────────────────┐
+                           │   Client Devices (Obsidian)                 │
+                           │   Connect to Nostr Relay via WSS           │
+                           │   Direct P2P WebRTC between devices        │
+                           │   + ServerPeer as "always-on" buffer       │
+                           └──────────────────────────────────────────────┘
 ```
 
 ### Компоненты системы
 
-#### 1. CouchDB 3.3
+#### 1. CouchDB 3.3 (Client-Server Backend)
 - **Роль:** Database для синхронизации заметок
 - **Деплой:** Docker container
 - **Порт:** 5984 (bind только к 127.0.0.1)
 - **Конфигурация:** local.ini (CORS, admin credentials)
 - **Данные:** Volume mapping для персистентности
+- **Backend Type:** Traditional client-server sync
 
-#### 2. Nginx
-- **Роль:** Reverse proxy + SSL termination
+#### 2. Nostr Relay (P2P WebSocket Signaling Server)
+- **Роль:** WebSocket сервер для WebRTC signaling в P2P синхронизации
+- **Технология:** nostr-rs-relay (Rust-based Nostr protocol implementation)
+- **Деплой:** Docker container
+- **Порт:** 7000 (bind только к 127.0.0.1)
+- **Доступ:** WSS через nginx на wss://{domain}/serverpeer
+- **Функции:**
+  - WebRTC peer discovery (SDP exchange)
+  - Room ID-based message routing (vault isolation)
+  - Поддержка неограниченного количества vaults через один relay
+- **Особенности:**
+  - Один relay обслуживает все vaults
+  - Изоляция vaults через уникальные Room ID
+  - Не хранит данные файлов (только signaling messages)
+
+#### 3. ServerPeer (P2P Always-On Buffer) - Multi-Vault Support
+- **Роль:** "Всегда онлайн" peer для P2P синхронизации (опциональный буфер)
+- **Технология:** livesync-serverpeer (Deno-based, uses Trystero library)
+- **Деплой:** Множественные Docker containers (по одному на vault)
+- **Архитектура:**
+  - Динамическая генерация docker-compose.serverpeers.yml
+  - N контейнеров для N vaults
+  - Unique Room ID и Passphrase для каждого vault
+  - Sequential ports (3001, 3002, 3003, ...)
+- **Container Naming:** notes-serverpeer-{vault_name_lowercase}
+- **Конфигурация Per-Vault:**
+  - VAULT_N_NAME: Human-readable vault name
+  - VAULT_N_ROOMID: Unique Room ID (формат: xx-xx-xx)
+  - VAULT_N_PASSPHRASE: 128-bit entropy passphrase
+  - VAULT_N_PORT: Localhost port (3001+)
+  - VAULT_N_VAULT_DIR: Headless vault storage directory
+- **Функции:**
+  - Headless Obsidian vault как буфер
+  - Подключение к Nostr Relay для сигнализации
+  - Auto-broadcast изменений
+  - Синхронизация даже если client devices offline
+- **Особенности:**
+  - ServerPeer это P2P WebRTC client, НЕ HTTP server
+  - Healthcheck via process check (pgrep -f 'deno.*main.ts')
+  - Vault isolation via Room ID
+
+#### 4. Nginx
+- **Роль:** Reverse proxy + SSL termination для обоих backends
 - **Деплой:**
   - Обнаружение существующего системного Nginx
   - Или запуск собственного в Docker
-- **Конфигурация:**
-  - Reverse proxy на CouchDB (127.0.0.1:5984)
+- **Конфигурация (Dual Backend):**
+  - Reverse proxy на CouchDB (127.0.0.1:5984) → https://{domain}/couchdb
+  - WebSocket proxy на Nostr Relay (127.0.0.1:7000) → wss://{domain}/serverpeer
   - Редирект HTTP (80) → HTTPS (443)
   - SSL сертификаты Let's Encrypt
+- **WebSocket Support:**
+  - Upgrade headers для WebSocket connections
+  - Long timeouts (7 days) для persistent connections
+  - X-Forwarded-For headers для client IP tracking
 
-#### 3. Certbot
+#### 5. Certbot
 - **Роль:** Автоматическое получение и обновление SSL сертификатов
 - **Интеграция:**
   - Pre/post hooks для временного открытия порта 80
