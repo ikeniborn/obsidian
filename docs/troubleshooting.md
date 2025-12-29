@@ -194,7 +194,7 @@ cat /var/log/letsencrypt/letsencrypt.log
 docker ps | grep couchdb
 
 # Логи
-docker logs familybudget-couchdb-notes
+docker logs familybudget-notes-couchdb
 
 # Проверка портов
 netstat -tuln | grep 5984

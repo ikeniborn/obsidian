@@ -48,7 +48,7 @@ technical_details:
   dns:
     enabled: true
     resolution: "Container name resolves to container IP"
-    example: "couchdb-notes resolves to 172.25.0.2 (within network)"
+    example: "notes-couchdb resolves to 172.25.0.2 (within network)"
 
 relationships:
   depends_on:
@@ -139,11 +139,11 @@ troubleshooting:
 
     - issue: "DNS resolution not working"
       symptoms:
-        - "Nginx cannot reach couchdb-notes by name"
+        - "Nginx cannot reach notes-couchdb by name"
       resolution: |
         1. Verify both containers on same network
         2. Check container names match
-        3. Test DNS: docker exec nginx ping couchdb-notes
+        3. Test DNS: docker exec nginx ping notes-couchdb
 
   commands:
     list_networks: "docker network ls"

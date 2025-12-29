@@ -177,7 +177,7 @@ troubleshooting:
       resolution: |
         1. Check .env file: cat /opt/notes/.env
         2. Verify network: docker network inspect ${NETWORK_NAME}
-        3. Check logs: docker logs couchdb-notes
+        3. Check logs: docker logs notes-couchdb
 
   commands:
     install: "sudo ./install.sh"

@@ -383,7 +383,7 @@ wait_for_couchdb_healthy() {
 
     local max_attempts=30
     local attempt=1
-    local container_name="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+    local container_name="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
 
     while [[ $attempt -le $max_attempts ]]; do
         if docker ps --filter "name=$container_name" --filter "health=healthy" | grep -q "$container_name"; then
@@ -439,7 +439,7 @@ validate_deployment() {
 
     local network_name="${NETWORK_NAME}"
     local network_mode="${NETWORK_MODE}"
-    local couchdb_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+    local couchdb_container="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
 
     info "Checking network: ${network_name}"
     if ! docker network ls --format '{{.Name}}' | grep -q "^${network_name}$"; then
@@ -516,7 +516,7 @@ display_summary() {
 
     source "$NOTES_DEPLOY_DIR/.env"
 
-    local container_name="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+    local container_name="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
     local couchdb_status=$(docker ps --filter name="$container_name" --format "{{.Status}}")
     local nginx_type=$(bash "$SCRIPTS_DIR/nginx-setup.sh" --detect-only)
 

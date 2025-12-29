@@ -35,7 +35,7 @@ flow_steps:
     component_id: "component:nginx"
     action: "Nginx terminates SSL, forwards to CouchDB"
     transformation: "HTTPS → HTTP (within Docker network)"
-    upstream: "http://couchdb-notes:5984"
+    upstream: "http://notes-couchdb:5984"
 
   - step: 4
     component_id: "component:couchdb"

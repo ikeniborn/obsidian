@@ -73,7 +73,7 @@ key_functions:
     returns: "Sets COUCHDB_CONTAINER_NAME"
     notes:
       - "Only called when SYNC_BACKEND = couchdb or both"
-      - "Default container name: couchdb-notes"
+      - "Default container name: notes-couchdb"
 
   - name: "configure_serverpeer"
     line_number: 428
@@ -274,7 +274,7 @@ examples:
     expected_output: |
       Select backend [1-3] (default: 1): 1
       [SUCCESS] Selected: CouchDB only
-      CouchDB container name [couchdb-notes]:
+      CouchDB container name [notes-couchdb]:
       S3 Backup Prefix [couchdb-backups/]:
       [SUCCESS] Configuration file created: /opt/notes/.env
 

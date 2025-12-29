@@ -52,7 +52,7 @@ sudo ./deploy.sh
 docker network inspect familybudget_familybudget
 
 # Check containers
-docker ps | grep familybudget-couchdb-notes
+docker ps | grep familybudget-notes-couchdb
 
 # Test health
 curl http://127.0.0.1:5984/_up
@@ -95,7 +95,7 @@ Solution: Режим автоматически переключится на is
 Solution: Проверьте сетевую связность:
 ```bash
 docker network inspect <network_name>
-docker logs familybudget-couchdb-notes
+docker logs familybudget-notes-couchdb
 ```
 
 **Issue: "Port 5984 already in use"**
@@ -125,6 +125,6 @@ sudo ./deploy.sh
 ## Support
 
 For issues, please:
-1. Check logs: `docker logs familybudget-couchdb-notes`
+1. Check logs: `docker logs familybudget-notes-couchdb`
 2. Run validation: `bash scripts/run-all-tests.sh`
 3. Open issue: https://github.com/[your-repo]/issues

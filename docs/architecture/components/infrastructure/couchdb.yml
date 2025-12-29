@@ -23,7 +23,7 @@ technical_details:
   technology: "CouchDB 3.3 (Apache CouchDB)"
   deployment_mode: "Docker Compose"
   image: "couchdb:3.3"
-  container_name: "${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+  container_name: "${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
 
   port_bindings:
     - host: "5984"
@@ -94,7 +94,7 @@ relationships:
       protocol: "HTTP"
       direction: "receives"
       port: 5984
-      note: "Nginx forwards requests to http://couchdb-notes:5984 (Docker DNS)"
+      note: "Nginx forwards requests to http://notes-couchdb:5984 (Docker DNS)"
 
   managed_by:
     - id: "script:deploy"
@@ -233,7 +233,7 @@ troubleshooting:
   common_issues:
     - issue: "Container not starting"
       symptoms:
-        - "docker ps shows no couchdb-notes container"
+        - "docker ps shows no notes-couchdb container"
         - "docker compose up fails"
       resolution: |
         1. Check .env file exists: ls -la /opt/notes/.env

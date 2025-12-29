@@ -101,7 +101,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 # CouchDB container running (load name from .env)
 source /opt/notes/.env 2>/dev/null || true
-COUCHDB_CONTAINER="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+COUCHDB_CONTAINER="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
 run_test "CouchDB container is running" "docker ps | grep -q ${COUCHDB_CONTAINER}"
 
 # CouchDB health check

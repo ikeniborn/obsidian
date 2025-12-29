@@ -45,7 +45,7 @@ EOF
         return 1
     fi
 
-    if docker ps | grep -q familybudget-couchdb-notes; then
+    if docker ps | grep -q familybudget-notes-couchdb; then
         success "CouchDB container running"
     else
         error "CouchDB container not running"
@@ -79,7 +79,7 @@ EOF
         return 1
     fi
 
-    if docker network inspect familybudget_familybudget | grep -q familybudget-couchdb-notes; then
+    if docker network inspect familybudget_familybudget | grep -q familybudget-notes-couchdb; then
         success "CouchDB connected to familybudget_familybudget"
     else
         error "CouchDB not connected to shared network"

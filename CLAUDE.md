@@ -91,7 +91,7 @@ The server supports two sync backends, selected during `setup.sh`:
 - **Storage**: Database (document-oriented, CouchDB 3.3)
 - **Backup**: Database dumps → tar.gz → S3 (via `couchdb-backup.sh`)
 - **Port**: 5984 (localhost only)
-- **Container**: `couchdb-notes` (configurable via COUCHDB_CONTAINER_NAME)
+- **Container**: `notes-couchdb` (configurable via COUCHDB_CONTAINER_NAME)
 - **Use Case**: Traditional client-server sync, proven stability
 
 **2. livesync-serverpeer** - P2P Architecture
@@ -121,7 +121,7 @@ The server supports two sync backends, selected during `setup.sh`:
 
 *CouchDB:*
 ```bash
-docker logs couchdb-notes
+docker logs notes-couchdb
 docker compose -f docker-compose.notes.yml restart
 bash /opt/notes/scripts/couchdb-backup.sh
 ```
@@ -140,8 +140,8 @@ bash /opt/notes/scripts/serverpeer-backup.sh  # NO CouchDB dependency
 **Container management:**
 ```bash
 # View logs (container name from .env: COUCHDB_CONTAINER_NAME)
-docker logs couchdb-notes
-docker logs -f couchdb-notes  # Follow mode
+docker logs notes-couchdb
+docker logs -f notes-couchdb  # Follow mode
 
 # Restart CouchDB
 docker compose -f docker-compose.notes.yml restart
@@ -443,7 +443,7 @@ CouchDB configuration:
 - CORS enabled for Obsidian app
 
 ### docker-compose.notes.yml
-- Container name: configurable via `COUCHDB_CONTAINER_NAME` (default: `couchdb-notes`)
+- Container name: configurable via `COUCHDB_CONTAINER_NAME` (default: `notes-couchdb`)
 - Image: `couchdb:3.3`
 - Network: Динамическая (из .env переменных)
   - `${NETWORK_NAME}` - имя сети
@@ -589,7 +589,7 @@ curl -u admin:password http://localhost:5984/_all_dbs
 - Run setup: `bash setup.sh`
 
 **CouchDB health check timeout**
-- Check logs: `docker logs couchdb-notes` (or your configured COUCHDB_CONTAINER_NAME)
+- Check logs: `docker logs notes-couchdb` (or your configured COUCHDB_CONTAINER_NAME)
 - Verify port: `netstat -tuln | grep 5984`
 - Restart: `docker compose -f docker-compose.notes.yml restart`
 
@@ -676,10 +676,10 @@ obsidian/
 ### Regular Checks
 ```bash
 # CouchDB status (use your configured COUCHDB_CONTAINER_NAME)
-docker ps | grep couchdb-notes
+docker ps | grep notes-couchdb
 
 # Resource usage
-docker stats couchdb-notes
+docker stats notes-couchdb
 
 # Disk usage
 du -sh /opt/notes/data
@@ -693,7 +693,7 @@ tail -20 /opt/notes/logs/backup.log
 ```
 
 ### Logs
-- CouchDB: `docker logs couchdb-notes` (or your COUCHDB_CONTAINER_NAME)
+- CouchDB: `docker logs notes-couchdb` (or your COUCHDB_CONTAINER_NAME)
 - Backup: `/opt/notes/logs/backup.log`
 - Installation: `/var/log/notes_install.log`
 

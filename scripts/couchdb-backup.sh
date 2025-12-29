@@ -47,8 +47,8 @@ BACKUP_NAME="couchdb-$(date -u ${DATE_FORMAT}).tar.gz"
 OLD_BACKUP_NAME="couchdb-$(date -d "${RETENTION_DAYS} days ago" ${DATE_FORMAT}).tar.gz"
 
 # Docker configuration
-# Use container name from .env (default: couchdb-notes)
-COUCHDB_CONTAINER="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+# Use container name from .env (default: notes-couchdb)
+COUCHDB_CONTAINER="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
 
 # Validate container exists
 if ! docker ps --format '{{.Names}}' | grep -q "^${COUCHDB_CONTAINER}$"; then

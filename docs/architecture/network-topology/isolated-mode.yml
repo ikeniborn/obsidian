@@ -23,7 +23,7 @@ topology_diagram: |
   │ Docker Network: obsidian_network (isolated)              │
   │ Subnet: 172.25.0.0/16 (auto-selected)                   │
   │ ┌────────────────┐          ┌──────────────────┐        │
-  │ │ notes-nginx    │          │ couchdb-notes    │        │
+  │ │ notes-nginx    │          │ notes-couchdb    │        │
   │ │ 172.25.0.2     │  ---->   │ 172.25.0.3       │        │
   │ │ :80, :443      │  HTTP    │ :5984            │        │
   │ └────────────────┘          └──────────────────┘        │
@@ -39,7 +39,7 @@ components:
     ports: [80, 443]
     purpose: "Reverse proxy and SSL termination"
 
-  - name: "couchdb-notes"
+  - name: "notes-couchdb"
     ip: "Auto-assigned by Docker (e.g., 172.25.0.3)"
     ports: [5984]
     purpose: "CouchDB database"

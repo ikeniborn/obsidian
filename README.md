@@ -20,7 +20,7 @@ Obsidian Sync Server поддерживает гибкую сетевую кон
 ```
 Docker Network: my_app_network (existing)
 ├── nginx (existing web proxy)
-├── couchdb-notes (CouchDB для Obsidian)
+├── notes-couchdb (CouchDB для Obsidian)
 └── [другие сервисы]
 ```
 
@@ -28,7 +28,7 @@ Docker Network: my_app_network (existing)
 ```
 Docker Network: obsidian_network (auto-created, 172.24-31.0.0/16)
 ├── notes-nginx (собственный nginx)
-└── couchdb-notes (CouchDB)
+└── notes-couchdb (CouchDB)
 ```
 
 ### Network Selection Logic
@@ -50,7 +50,7 @@ Docker Network: obsidian_network (auto-created, 172.24-31.0.0/16)
 - Хранение: База данных (document-oriented)
 - Backup: Дампы БД → S3 (через `couchdb-backup.sh`)
 - Порт: 5984 (localhost only)
-- Контейнер: `couchdb-notes`
+- Контейнер: `notes-couchdb`
 
 **2. livesync-serverpeer** - P2P
 - Протокол: WebSocket relay (WSS)
@@ -132,7 +132,7 @@ NETWORK_NAME=my_app_network
 NETWORK_EXTERNAL=true
 NGINX_CONTAINER_NAME=nginx
 NGINX_CONFIG_DIR=/etc/nginx/conf.d
-COUCHDB_CONTAINER_NAME=couchdb-notes
+COUCHDB_CONTAINER_NAME=notes-couchdb
 EOF
 
 # 4. Re-deploy
@@ -193,7 +193,7 @@ docker ps | grep nginx
 docker network ls
 
 # Проверить CouchDB после deployment
-docker ps | grep couchdb-notes
+docker ps | grep notes-couchdb
 ```
 
 ## 🛠️ Управление
@@ -212,9 +212,9 @@ docker compose -f docker-compose.notes.yml down
 
 ### Логи
 ```bash
-# Имя контейнера из .env: COUCHDB_CONTAINER_NAME (default: couchdb-notes)
-docker logs couchdb-notes
-docker logs -f couchdb-notes  # Follow mode
+# Имя контейнера из .env: COUCHDB_CONTAINER_NAME (default: notes-couchdb)
+docker logs notes-couchdb
+docker logs -f notes-couchdb  # Follow mode
 ```
 
 ### Health check
@@ -343,7 +343,7 @@ bash setup.sh
 ### CouchDB не отвечает на health check
 ```bash
 # Проверить логи (имя контейнера из .env)
-docker logs couchdb-notes
+docker logs notes-couchdb
 
 # Проверить порт
 netstat -tuln | grep 5984
@@ -402,7 +402,7 @@ docker compose -f docker-compose.notes.yml up -d
 
 ### Resource Usage
 ```bash
-docker stats familybudget-couchdb-notes
+docker stats familybudget-notes-couchdb
 ```
 
 **Лимиты:**

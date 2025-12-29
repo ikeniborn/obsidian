@@ -156,7 +156,7 @@ troubleshooting:
       resolution: |
         1. Check CouchDB health: curl http://localhost:5984/_up
         2. Check container status: docker ps | grep couchdb
-        3. Review CouchDB logs: docker logs couchdb-notes
+        3. Review CouchDB logs: docker logs notes-couchdb
         4. Restart CouchDB if needed
 
     - issue: "S3 upload fails"

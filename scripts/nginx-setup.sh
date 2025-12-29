@@ -107,7 +107,7 @@ generate_nginx_config() {
 
         # Set upstreams for both backends
         if [ "$nginx_mode" = "docker" ]; then
-            export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+            export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
             export SERVERPEER_UPSTREAM="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
         else
             export COUCHDB_UPSTREAM="127.0.0.1"
@@ -157,7 +157,7 @@ generate_nginx_config() {
         fi
 
         if [ "$nginx_mode" = "docker" ]; then
-            export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+            export COUCHDB_UPSTREAM="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
         else
             export COUCHDB_UPSTREAM="127.0.0.1"
         fi
@@ -312,6 +312,10 @@ integrate_with_existing_nginx() {
         local container_name=$(docker ps --format '{{.Names}}' | grep nginx | head -1)
         local dest_file="${config_dir}/notes.conf"
 
+        # Remove old notes.conf (file or directory) to prevent docker cp from creating nested structure
+        info "Cleaning up old config in container..."
+        docker exec "$container_name" rm -rf "$dest_file" 2>/dev/null || true
+
         info "Copying config into container using 'docker cp'..."
         # docker cp may show "mounted volume is marked read-only" warning after successful copy
         # This warning is harmless - the file is copied successfully before the warning
@@ -465,7 +469,7 @@ deploy_own_nginx() {
 
     case "$sync_backend" in
         couchdb)
-            local backend_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+            local backend_container="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
             if docker ps --format '{{.Names}}' | grep -q "^${backend_container}$"; then
                 if validate_network_connectivity "${network_name}" "$nginx_container" "$backend_container"; then
                     success "Network connectivity validated (CouchDB)"
@@ -489,7 +493,7 @@ deploy_own_nginx() {
             fi
             ;;
         both)
-            local couchdb_container="${COUCHDB_CONTAINER_NAME:-couchdb-notes}"
+            local couchdb_container="${COUCHDB_CONTAINER_NAME:-notes-couchdb}"
             local serverpeer_container="${SERVERPEER_CONTAINER_NAME:-serverpeer-notes}"
 
             if docker ps --format '{{.Names}}' | grep -q "^${couchdb_container}$"; then

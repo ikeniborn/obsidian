@@ -600,8 +600,8 @@ configure_couchdb() {
     echo ""
     info "CouchDB Configuration"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    read -p "CouchDB container name [couchdb-notes]: " couchdb_name
-    COUCHDB_CONTAINER_NAME="${couchdb_name:-couchdb-notes}"
+    read -p "CouchDB container name [notes-couchdb]: " couchdb_name
+    COUCHDB_CONTAINER_NAME="${couchdb_name:-notes-couchdb}"
     success "CouchDB container name: $COUCHDB_CONTAINER_NAME"
 }
 

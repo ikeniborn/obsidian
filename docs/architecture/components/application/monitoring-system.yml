@@ -149,7 +149,7 @@ troubleshooting:
       resolution: |
         1. Check healthcheck credentials in docker-compose.yml
         2. Verify COUCHDB_PASSWORD in .env
-        3. Test healthcheck manually: docker exec couchdb-notes curl -u admin:password http://localhost:5984/_up
+        3. Test healthcheck manually: docker exec notes-couchdb curl -u admin:password http://localhost:5984/_up
         4. Restart container: docker compose restart
 
     - issue: "SSL certificate expiring soon"
