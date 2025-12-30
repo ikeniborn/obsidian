@@ -524,6 +524,94 @@ sudo chown -R $(whoami):$(whoami) /opt/notes
 2. Sync → Start
 3. Wait for initial sync to complete
 
+### P2P Режим (ServerPeer + TURN)
+
+**Когда использовать:** Для peer-to-peer синхронизации между устройствами без постоянного подключения к серверу.
+
+**Требования:**
+- ServerPeer backend развернут на сервере
+- TURN сервер настроен (автоматически при деплое ServerPeer)
+
+**Настройка в Obsidian:**
+
+1. **Включить P2P в плагине:**
+   - Obsidian → Settings → Self-hosted LiveSync → Sync Settings
+   - Scroll down to **"P2P Sync"** section
+   - ✅ Enable "Use P2P sync"
+   - ✅ Enable "Auto start sync on Launch"
+   - ✅ Enable "Broadcast changes automatically"
+
+2. **Настроить TURN сервер для NAT traversal:**
+
+   **Вариант A: Через настройки плагина (рекомендуется)**
+   - Settings → Self-hosted LiveSync → P2P Settings
+   - **ICE Servers** (JSON format):
+   ```json
+   [
+     {
+       "urls": "stun:stun.l.google.com:19302"
+     },
+     {
+       "urls": "turn:YOUR_SERVER_IP:3478",
+       "username": "obsidian",
+       "credential": "YOUR_TURN_PASSWORD"
+     }
+   ]
+   ```
+
+   **Вариант B: Через DevTools Console**
+   - Нажмите `Ctrl+Shift+I` (или `Cmd+Option+I` на Mac)
+   - Перейдите на вкладку **Console**
+   - Выполните:
+   ```javascript
+   // Включить P2P
+   app.plugins.plugins['obsidian-livesync'].settings.P2P_Enabled = true;
+   app.plugins.plugins['obsidian-livesync'].settings.P2P_AutoStart = true;
+   app.plugins.plugins['obsidian-livesync'].settings.P2P_AutoBroadcast = true;
+
+   // Настроить TURN сервер
+   app.plugins.plugins['obsidian-livesync'].settings.P2P_UseICE = true;
+   app.plugins.plugins['obsidian-livesync'].settings.P2P_ICEServers = [
+     {
+       urls: "stun:stun.l.google.com:19302"
+     },
+     {
+       urls: "turn:YOUR_SERVER_IP:3478",
+       username: "obsidian",
+       credential: "YOUR_TURN_PASSWORD"
+     }
+   ];
+
+   // Сохранить настройки
+   await app.plugins.plugins['obsidian-livesync'].saveSettings();
+   ```
+
+3. **Получить TURN credentials с сервера:**
+   ```bash
+   ssh your-server
+   grep -E "SERVERPEER_TURN_SERVERS|TURN_PASSWORD" /opt/notes/.env
+   ```
+
+   Пример вывода:
+   ```
+   TURN_PASSWORD=6ef3e7b6dd6dd9975207e32160dfa8d3
+   SERVERPEER_TURN_SERVERS=turn:obsidian:6ef3e7b6dd6dd9975207e32160dfa8d3@91.210.106.79:3478
+   ```
+
+   - **YOUR_SERVER_IP** = `91.210.106.79` (из SERVERPEER_TURN_SERVERS)
+   - **YOUR_TURN_PASSWORD** = `6ef3e7b6dd6dd9975207e32160dfa8d3` (из TURN_PASSWORD)
+
+4. **Проверка соединения:**
+   - Settings → Self-hosted LiveSync → P2P Settings
+   - Смотрите **"P2P Sync Status"**
+   - Должно показать: "Connected to peers" или "Searching for peers"
+   - Если показывает ошибки - проверьте TURN credentials и firewall
+
+**Troubleshooting P2P:**
+- **"No peers found"** → Убедитесь что P2P включен на всех устройствах
+- **"Connection failed"** → Проверьте TURN credentials и порты (3478, 49152-65535)
+- **"High latency"** → Нормально для TURN relay, означает что прямое P2P соединение не удалось
+
 ## 🔄 Updates
 
 ### Обновление Notes
