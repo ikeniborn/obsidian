@@ -34,10 +34,12 @@ max_event_bytes = 131072
 max_subscriptions = 20
 max_filters = 100
 
-# Allow connections from authenticated peers
-[authorization]
-# No pubkey restriction for P2P sync
-pubkey_whitelist = []
+# Authorization disabled - allow all peers to publish events
+# NOTE: When pubkey_whitelist is defined (even as empty array []),
+# nostr-rs-relay blocks ALL publishing. To allow unrestricted publishing,
+# the [authorization] section must be completely absent or commented out.
+# [authorization]
+# pubkey_whitelist = []
 
 [verified_users]
 # No NIP-05 verification required

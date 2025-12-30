@@ -249,6 +249,23 @@ troubleshooting:
       - "Verify nginx proxy config: grep serverpeer /opt/notes/unified.conf"
       - "Test WebSocket: wscat -c wss://${NOTES_DOMAIN}/serverpeer"
 
+  pubkey_blocked_publishing:
+    symptom: "Trystero: relay failure - blocked: pubkey is not allowed to publish to this relay"
+    root_cause: "Empty pubkey_whitelist in [authorization] section blocks ALL publishing"
+    explanation: |
+      When [authorization] section exists with pubkey_whitelist defined (even as empty array []),
+      nostr-rs-relay blocks ALL event publishing. This is because:
+      - Defined whitelist (even empty) activates authorization checking
+      - Empty list = no pubkeys allowed = all publishing blocked
+      - To allow unrestricted publishing, [authorization] section must be absent/commented
+    solution:
+      - "Comment out entire [authorization] section in nostr-relay/config.toml"
+      - "Restart Nostr Relay container: docker restart notes-nostr-relay"
+      - "Verify in logs: should see 'Sending Advertisement' without 'blocked' errors"
+    prevention: "Never include empty [authorization] section in config - either omit or populate whitelist"
+    fixed_in_commit: "2025-12-30"
+    reference: "https://github.com/scsibug/nostr-rs-relay/issues/68"
+
   vault_isolation_issues:
     symptom: "Devices from different vaults see each other"
     checks:
