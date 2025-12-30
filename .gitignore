@@ -276,3 +276,12 @@ temp/
 *~
 \#*\#
 .\#*
+
+# Auto-generated docker-compose files
+docker-compose.serverpeers.yml
+
+# Generated nginx configs
+unified.conf
+
+# Obsolete patch files (now integrated in Dockerfile)
+serverpeer/fix-p2p-enabled-types.patch
