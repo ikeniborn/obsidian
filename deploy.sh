@@ -349,6 +349,15 @@ deploy_serverpeer() {
         info "Created vault directory: $vault_dir (${vault_name})"
     done
 
+    # Initialize vault configurations with P2P enabled
+    info "Initializing vault configurations with P2P enabled..."
+    for ((i=1; i<=VAULT_COUNT; i++)); do
+        bash "$SCRIPT_DIR/scripts/init-serverpeer-vault.sh" "$i" || {
+            warning "Failed to initialize vault configuration for VAULT_$i"
+            warning "Vault will start with default settings (P2P disabled)"
+        }
+    done
+
     # Pre-pull base images (respects Docker daemon proxy)
     prepull_serverpeer_images
 

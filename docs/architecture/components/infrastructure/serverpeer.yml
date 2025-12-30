@@ -130,12 +130,31 @@ deployment_workflow:
       - "Read VAULT_COUNT from /opt/notes/.env"
       - "Generate docker-compose.serverpeers.yml with N services"
       - "Create vault directories for all vaults"
+      - "Initialize vault with P2P enabled (via init-serverpeer-vault.sh)"
       - "Pre-pull base images (denoland/deno, node)"
       - "Build all ServerPeer containers"
+
+  vault_initialization:
+    script: "scripts/init-serverpeer-vault.sh"
+    description: "Creates .obsidian/plugins/obsidian-livesync/data.json with P2P enabled"
+    template: "templates/serverpeer-data.json.template"
+    steps:
+      - "Create .obsidian/plugins/obsidian-livesync/ structure"
+      - "Generate data.json from template with substituted variables"
+      - "Set P2P_Enabled: true (default is false)"
+      - "Configure Room ID, Passphrase, Relay from .env"
+      - "Set device name to {VAULT_NAME}-peer"
+    critical_settings:
+      - "P2P_Enabled: true (enables P2P sync in headless vault)"
+      - "P2P_AutoStart: true (connect to relay on startup)"
+      - "P2P_AutoBroadcast: true (broadcast changes automatically)"
+      - "P2P_IsHeadless: true (headless mode for ServerPeer)"
+      - "remoteType: NONE (P2P-only, no CouchDB backend)"
 
   runtime_phase:
     steps:
       - "Start all ServerPeer containers simultaneously"
+      - "Plugin reads data.json and connects to relay with P2P enabled"
       - "Each container connects to shared Nostr Relay"
       - "Vault isolation via unique Room IDs"
       - "Health check verification for all containers"
@@ -196,12 +215,44 @@ monitoring:
     - "Container health status"
     - "Logs show 'Sending Advertisement to All'"
     - "Logs show 'Received advertisement from {peer_id}'"
+    - "Logs show 'P2P_Enabled: true' (NOT false)"
 
   commands:
     list_containers: "docker ps --filter 'name=serverpeer'"
     view_logs: "docker logs notes-serverpeer-{vault_name} --tail 50"
     restart_vault: "docker restart notes-serverpeer-{vault_name}"
     check_health: "docker ps --filter 'name=serverpeer' --filter 'health=healthy'"
+    check_p2p_status: "docker logs notes-serverpeer-{vault_name} | grep -E 'P2P_Enabled|Settings:' -A 15"
+
+troubleshooting:
+  p2p_disabled:
+    symptom: "Logs show 'P2P_Enabled: false', Obsidian can't find peers"
+    root_cause: "Plugin data.json was not initialized with P2P enabled during deployment"
+    diagnosis:
+      - "Check logs: docker logs notes-serverpeer-work | grep 'P2P_Enabled'"
+      - "If shows 'P2P_Enabled: false' → P2P is disabled in headless vault"
+    solution:
+      - "Run init script: bash scripts/init-serverpeer-vault.sh 1"
+      - "Restart container: docker restart notes-serverpeer-work"
+      - "Verify logs show 'P2P_Enabled: true'"
+    prevention: "deploy.sh now automatically runs init-serverpeer-vault.sh"
+
+  peers_not_found:
+    symptom: "Obsidian reports 'cannot find peers' even though ServerPeer is running"
+    possible_causes:
+      - "P2P_Enabled: false in ServerPeer (see p2p_disabled)"
+      - "Room ID mismatch between Obsidian and ServerPeer"
+      - "Passphrase mismatch"
+      - "Nostr Relay connection failure"
+    diagnosis:
+      - "Check ServerPeer logs for P2P_Enabled status"
+      - "Verify Room ID matches between .env and Obsidian settings"
+      - "Check Nostr Relay logs for connection attempts"
+    solution:
+      - "Ensure P2P_Enabled: true in ServerPeer"
+      - "Verify Group ID in Obsidian matches VAULT_N_ROOMID from .env"
+      - "Verify Passphrase in Obsidian matches VAULT_N_PASSPHRASE"
+      - "Check Nostr Relay is accepting connections (no 'blocked' errors)"
 
 backup:
   strategy: "Vault directory backup (file-based)"
