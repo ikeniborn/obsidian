@@ -421,6 +421,25 @@ docker buildx rm default
 docker buildx create --use --config ~/.docker/buildkitd.toml
 ```
 
+### Image Update Detection
+
+**Implementation:** scripts/deploy-helpers.sh:120-199
+
+The prepull mechanism uses **Image ID comparison** (not manifest digest) to detect if an image needs updating. This matches Docker's native behavior:
+
+**How it works:**
+1. `get_local_image_id()` - extracts Image ID from local image via `docker inspect --format='{{.Id}}'`
+2. `get_remote_image_id()` - extracts Image ID from registry manifest config via `docker manifest inspect`
+3. `check_image_needs_update()` - compares local and remote Image IDs
+
+**Why Image ID and not manifest digest:**
+- Image ID = Config.Digest (content hash of image configuration)
+- Manifest digest = metadata hash (differs for multi-arch images)
+- Docker uses Image ID to determine if pull is needed
+- Comparing Image IDs ensures consistency with Docker behavior
+
+**Result:** No unnecessary pulls for up-to-date images, even for multi-arch images like `denoland/deno:bin`.
+
 ## Configuration Files
 
 ### /opt/notes/.env

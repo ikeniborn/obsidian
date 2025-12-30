@@ -117,25 +117,25 @@ show_rsync_changes() {
 # DOCKER IMAGE VERSION CHECKING
 # =============================================================================
 
-get_local_image_digest() {
+get_local_image_id() {
     local image="$1"
 
-    # Get digest of local image
-    docker inspect --format='{{index .RepoDigests 0}}' "$image" 2>/dev/null | \
-        grep -oP 'sha256:[a-f0-9]+' || echo ""
+    # Get Image ID (Config.Digest) - same as what docker pull checks
+    docker inspect --format='{{.Id}}' "$image" 2>/dev/null || echo ""
 }
 
-get_remote_image_digest() {
+get_remote_image_id() {
     local image="$1"
 
-    # Get digest from registry (manifest)
-    # Supports Docker Hub and other registries
+    # Get remote Image ID by inspecting manifest config
+    # This returns the same Image ID that docker pull would compare
     local manifest
 
     if manifest=$(docker manifest inspect "$image" 2>/dev/null); then
-        echo "$manifest" | grep -oP '"digest":\s*"\K[^"]+' | head -1
+        # Extract config.digest which is the Image ID
+        echo "$manifest" | grep -oP '"config":\s*\{[^}]*"digest":\s*"\K[^"]+' | head -1
     else
-        # Fallback: use docker pull --dry-run (not all Docker versions support this)
+        # Fallback: cannot determine remote Image ID
         echo ""
     fi
 }
@@ -151,29 +151,29 @@ check_image_needs_update() {
         return 0  # Needs pull
     fi
 
-    # Get local digest
-    local local_digest=$(get_local_image_digest "$image")
-    if [[ -z "$local_digest" ]]; then
-        echo "⚠️  Cannot determine local image digest, pulling to be safe"
+    # Get local Image ID
+    local local_image_id=$(get_local_image_id "$image")
+    if [[ -z "$local_image_id" ]]; then
+        echo "⚠️  Cannot determine local image ID, pulling to be safe"
         return 0  # Needs pull
     fi
 
-    # Get remote digest
-    local remote_digest=$(get_remote_image_digest "$image")
-    if [[ -z "$remote_digest" ]]; then
-        echo "⚠️  Cannot determine remote image digest, skipping pull"
+    # Get remote Image ID
+    local remote_image_id=$(get_remote_image_id "$image")
+    if [[ -z "$remote_image_id" ]]; then
+        echo "⚠️  Cannot determine remote image ID, skipping pull"
         echo "💡 Using cached local image"
         return 1  # Skip pull
     fi
 
-    # Compare digests
-    if [[ "$local_digest" == "$remote_digest" ]]; then
-        echo "✅ Image is up-to-date (digest: ${local_digest:0:19}...)"
+    # Compare Image IDs (same logic as docker pull)
+    if [[ "$local_image_id" == "$remote_image_id" ]]; then
+        echo "✅ Image is up-to-date (ID: ${local_image_id:0:19}...)"
         return 1  # Skip pull
     else
         echo "📥 Update available"
-        echo "   Local:  ${local_digest:0:19}..."
-        echo "   Remote: ${remote_digest:0:19}..."
+        echo "   Local:  ${local_image_id:0:19}..."
+        echo "   Remote: ${remote_image_id:0:19}..."
         return 0  # Needs pull
     fi
 }

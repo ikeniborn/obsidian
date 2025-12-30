@@ -93,6 +93,31 @@ key_functions:
     parameters: []
     calls: ["scripts/ssl-setup.sh"]
 
+  - name: "prepull_serverpeer_images"
+    line_number: 301
+    purpose: "Pre-pulls ServerPeer base images with smart update detection"
+    parameters: []
+    calls: ["smart_docker_pull from deploy-helpers.sh"]
+    images:
+      - "denoland/deno:bin"
+      - "node:22.14-bookworm-slim"
+
+  - name: "prepull_couchdb_images"
+    line_number: 473
+    purpose: "Pre-pulls CouchDB image with smart update detection"
+    parameters: []
+    calls: ["smart_docker_pull from deploy-helpers.sh"]
+    images:
+      - "couchdb:3.3"
+
+  - name: "prepull_nostr_relay_images"
+    line_number: 407
+    purpose: "Pre-pulls Nostr Relay image with smart update detection"
+    parameters: []
+    calls: ["smart_docker_pull from deploy-helpers.sh"]
+    images:
+      - "scsibug/nostr-rs-relay:latest"
+
   - name: "deploy_couchdb"
     line_number: 312
     purpose: "Deploys CouchDB via docker compose"
@@ -133,6 +158,7 @@ relationships:
     - id: "pattern:configuration-isolation"
     - id: "pattern:nginx-integration"
     - id: "pattern:certificate-management"
+    - id: "pattern:docker-image-prepull"
 
 workflow:
   sequential_steps:
