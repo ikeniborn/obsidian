@@ -38,7 +38,7 @@ docker logs notes-serverpeer-work | grep -E "P2P_Enabled|Settings:" -A 15
 
 ### Автоматическое исправление (для новых деплоев)
 
-Начиная с версии этого коммита, `deploy.sh` автоматически инициализирует vault с P2P включенным.
+Начиная с коммита 7b5943e, `deploy.sh` автоматически инициализирует vault с P2P включенным.
 
 Для применения исправления:
 
@@ -49,9 +49,17 @@ git pull origin dev
 ```
 
 Deploy script автоматически:
-1. Создаст `.obsidian/plugins/obsidian-livesync/` структуру
-2. Сгенерирует `data.json` с `P2P_Enabled: true`
-3. Настроит Room ID, Passphrase, Relay из `.env`
+1. Запустит ServerPeer контейнеры (создадут дефолтный data.json)
+2. Дождется health check
+3. Остановит контейнеры
+4. Модифицирует `data.json` установив `P2P_Enabled: true`
+5. Перезапустит контейнеры с P2P включенным
+6. Проверит статус P2P в логах
+
+После деплоя увидите:
+```
+✅ P2P enabled in Work
+```
 
 ### Ручное исправление (для существующих деплоев)
 
