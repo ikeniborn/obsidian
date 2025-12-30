@@ -38,7 +38,7 @@ docker logs notes-serverpeer-work | grep -E "P2P_Enabled|Settings:" -A 15
 
 ### Автоматическое исправление (для новых деплоев)
 
-Начиная с коммита 7b5943e, `deploy.sh` автоматически инициализирует vault с P2P включенным.
+Начиная с коммита bb8c9a0, P2P включается **на уровне Docker образа** через патч ServerPeer.ts.
 
 Для применения исправления:
 
@@ -48,38 +48,41 @@ git pull origin dev
 ./deploy.sh
 ```
 
-Deploy script автоматически:
-1. Запустит ServerPeer контейнеры (создадут дефолтный data.json)
-2. Дождется health check
-3. Остановит контейнеры
-4. Модифицирует `data.json` установив `P2P_Enabled: true`
-5. Перезапустит контейнеры с P2P включенным
-6. Проверит статус P2P в логах
+При деплое:
+1. Docker собирает образ ServerPeer
+2. Применяется патч `serverpeer/fix-p2p-enabled.patch` к ServerPeer.ts
+3. Патч исправляет порядок инициализации: `P2P_Enabled` устанавливается **ДО** сохранения в globalVariables
+4. Контейнер запускается с P2P включенным с самого начала
 
-После деплоя увидите:
+После деплоя логи покажут:
 ```
-✅ P2P enabled in Work
+Settings: { P2P_Enabled: true, ... }
 ```
 
 ### Ручное исправление (для существующих деплоев)
 
-Если ServerPeer уже запущен с P2P выключенным:
+Если ServerPeer уже запущен с P2P выключенным, нужно **пересобрать Docker образ**:
 
 ```bash
-# Запустить скрипт инициализации
 cd ~/obsidian
-bash scripts/init-serverpeer-vault.sh 1  # Для VAULT_1
+git pull origin dev
 
-# Перезапустить контейнер
-docker restart notes-serverpeer-work
+# Пересобрать образ ServerPeer с патчем
+docker compose -f docker-compose.serverpeers.yml build --no-cache
+
+# Перезапустить контейнеры
+docker compose -f docker-compose.serverpeers.yml up -d
 
 # Проверить логи
-docker logs notes-serverpeer-work --tail 30 | grep "P2P_Enabled"
+docker logs notes-serverpeer-work --tail 30 | grep -E "P2P_Enabled|Settings:" -A 15
 ```
 
 Должно показать:
 ```
-P2P_Enabled: true,
+Settings: {
+  P2P_Enabled: true,
+  ...
+}
 ```
 
 ---
@@ -218,19 +221,30 @@ ServerPeer использует переменные окружения для *
 
 Плагин читает эту настройку из своего конфига `.obsidian/plugins/obsidian-livesync/data.json` внутри vault.
 
-### Как работает автоматическая инициализация?
+### Как работает исправление через патч?
 
-При деплое `deploy.sh` вызывает `scripts/init-serverpeer-vault.sh`, который:
+При сборке Docker образа ServerPeer (`serverpeer/Dockerfile`):
 
-1. Создает структуру `.obsidian/plugins/obsidian-livesync/`
-2. Генерирует `data.json` из шаблона `templates/serverpeer-data.json.template`
-3. Подставляет переменные из `/opt/notes/.env`:
-   - `__SERVERPEER_APPID__` → `SERVERPEER_APPID`
-   - `__VAULT_ROOMID__` → `VAULT_1_ROOMID`
-   - `__VAULT_PASSPHRASE__` → `VAULT_1_PASSPHRASE`
-   - `__SERVERPEER_RELAYS__` → `SERVERPEER_RELAYS`
-   - `__VAULT_NAME__` → `VAULT_1_NAME`
-4. Устанавливает `P2P_Enabled: true`
+1. Клонируется репозиторий livesync-serverpeer
+2. Применяется патч `serverpeer/fix-p2p-enabled.patch` к `src/ServerPeer.ts`
+3. Патч исправляет **порядок операций** в функции `startServer()`:
+
+**ДО патча (баг):**
+```typescript
+globalVariables.set("settings", conf);  // Сохраняет settings
+conf.P2P_Enabled = true;                 // Изменяет conf ПОСЛЕ сохранения
+// Результат: globalVariables имеет P2P_Enabled: false
+```
+
+**ПОСЛЕ патча (исправлено):**
+```typescript
+conf.P2P_Enabled = true;                 // Устанавливает P2P_Enabled ПЕРЕД
+globalVariables.set("settings", conf);  // сохранением в globalVariables
+// Результат: globalVariables имеет P2P_Enabled: true
+```
+
+4. После применения патча запускается `deno task install`
+5. Образ готов с исправленным ServerPeer
 
 ---
 
