@@ -248,6 +248,164 @@ globalVariables.set("settings", conf);  // сохранением в globalVaria
 
 ---
 
+## Проблема: Docker build fails - "malformed patch at line 14"
+
+### Симптомы
+
+При сборке Docker образа ServerPeer (`docker compose build`):
+
+```
+=> ERROR [serverpeer stage-1  8/10] RUN patch -p1 < /tmp/fix-p2p-enabled.patch
+------
+ > [serverpeer stage-1  8/10] RUN patch -p1 < /tmp/fix-p2p-enabled.patch:
+1.013 patching file src/ServerPeer.ts
+1.016 patch: **** malformed patch at line 14:
+------
+```
+
+### Причина
+
+Файл патча `serverpeer/fix-p2p-enabled.patch` **устарел** и больше не соответствует текущей структуре кода upstream репозитория `vrtmrz/livesync-serverpeer`.
+
+**Что произошло:**
+- Upstream репозиторий обновил структуру кода (например, commit d983f1e рефакторил imports)
+- Патч был создан против старой версии кода
+- При сборке Docker образа git clone загружает **новую версию** upstream кода
+- Патч не может применитьсяк новому коду (контекст не совпадает)
+
+### Диагностика
+
+**Шаг 1:** Клонировать текущий upstream и проверить патч:
+
+```bash
+# Клонировать свежую копию upstream
+cd /tmp
+git clone https://github.com/vrtmrz/livesync-serverpeer.git test-serverpeer
+cd test-serverpeer
+
+# Попробовать применить патч
+patch -p1 --dry-run < ~/obsidian/serverpeer/fix-p2p-enabled.patch
+```
+
+**Если видите ошибку:**
+```
+patch: **** malformed patch at line 14:
+```
+→ Патч устарел и требует регенерации
+
+**Если видите:**
+```
+patching file src/ServerPeer.ts
+```
+→ Патч актуален, проблема в другом
+
+### Решение: Регенерировать патч
+
+**Вариант 1: Использовать валидационный скрипт**
+
+В репозитории есть готовый скрипт для тестирования патча:
+
+```bash
+cd ~/obsidian
+bash serverpeer/validate-patch.sh
+```
+
+Скрипт проверит:
+- ✅ Патч применяется к текущему upstream
+- ✅ Комментарий добавлен
+- ✅ globalVariables.set перенесён после P2P settings
+
+**Вариант 2: Ручная регенерация патча**
+
+Если патч устарел:
+
+```bash
+# 1. Клонировать свежий upstream
+cd /tmp
+rm -rf livesync-serverpeer
+git clone https://github.com/vrtmrz/livesync-serverpeer.git
+cd livesync-serverpeer
+
+# 2. Вручную отредактировать src/ServerPeer.ts
+#    Переместить строку:
+#      globalVariables.set("settings", conf);
+#    С позиции ПЕРЕД conf.P2P_Enabled
+#    На позицию ПОСЛЕ conf.P2P_AutoBroadcast
+#
+#    Добавить комментарий перед conf.P2P_Enabled:
+#      // Set P2P_Enabled BEFORE saving to globalVariables (fix for P2P disabled bug)
+
+# 3. Сгенерировать новый патч
+git diff src/ServerPeer.ts > /tmp/fix-p2p-enabled-new.patch
+
+# 4. Заменить старый патч
+cp /tmp/fix-p2p-enabled-new.patch ~/obsidian/serverpeer/fix-p2p-enabled.patch
+
+# 5. Пересобрать Docker образ
+cd ~/obsidian
+docker compose -f docker-compose.serverpeer.yml build --no-cache
+```
+
+### Проверка после исправления
+
+**1. Патч применяется без ошибок:**
+
+```bash
+cd /tmp/livesync-serverpeer
+git checkout .  # Сброс изменений
+patch -p1 < ~/obsidian/serverpeer/fix-p2p-enabled.patch
+# Должно вывести: patching file src/ServerPeer.ts (без ошибок)
+```
+
+**2. Docker build завершается успешно:**
+
+```bash
+cd ~/obsidian
+docker compose -f docker-compose.serverpeer.yml build --no-cache
+docker compose -f docker-compose.serverpeer-personal.yml build --no-cache
+# Оба build должны завершиться без ошибок
+```
+
+**3. Патч применён в образе:**
+
+```bash
+# Извлечь ServerPeer.ts из собранного образа
+docker run --rm --entrypoint cat notes-serverpeer /app/livesync-serverpeer/src/ServerPeer.ts | head -15
+
+# Должно показать (строки 7-13):
+# export async function startServer(conf: ServerP2PSetting) {
+#     const { globalVariables } = await Synchromesh();
+#     // Set P2P_Enabled BEFORE saving to globalVariables (fix for P2P disabled bug)
+#     conf.P2P_Enabled = true;
+#     conf.P2P_AutoStart = true;
+#     conf.P2P_AutoBroadcast = true;
+#     globalVariables.set("settings", conf);  // ← Перенесено ПОСЛЕ P2P settings
+```
+
+### Предотвращение в будущем
+
+**Регулярная проверка патча:**
+
+После обновления upstream репозитория всегда тестировать патч:
+
+```bash
+# Проверка патча перед деплоем
+cd /tmp
+rm -rf test-serverpeer
+git clone https://github.com/vrtmrz/livesync-serverpeer.git test-serverpeer
+cd test-serverpeer
+patch -p1 --dry-run < ~/obsidian/serverpeer/fix-p2p-enabled.patch
+
+# Если ошибка → регенерировать патч
+# Если OK → можно делать deploy
+```
+
+**Автоматизация (TODO):**
+
+Добавить в CI/CD pipeline проверку актуальности патча перед Docker build.
+
+---
+
 ## См. также
 
 - [DEPLOYMENT-INSTRUCTIONS.md](DEPLOYMENT-INSTRUCTIONS.md) - Инструкция по деплою Nostr Relay fix

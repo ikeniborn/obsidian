@@ -1,7 +1,9 @@
+diff --git a/src/ServerPeer.ts b/src/ServerPeer.ts
+index cb6acb8..6809aa6 100644
 --- a/src/ServerPeer.ts
 +++ b/src/ServerPeer.ts
-@@ -4,10 +4,10 @@ import { EVENT_LAYOUT_READY, Synchromesh } from "../lib/src/common/events.ts";
-
+@@ -6,10 +6,11 @@ import type { ServerP2PSetting } from "./types.ts";
+ 
  export async function startServer(conf: ServerP2PSetting) {
      const { globalVariables } = await Synchromesh();
 -    globalVariables.set("settings", conf);
@@ -10,5 +12,6 @@
      conf.P2P_AutoStart = true;
      conf.P2P_AutoBroadcast = true;
 +    globalVariables.set("settings", conf);
-
+ 
      const synchronised = cmdSyncShim.init();
+ 
