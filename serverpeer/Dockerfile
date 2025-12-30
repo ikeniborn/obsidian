@@ -13,11 +13,15 @@ RUN git clone https://github.com/vrtmrz/livesync-serverpeer.git --recursive /app
 
 WORKDIR /app/livesync-serverpeer
 
-# Copy and apply patch to fix P2P_Enabled bug
-# Bug: globalVariables.set() called BEFORE conf.P2P_Enabled = true
-# Fix: Set P2P_Enabled BEFORE globalVariables.set()
+# Copy and apply patches to fix P2P_Enabled bug
+# Bug 1: globalVariables.set() called BEFORE conf.P2P_Enabled = true
+# Fix 1: Set P2P_Enabled BEFORE globalVariables.set()
 COPY fix-p2p-enabled.patch /tmp/
 RUN patch -p1 < /tmp/fix-p2p-enabled.patch && rm /tmp/fix-p2p-enabled.patch
+
+# Bug 2: envToSetting missing P2P_Enabled mapping
+# Fix 2: Add P2P_Enabled: "SLS_SERVER_PEER_P2P_ENABLED" to envToSetting
+RUN sed -i '/export const envToSetting = {/a\    P2P_Enabled: "SLS_SERVER_PEER_P2P_ENABLED",' src/types.ts
 
 RUN deno task install || deno install --allow-scripts
 
