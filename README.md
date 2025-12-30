@@ -1,71 +1,192 @@
 # Notes - Obsidian Sync Server
 
-Гибкое приложение для синхронизации заметок Obsidian с поддержкой двух бэкендов: CouchDB (client-server) и livesync-serverpeer (P2P).
+Production-ready self-hosted sync server для Obsidian с поддержкой двух режимов синхронизации: традиционный CouchDB (client-server) и современный P2P через WebRTC с multi-vault support.
 
 ## 📋 Описание
 
-Notes - это **гибкое приложение** для хранения и синхронизации заметок Obsidian с выбором бэкенда. Использует:
-- **Sync Backend** - CouchDB (database) или livesync-serverpeer (P2P WebSocket, file-based vault)
-- **Nginx** - reverse proxy (существующий или собственный)
-- **Docker Compose** - контейнерное развертывание
-- **S3 Backups** - автоматические резервные копии (работают с обоими бэкендами)
+Notes - это **production-ready self-hosted решение** для синхронизации заметок Obsidian с поддержкой двух режимов работы:
+
+**🔄 Sync Backends:**
+- **CouchDB** - традиционная client-server синхронизация через HTTP REST API
+- **P2P (ServerPeer + Nostr Relay)** - современная peer-to-peer синхронизация через WebRTC
+
+**✨ Key Features:**
+- **Multi-vault P2P Support** - неограниченное количество независимых хранилищ
+- **Dual Backend** - CouchDB и P2P могут работать одновременно
+- **Automated Deployment** - интерактивная настройка и автоматическое развертывание
+- **Flexible Networking** - интеграция с существующими сервисами или standalone
+- **Secure by Default** - SSL/TLS, UFW firewall, end-to-end encryption (P2P)
+- **S3 Backups** - автоматические резервные копии для обоих режимов
+
+**🏗️ Infrastructure:**
+- **Nginx** - reverse proxy с SSL termination (существующий или собственный)
+- **Docker Compose** - контейнерное развертывание с динамической генерацией конфигураций
+- **Nostr Relay** - WebSocket сервер для P2P signaling (один для всех vaults)
+- **ServerPeer** - "always-on" буфер для P2P (опционально, по одному контейнеру на vault)
 
 ## 🏗️ Архитектура
 
-### Network Modes
+### Общая архитектура (Dual Backend)
 
-Obsidian Sync Server поддерживает гибкую сетевую конфигурацию:
+```mermaid
+graph TB
+    subgraph Internet
+        Client1[Obsidian - Laptop]
+        Client2[Obsidian - Phone]
+        Client3[Obsidian - Tablet]
+    end
+
+    subgraph "Server (sync.ikeniborn.ru)"
+        subgraph "UFW Firewall"
+            UFW[SSH: 22, HTTPS: 443]
+        end
+
+        subgraph "Nginx Reverse Proxy"
+            Nginx[SSL Termination<br/>+ Routing]
+        end
+
+        subgraph "CouchDB Backend"
+            CouchDB[(CouchDB 3.3<br/>Port: 5984)]
+            CouchDB_S3[S3 Backups<br/>couchdb-backups/]
+        end
+
+        subgraph "P2P Backend"
+            Nostr[Nostr Relay<br/>WebSocket Server<br/>Port: 7000]
+
+            subgraph "Multi-Vault ServerPeers"
+                SP1[ServerPeer #1<br/>Vault: Work<br/>Room: f6-9f-93<br/>Port: 3001]
+                SP2[ServerPeer #2<br/>Vault: Personal<br/>Room: a7-4f-e2<br/>Port: 3002]
+                SPn[ServerPeer #N<br/>Vault: Projects<br/>Room: 3c-8a-f1<br/>Port: 300N]
+            end
+
+            SP1_S3[S3 Backups<br/>work-vault/]
+            SP2_S3[S3 Backups<br/>personal-vault/]
+        end
+    end
+
+    %% Connections
+    Client1 & Client2 & Client3 -->|HTTPS: 443| UFW
+    UFW --> Nginx
+
+    %% CouchDB path
+    Nginx -->|/couchdb<br/>HTTP| CouchDB
+    CouchDB -->|Daily 3:00 AM| CouchDB_S3
+
+    %% P2P path
+    Nginx -->|/serverpeer<br/>WSS| Nostr
+    Nostr -->|Room-based<br/>Signaling| SP1 & SP2 & SPn
+    SP1 -->|Daily 3:05 AM| SP1_S3
+    SP2 -->|Daily 3:10 AM| SP2_S3
+
+    %% P2P WebRTC
+    Client1 -.->|WebRTC P2P<br/>Direct Connection| Client2
+    Client2 -.->|WebRTC P2P<br/>Direct Connection| Client3
+
+    style Nostr fill:#f9f,stroke:#333
+    style SP1 fill:#bbf,stroke:#333
+    style SP2 fill:#bbf,stroke:#333
+    style SPn fill:#bbf,stroke:#333
+    style CouchDB fill:#bfb,stroke:#333
+```
+
+### Режимы работы
+
+**1. CouchDB Mode (Traditional Client-Server)**
+- 📍 **Endpoint:** `https://{domain}/couchdb`
+- 🔄 **Protocol:** HTTP REST API
+- 💾 **Storage:** Document-oriented database
+- 📦 **Container:** `notes-couchdb` (port 5984)
+- 💿 **Backup:** Database dumps → S3
+
+**2. P2P Mode (WebRTC + ServerPeer Multi-Vault)**
+- 📍 **Endpoint:** `wss://{domain}/serverpeer` (WebSocket)
+- 🔄 **Protocol:** WebRTC P2P with Nostr signaling
+- 💾 **Storage:** Headless vaults (file-based, per vault)
+- 📦 **Containers:**
+  - `notes-nostr-relay` - один WebSocket сервер для всех vaults (port 7000)
+  - `notes-serverpeer-{vault}` - N контейнеров для N vaults (ports 3001+)
+- 💿 **Backup:** Vault archives → S3 (per vault)
+- 🔐 **Isolation:** Unique Room ID + Passphrase per vault
+
+**3. Dual Mode (Both)**
+- Оба backend развернуты одновременно
+- Разные endpoint'ы: `/couchdb` и `/serverpeer`
+- Независимые backups с разными префиксами
+
+### P2P Multi-Vault Architecture
+
+**Ключевые компоненты:**
+
+```mermaid
+graph LR
+    subgraph "One Nostr Relay for All Vaults"
+        Relay[Nostr Relay<br/>Room-based Routing]
+    end
+
+    subgraph "Vault 1: Work"
+        R1[Room ID: f6-9f-93]
+        SP1[ServerPeer #1<br/>Always-on Buffer]
+        D1[Devices: Laptop, Desktop]
+    end
+
+    subgraph "Vault 2: Personal"
+        R2[Room ID: a7-4f-e2]
+        SP2[ServerPeer #2<br/>Always-on Buffer]
+        D2[Devices: Phone, Tablet]
+    end
+
+    R1 & SP1 & D1 -->|Connect to| Relay
+    R2 & SP2 & D2 -->|Connect to| Relay
+
+    Relay -->|Isolate by Room ID| R1 & R2
+
+    style Relay fill:#f9f,stroke:#333,stroke-width:3px
+```
+
+**Как работает изоляция:**
+1. **Один Nostr Relay** обслуживает все vaults
+2. **Unique Room ID** для каждого vault (например: `f6-9f-93`, `a7-4f-e2`)
+3. **Relay маршрутизирует** сообщения только peer'ам из того же Room ID
+4. **Passphrase** обеспечивает end-to-end шифрование данных
+5. **Devices не видят** peer'ы из других vault'ов
+
+### Network Modes
 
 **Shared Mode (интеграция с существующими сервисами):**
 ```
 Docker Network: my_app_network (existing)
-├── nginx (existing web proxy)
-├── notes-couchdb (CouchDB для Obsidian)
+├── nginx (existing)
+├── notes-couchdb
+├── notes-nostr-relay
+├── notes-serverpeer-work
+├── notes-serverpeer-personal
 └── [другие сервисы]
 ```
 
 **Isolated Mode (standalone deployment):**
 ```
 Docker Network: obsidian_network (auto-created, 172.24-31.0.0/16)
-├── notes-nginx (собственный nginx)
-└── notes-couchdb (CouchDB)
+├── notes-nginx (собственный)
+├── notes-couchdb
+├── notes-nostr-relay
+├── notes-serverpeer-work
+└── notes-serverpeer-personal
 ```
 
-### Network Selection Logic
-1. **Интерактивный выбор** при запуске setup.sh:
-   - Показывает все доступные Docker сети
-   - Пользователь выбирает существующую (shared) или создает новую (isolated)
-2. **Nginx selection**:
-   - Показывает все существующие nginx контейнеры
-   - Пользователь выбирает существующий или создает новый
-   - Автоматическое определение или запрос config directory
-3. **Валидация** сетевой связности после deployment
+### Backend Comparison
 
-### Sync Backend Selection
-
-При запуске `setup.sh` выбирается один из двух бэкендов:
-
-**1. CouchDB (по умолчанию)** - Client-Server
-- Протокол: HTTP REST API
-- Хранение: База данных (document-oriented)
-- Backup: Дампы БД → S3 (через `couchdb-backup.sh`)
-- Порт: 5984 (localhost only)
-- Контейнер: `notes-couchdb`
-
-**2. livesync-serverpeer** - P2P
-- Протокол: WebSocket relay (WSS)
-- Хранение: Headless vault (файловая система)
-- Backup: Архив директории → S3 (через `serverpeer-backup.sh`, **БЕЗ зависимости от CouchDB**)
-- Порт: 3000 (localhost only)
-- Контейнер: `notes-serverpeer`
-- Технология: Deno-based (все зависимости в контейнере)
-
-**Общие возможности:**
-- ✅ S3 резервное копирование (backend-независимое)
-- ✅ Nginx reverse proxy
-- ✅ UFW firewall
-- ✅ SSL/TLS (Let's Encrypt)
-- ✅ Health checks
+| Feature | CouchDB | P2P (ServerPeer) |
+|---------|---------|------------------|
+| **Архитектура** | Client-Server | Peer-to-Peer (WebRTC) |
+| **Протокол** | HTTP REST API | WebSocket + WebRTC |
+| **Хранение** | Database (CouchDB) | File-based vaults |
+| **Multi-vault** | One database | Multiple isolated vaults |
+| **Синхронизация** | Через сервер | Прямая между устройствами + буфер |
+| **Offline Support** | Да (replicate when online) | Да (ServerPeer как буфер) |
+| **Encryption** | Transport (TLS) | End-to-end (Passphrase) |
+| **Backup** | Database dumps | Vault archives |
+| **Resource Usage** | Medium | Low per vault |
+| **Complexity** | Simple | Medium (multi-container) |
 
 ## 🚀 Быстрый старт
 
@@ -89,12 +210,21 @@ sudo ./install.sh
 ```
 
 Настроит:
-- **Выбор sync бэкенда** (CouchDB или serverpeer)
-- Генерация безопасных credentials (COUCHDB_PASSWORD или SERVERPEER_PASSPHRASE/ROOMID)
+- **Выбор sync бэкенда** (CouchDB only / ServerPeer only / Both)
+- **Multi-vault setup** (для P2P):
+  - Вопрос: "How many vaults do you want to configure?"
+  - Для каждого vault: имя (Work, Personal, Projects...)
+  - Auto-генерация уникальных Room ID и Passphrase
+  - Sequential ports (3001, 3002, 3003...)
+- Генерация безопасных credentials:
+  - CouchDB: COUCHDB_PASSWORD (256-bit)
+  - P2P: VAULT_N_ROOMID + VAULT_N_PASSPHRASE (128-bit per vault)
 - Запрос NOTES_DOMAIN (например: notes.example.com)
 - Запрос CERTBOT_EMAIL (для Let's Encrypt уведомлений)
 - Запрос S3 credentials (опционально)
-- Создание cron job для автоматических backups (3:00 AM, backend-specific script)
+- Создание cron/systemd jobs для автоматических backups:
+  - CouchDB: daily at 3:00 AM
+  - ServerPeer vaults: daily at 3:05 AM (per vault)
 
 **Шаг 3: Deployment**
 ```bash
@@ -104,13 +234,26 @@ sudo ./install.sh
 Выполнит:
 - Nginx setup (детекция/интеграция или запуск своего)
 - SSL сертификаты (Let's Encrypt через certbot)
-- **Conditional deployment** (CouchDB или serverpeer в зависимости от выбора)
-- Валидация всех компонентов
+- **Backend-specific deployment:**
+  - CouchDB: deploy notes-couchdb
+  - ServerPeer:
+    - Deploy notes-nostr-relay (один для всех vaults)
+    - Generate docker-compose.serverpeers.yml (N services)
+    - Deploy N ServerPeer containers (один на vault)
+  - Both: deploy всё вместе
+- Валидация всех компонентов (health checks)
+- Генерация документации с параметрами подключения
 
-**Доступ:**
-- HTTPS: https://notes.example.com
-- HTTP: Автоматический редирект на HTTPS
-- Credentials: `admin` / [пароль из /opt/notes/.env]
+**Доступ после развертывания:**
+
+*CouchDB Mode:*
+- HTTPS: https://notes.example.com/couchdb
+- Credentials: `admin` / [COUCHDB_PASSWORD из /opt/notes/.env]
+
+*P2P Mode:*
+- WebSocket: wss://notes.example.com/serverpeer
+- Параметры подключения: см. `/opt/notes/docs/VAULT-PARAMETERS.md`
+- Или запустите: `ssh server "cd /opt/notes && bash scripts/generate-vault-docs.sh"`
 
 ### Migration from Previous Versions
 
