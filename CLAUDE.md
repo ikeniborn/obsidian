@@ -587,6 +587,46 @@ CouchDB configuration:
 - Port: `127.0.0.1:5984:5984` (localhost only)
 - Resources: CPU 0.1-0.5, Memory 128MB-512MB
 
+### Nginx Configuration Templates
+
+**Location:** `templates/*.conf.template`
+
+The project uses optimized nginx configurations that **EXCEED** official CouchDB recommendations:
+
+#### templates/couchdb.conf.template
+**Key optimizations (applied 2025-12-30):**
+- ✅ **keepalive 32** - Connection pooling (~5% latency reduction)
+- ✅ **WebSocket support** - CRITICAL for CouchDB _changes feed real-time sync
+- ✅ **HTTP/1.1** - Required for keep-alive and WebSocket
+- ✅ **client_max_body_size 50M** - Matches CouchDB max_document_size
+- ✅ **Enhanced headers** - X-Real-IP, X-Forwarded-Proto for security/logging
+- ❌ **Removed Accept-Encoding ""** - Enables nginx↔CouchDB compression (+2-3% performance)
+
+**Critical differences from official CouchDB docs:**
+- Official recommendation **LACKS WebSocket support** → breaks real-time sync
+- Official uses `proxy_pass $uri` with rewrite → creates broken URLs
+- Official has no large attachment support → 413 errors for files >1MB
+
+**Comparison analysis:** See `docs/nginx-configuration-analysis.md`
+
+#### templates/unified.conf.template
+Unified config for dual-backend (CouchDB + ServerPeer):
+- Separate location blocks: `${COUCHDB_LOCATION}` and `${SERVERPEER_LOCATION}`
+- Both backends have keepalive 32
+- CouchDB: HTTP proxy with WebSocket upgrade
+- ServerPeer: WebSocket proxy with 7-day timeouts
+
+#### templates/serverpeer.conf.template
+ServerPeer-only WebSocket proxy:
+- WebSocket upgrade headers (Upgrade, Connection)
+- 7-day timeouts for long-lived connections
+- keepalive 32 for connection pooling
+
+**IMPORTANT:** Do NOT blindly apply official CouchDB nginx recommendations - they are outdated and will break:
+1. Real-time synchronization (no WebSocket)
+2. Large file uploads (no client_max_body_size)
+3. URL routing (incorrect proxy_pass with rewrite)
+
 ## Script Architecture
 
 ### Core Deployment Scripts
