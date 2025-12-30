@@ -78,6 +78,9 @@ source "${SCRIPT_DIR}/scripts/network-manager.sh"
 # Source fail2ban setup (optional, non-blocking)
 source "${SCRIPT_DIR}/scripts/fail2ban-setup.sh" 2>/dev/null || true
 
+# Source deployment helpers (rsync, docker image version checking)
+source "${SCRIPT_DIR}/scripts/deploy-helpers.sh"
+
 # =============================================================================
 # VALIDATION FUNCTIONS
 # =============================================================================
@@ -263,38 +266,52 @@ apply_nginx_config() {
     success "Nginx configuration applied"
 }
 
-copy_scripts_to_workdir() {
-    info "Copying scripts to working directory..."
+sync_deployment_files() {
+    info "Synchronizing deployment files with rsync..."
 
-    # Create scripts directory in /opt/notes if not exists
-    sudo mkdir -p "$NOTES_DEPLOY_DIR/scripts"
+    # Show what will change
+    show_rsync_changes "$SCRIPT_DIR" "$NOTES_DEPLOY_DIR"
 
-    # Copy all scripts from repository to working directory
-    sudo cp -r "$SCRIPTS_DIR"/* "$NOTES_DEPLOY_DIR/scripts/"
+    # Ask for confirmation
+    echo ""
+    read -p "Apply these changes? (Y/n): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
+        warning "Deployment file sync cancelled by user"
+        return 1
+    fi
 
-    # Set executable permissions
-    sudo chmod +x "$NOTES_DEPLOY_DIR/scripts"/*.sh
-    sudo chmod +x "$NOTES_DEPLOY_DIR/scripts"/*.py 2>/dev/null || true
+    # Perform rsync synchronization
+    if rsync_deployment_files "$SCRIPT_DIR" "$NOTES_DEPLOY_DIR" false; then
+        success "Deployment files synchronized"
 
-    # Set ownership
-    sudo chown -R root:root "$NOTES_DEPLOY_DIR/scripts"
+        # Save previous lockfile if exists
+        if [[ -f "$NOTES_DEPLOY_DIR/deployment.lock" ]]; then
+            sudo cp "$NOTES_DEPLOY_DIR/deployment.lock" \
+                "$NOTES_DEPLOY_DIR/deployment.lock.previous"
+        fi
 
-    success "Scripts copied to $NOTES_DEPLOY_DIR/scripts/"
+        return 0
+    else
+        error "Failed to synchronize deployment files"
+        return 1
+    fi
 }
 
 prepull_serverpeer_images() {
-    info "Pre-pulling base images for ServerPeer build..."
-    info "This ensures proxy settings are used for image downloads"
+    info "Checking ServerPeer base images..."
+    info "Only updated images will be pulled"
 
     local images=(
         "denoland/deno:bin"
         "node:22.14-bookworm-slim"
     )
 
+    local force_pull="${FORCE_PULL:-false}"
+
     for image in "${images[@]}"; do
-        info "Pulling $image..."
-        if docker pull "$image"; then
-            success "Pulled: $image"
+        if smart_docker_pull "$image" "$force_pull"; then
+            success "Image ready: $image"
         else
             warning "Failed to pull $image - build may fail"
             warning "If you're behind a proxy, ensure Docker daemon proxy is configured"
@@ -302,7 +319,7 @@ prepull_serverpeer_images() {
         fi
     done
 
-    success "Base images pre-pulled"
+    success "ServerPeer base images checked"
 }
 
 deploy_serverpeer() {
@@ -388,14 +405,14 @@ wait_for_serverpeer_healthy() {
 }
 
 prepull_nostr_relay_images() {
-    info "Pre-pulling Nostr Relay image..."
-    info "This ensures proxy settings are used for image download"
+    info "Checking Nostr Relay image..."
+    info "Only updated image will be pulled"
 
     local image="scsibug/nostr-rs-relay:latest"
+    local force_pull="${FORCE_PULL:-false}"
 
-    info "Pulling $image..."
-    if docker pull "$image"; then
-        success "Pulled: $image"
+    if smart_docker_pull "$image" "$force_pull"; then
+        success "Image ready: $image"
     else
         warning "Failed to pull $image - deployment may fail"
         warning "If you're behind a proxy, ensure Docker daemon proxy is configured"
@@ -454,14 +471,14 @@ wait_for_nostr_relay_healthy() {
 }
 
 prepull_couchdb_images() {
-    info "Pre-pulling CouchDB image..."
-    info "This ensures proxy settings are used for image download"
+    info "Checking CouchDB image..."
+    info "Only updated image will be pulled"
 
     local image="couchdb:3.3"
+    local force_pull="${FORCE_PULL:-false}"
 
-    info "Pulling $image..."
-    if docker pull "$image"; then
-        success "Pulled: $image"
+    if smart_docker_pull "$image" "$force_pull"; then
+        success "Image ready: $image"
     else
         warning "Failed to pull $image - deployment may fail"
         warning "If you're behind a proxy, ensure Docker daemon proxy is configured"
@@ -663,18 +680,67 @@ display_summary() {
 # MAIN DEPLOYMENT
 # =============================================================================
 
+# Parse command line arguments
+FORCE_PULL=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force-pull)
+            FORCE_PULL=true
+            shift
+            ;;
+        --help|-h)
+            cat << EOF
+Usage: $0 [OPTIONS]
+
+Options:
+    --force-pull    Force pull Docker images even if up-to-date
+    --help, -h      Show this help message
+
+Description:
+    Deploys Obsidian Sync Server with intelligent file synchronization
+    and Docker image version checking.
+
+    By default, Docker images are only pulled if updates are available.
+    Use --force-pull to always pull latest images.
+
+Examples:
+    $0                  # Deploy with smart image updates
+    $0 --force-pull     # Deploy and force pull all images
+
+EOF
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1. Use --help for usage information."
+            ;;
+    esac
+done
+
+export FORCE_PULL
+
 main() {
     echo "=========================================="
     echo "Deploying Obsidian Sync Server"
     echo "=========================================="
 
+    if [[ "$FORCE_PULL" == "true" ]]; then
+        warning "Force pull enabled - all images will be pulled"
+    fi
+
     check_env_file
     check_ufw_configured
 
-    prepare_network
-    copy_scripts_to_workdir
+    # Show deployment changes from previous version
+    if [[ -f "$NOTES_DEPLOY_DIR/deployment.lock" ]]; then
+        info "Comparing with previous deployment..."
+        show_deployment_diff "$NOTES_DEPLOY_DIR/deployment.lock" "/tmp/deployment.lock.new"
+    fi
 
-    # Setup fail2ban AFTER copying scripts to /opt/notes/scripts/
+    prepare_network
+    sync_deployment_files
+
+    # Setup fail2ban AFTER syncing files to /opt/notes/
     setup_fail2ban
 
     # Conditional deployment based on backend
@@ -714,6 +780,17 @@ main() {
         error "Deployment validation failed"
         error "Please check logs and fix issues before continuing"
         exit 1
+    fi
+
+    # Save deployment lockfile
+    info "Saving deployment version information..."
+    save_deployment_lockfile "$NOTES_DEPLOY_DIR/deployment.lock"
+
+    # Show changes from previous deployment
+    if [[ -f "$NOTES_DEPLOY_DIR/deployment.lock.previous" ]]; then
+        echo ""
+        show_deployment_diff "$NOTES_DEPLOY_DIR/deployment.lock.previous" \
+            "$NOTES_DEPLOY_DIR/deployment.lock"
     fi
 
     display_summary

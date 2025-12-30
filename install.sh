@@ -256,7 +256,14 @@ install_python_deps() {
         apt-get install -y python3-boto3
     fi
 
-    success "Python dependencies installed"
+    # Install rsync for deployment synchronization
+    if ! command_exists rsync; then
+        info "Installing rsync..."
+        apt-get update -qq
+        apt-get install -y rsync
+    fi
+
+    success "Python dependencies and rsync installed"
 }
 
 # =============================================================================
