@@ -158,6 +158,25 @@ setup_fail2ban() {
     fi
 }
 
+setup_coturn() {
+    info "Setting up Coturn TURN/STUN server for P2P WebRTC..."
+
+    # Check if script exists
+    if [[ ! -f "$NOTES_DEPLOY_DIR/scripts/coturn-setup.sh" ]]; then
+        warning "coturn-setup.sh not found - skipping TURN server configuration"
+        warning "P2P WebRTC may not work across NAT without TURN server"
+        return 0
+    fi
+
+    # Run coturn setup (non-blocking)
+    if sudo bash "$NOTES_DEPLOY_DIR/scripts/coturn-setup.sh"; then
+        success "Coturn TURN/STUN server configured for P2P WebRTC"
+    else
+        warning "Coturn setup failed - P2P may not work across NAT"
+        warning "You can run manually: sudo bash /opt/notes/scripts/coturn-setup.sh"
+    fi
+}
+
 check_rsync() {
     if ! command_exists rsync; then
         warning "rsync not found, installing..."
@@ -750,6 +769,7 @@ main() {
     if [[ "${SYNC_BACKEND:-couchdb}" == "both" ]]; then
         info "Deploying both backends (dual mode)..."
         deploy_couchdb
+        setup_coturn
         deploy_nostr_relay
         deploy_serverpeer
         wait_for_couchdb_healthy
@@ -758,6 +778,7 @@ main() {
         success "Both backends deployed successfully"
     elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
         info "Deploying ServerPeer backend..."
+        setup_coturn
         deploy_nostr_relay
         deploy_serverpeer
         wait_for_nostr_relay_healthy

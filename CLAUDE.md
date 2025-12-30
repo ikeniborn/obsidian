@@ -95,17 +95,21 @@ The server supports two sync backends, selected during `setup.sh`:
 - **Use Case**: Traditional client-server sync, proven stability
 
 **2. livesync-serverpeer** - P2P Architecture
-- **Protocol**: WebSocket (WSS) relay
+- **Protocol**: WebSocket (WSS) relay + WebRTC P2P
 - **Storage**: Headless vault (filesystem-based)
 - **Backup**: Vault archive → tar.gz → S3 (via `serverpeer-backup.sh`, **NO CouchDB dependency**)
 - **Port**: 3000 (localhost only)
 - **Container**: `notes-serverpeer` (configurable via SERVERPEER_CONTAINER_NAME)
 - **Technology**: Deno-based (https://github.com/vrtmrz/livesync-serverpeer)
 - **Dependencies**: Fully containerized (Deno, Node.js, git) - NO host installation required
-- **WebSocket Relay**: Uses local server by default (wss://your-domain/serverpeer/)
+- **WebSocket Relay**: Uses local Nostr relay by default (ws://notes-nostr-relay:7000 internal, wss://your-domain/serverpeer/ external)
   - **Recommended**: Local relay (best performance & privacy)
   - **Alternative**: External relay (e.g., wss://exp-relay.vrtmrz.net/) - adds latency
-- **Use Case**: P2P synchronization with WebSocket relay, file-based storage
+- **P2P WebRTC**: Direct peer-to-peer connections using WebRTC
+  - **STUN Server**: Google public STUN (stun:stun.l.google.com:19302) for NAT traversal
+  - **TURN Server**: Local coturn server (turn:server-ip:3478) for fallback when direct connection fails
+  - **NAT Traversal**: Automatic STUN/TURN selection based on network conditions
+- **Use Case**: P2P synchronization with WebSocket relay, file-based storage, offline-capable
 
 **Backend-Independent Features**:
 - ✅ S3 backups (shared `s3_upload.py` script)
@@ -182,6 +186,23 @@ bash scripts/check-ssl-expiration.sh
 bash scripts/test-ssl-renewal.sh
 ```
 
+**TURN/STUN server management (for P2P ServerPeer):**
+```bash
+# Check coturn status
+sudo systemctl status coturn
+
+# View coturn logs
+sudo journalctl -u coturn -f
+sudo tail -f /var/log/turnserver.log
+
+# Restart coturn
+sudo systemctl restart coturn
+
+# Test TURN connectivity (from client machine)
+# Use turnutils-uclient tool (install: apt-get install coturn-utils)
+turnutils_uclient -v -u obsidian -w <TURN_PASSWORD> <SERVER_IP>
+```
+
 ## Production Deployment
 
 ### Sequential Deployment Flow
@@ -207,7 +228,8 @@ sudo ./setup.sh  # Use sudo if configuring Docker proxy
 # 1. nginx-setup.sh (detects/integrates with existing nginx)
 # 2. ssl-setup.sh (obtains Let's Encrypt certificates)
 # 3. Applies nginx config with SSL
-# 4. Deploys CouchDB via docker compose
+# 4. Deploys selected backend (CouchDB/ServerPeer/Both)
+#    - For ServerPeer: configures TURN/STUN server (coturn-setup.sh)
 # 5. Validates deployment
 ```
 
@@ -216,6 +238,94 @@ sudo ./setup.sh  # Use sudo if configuring Docker proxy
 - UFW must allow ports 22 (SSH) and 443 (HTTPS)
 - Port 80 remains closed (opened temporarily only for certbot renewal via UFW hooks)
 - Auto-detection of existing nginx (docker/systemd/standalone)
+- **For P2P ServerPeer**: UFW must allow TURN ports (3478 UDP/TCP, 49152-65535 UDP) - configured automatically by `scripts/ufw-setup.sh`
+
+### TURN/STUN Server Configuration (P2P WebRTC)
+
+**Purpose:** Enables WebRTC peer-to-peer connections between Obsidian clients and ServerPeer when direct connection fails due to NAT/firewall.
+
+**Components:**
+- **STUN Server**: Google public STUN (stun:stun.l.google.com:19302) - discovers external IP addresses
+- **TURN Server**: Local coturn (turn:server-ip:3478) - relays traffic when direct P2P connection impossible
+- **Nostr Relay**: Local nostr-rs-relay for WebRTC signaling (not data relay)
+
+**Installation:** Automatic via `install.sh` (installs coturn package)
+
+**Configuration:** Automatic during deployment
+1. `setup.sh` generates TURN credentials and configuration:
+   - Detects server external IP via `curl -s ifconfig.me`
+   - Generates random TURN credentials (username: `obsidian`, password: 32-char hex)
+   - Creates `/opt/notes/.env` variables:
+     ```bash
+     TURN_USERNAME=obsidian
+     TURN_PASSWORD=<random-32-char-hex>
+     TURN_REALM=turn.example.com
+     COTURN_LISTENING_PORT=3478
+     COTURN_EXTERNAL_IP=<server-public-ip>
+     SERVERPEER_STUN_SERVERS=stun:stun.l.google.com:19302
+     SERVERPEER_TURN_SERVERS=turn:obsidian:<password>@<server-ip>:3478
+     ```
+
+2. `deploy.sh` automatically configures coturn (calls `scripts/coturn-setup.sh` when ServerPeer backend is selected)
+
+**Manual Configuration (if needed):**
+```bash
+# 1. Run coturn setup script manually (only if deploy.sh failed)
+sudo bash scripts/coturn-setup.sh
+
+# 2. Verify coturn is running
+sudo systemctl status coturn
+
+# 3. Check UFW allows TURN ports
+sudo ufw status | grep -E "3478|49152"
+
+# 4. Test TURN server (from client machine)
+turnutils_uclient -v -u obsidian -w <TURN_PASSWORD> <SERVER_IP>
+```
+
+**Firewall Rules (UFW):**
+```bash
+# TURN/STUN signaling
+ufw allow 3478/udp comment 'TURN/STUN'
+ufw allow 3478/tcp comment 'TURN/STUN'
+
+# TURN relay ports (dynamic allocation)
+ufw allow 49152:65535/udp comment 'TURN relay'
+```
+
+**Obsidian Client Configuration:**
+1. Open Obsidian Self-hosted LiveSync settings
+2. Navigate to "P2P Settings" or enable via DevTools Console:
+   ```javascript
+   app.plugins.plugins['obsidian-livesync'].settings.P2P_Enabled = true;
+   app.plugins.plugins['obsidian-livesync'].settings.P2P_AutoStart = true;
+   app.plugins.plugins['obsidian-livesync'].settings.P2P_AutoBroadcast = true;
+   await app.plugins.plugins['obsidian-livesync'].saveSettings();
+   ```
+3. TURN credentials auto-configured from server settings (shared via CouchDB or manual entry)
+
+**Troubleshooting:**
+- **TURN not accessible**: Check UFW rules, verify external IP detection
+- **WebRTC connection fails**: Test TURN with `turnutils_uclient`, check coturn logs
+- **High latency**: Direct P2P failed, traffic relaying through TURN (expected for strict NAT)
+- **Authentication errors**: Verify TURN credentials match in ServerPeer and Obsidian client
+
+**Architecture Diagram:**
+```
+Obsidian Client (behind NAT)
+    ↓ (1) STUN query → discovers external IP
+    ↓ (2) WebRTC offer → via Nostr Relay signaling
+    ↓ (3) Direct P2P attempt → FAILS (NAT/firewall)
+    ↓ (4) TURN fallback → coturn relays traffic
+    ↓
+ServerPeer (VPS, public IP)
+```
+
+**Why TURN is needed:**
+- Obsidian clients typically behind home/corporate NAT
+- ServerPeer on VPS with public IP
+- Symmetric NAT prevents direct P2P connection
+- TURN server relays traffic as last resort (adds latency but ensures connectivity)
 
 ### Docker Proxy Configuration
 
@@ -480,6 +590,7 @@ CouchDB configuration:
 - Validates Docker/Docker Compose
 - Creates `/opt/notes` directory structure
 - Installs Python dependencies (python3-boto3 from system packages, PEP 668 compliant)
+- Installs coturn TURN/STUN server for P2P WebRTC (when ServerPeer backend selected)
 - Optionally runs UFW setup
 - Must run with sudo
 
@@ -489,6 +600,11 @@ CouchDB configuration:
 - Prompts for domain and email
 - Generates secure CouchDB password (when CouchDB backend selected)
 - Configures backend-specific settings (container names, ports, locations)
+- Configures TURN/STUN server for P2P WebRTC (when ServerPeer backend selected):
+  - Detects server external IP
+  - Generates random TURN credentials
+  - Configures STUN server (Google public)
+  - Configures TURN server (local coturn)
 - Optionally configures S3 backup with backend-aware prefix defaults
 - Sets up cron/systemd for automatic backups (backend-aware):
   - Dynamically creates systemd unit files matching selected backend
@@ -496,12 +612,13 @@ CouchDB configuration:
   - ServerPeer only: serverpeer-backup.timer/service
   - Both: creates both timers (CouchDB at 3:00 AM, ServerPeer at 3:05 AM)
 - No sudo required (except for systemd timer creation)
-- **Important:** Backend-specific variables (COUCHDB_CONTAINER_NAME, SERVERPEER_CONTAINER_NAME) are only added to .env when their respective backend is selected
+- **Important:** Backend-specific variables (COUCHDB_CONTAINER_NAME, SERVERPEER_CONTAINER_NAME, TURN credentials) are only added to .env when their respective backend is selected
 
 **deploy.sh**
 - Orchestrates full deployment
 - Calls nginx-setup.sh → ssl-setup.sh → applies config
-- Deploys CouchDB container
+- Deploys selected backend (CouchDB/ServerPeer/Both)
+- Configures TURN server (when ServerPeer backend selected)
 - Validates deployment
 - Displays summary
 
@@ -522,8 +639,17 @@ CouchDB configuration:
 **ufw-setup.sh**
 - Configures firewall
 - Allows: SSH (22), HTTPS (443)
+- Allows: TURN/STUN ports (3478 UDP/TCP, 49152-65535 UDP) when ServerPeer backend selected
 - Blocks: HTTP (80) - except during certbot renewal
 - Creates certbot pre/post hooks for port 80 management
+
+**coturn-setup.sh**
+- Configures coturn TURN/STUN server for P2P WebRTC
+- Generates `/etc/turnserver.conf` with security settings
+- Loads configuration from `/opt/notes/.env`
+- Enables and restarts coturn service
+- Displays comprehensive summary with credentials
+- **Only relevant for ServerPeer backend**
 
 **couchdb-backup.sh**
 - Backs up all CouchDB databases
@@ -578,6 +704,9 @@ curl -u admin:password http://localhost:5984/_all_dbs
 - Port 443: HTTPS (always open)
 - Port 80: HTTP (closed, opened only during certbot renewal via hooks)
 - Port 5984: CouchDB (bind to 127.0.0.1, not exposed)
+- Port 3000: ServerPeer (bind to 127.0.0.1, not exposed)
+- **Port 3478** (UDP/TCP): TURN/STUN signaling (P2P WebRTC) - **open when ServerPeer backend selected**
+- **Ports 49152-65535** (UDP): TURN relay ports (dynamic allocation) - **open when ServerPeer backend selected**
 
 ### fail2ban Integration
 
@@ -731,22 +860,30 @@ sudo apt-get purge -y fail2ban  # Optional
 ```
 obsidian/
 ├── docker-compose.notes.yml    # CouchDB service definition
+├── docker-compose.serverpeer.yml # ServerPeer service definition
 ├── local.ini                   # CouchDB configuration
 ├── install.sh                  # Dependencies installation (sudo)
 ├── setup.sh                    # Production configuration
 ├── deploy.sh                   # Production deployment
 ├── scripts/
-│   ├── couchdb-backup.sh       # Backup script
+│   ├── couchdb-backup.sh       # CouchDB backup script
+│   ├── serverpeer-backup.sh    # ServerPeer backup script
 │   ├── nginx-setup.sh          # Nginx detection & integration
 │   ├── ssl-setup.sh            # Let's Encrypt SSL
-│   ├── ufw-setup.sh            # Firewall configuration
+│   ├── ufw-setup.sh            # Firewall configuration (includes TURN ports)
+│   ├── coturn-setup.sh         # TURN/STUN server configuration (P2P WebRTC)
+│   ├── generate-serverpeer-compose.sh # Generate multi-vault ServerPeer compose
 │   ├── check-ssl-expiration.sh # SSL monitoring
 │   ├── test-ssl-renewal.sh     # SSL renewal testing
 │   ├── test-backup.sh          # Backup validation
 │   ├── run-all-tests.sh        # Test suite
 │   └── s3_upload.py            # S3 upload utility
+├── serverpeer/
+│   ├── Dockerfile              # ServerPeer container build
+│   └── fix-p2p-enabled.patch   # P2P bug fixes
 ├── docs/
 │   ├── prd/                    # Product requirements
+│   ├── architecture/           # YAML knowledge graph
 │   ├── security.md             # Security documentation
 │   └── troubleshooting.md      # Troubleshooting guide
 └── requests/                   # Task templates & planning
@@ -761,7 +898,10 @@ obsidian/
   - Must be running on same Docker network
 
 ### Docker Images
-- `couchdb:3.3` - official CouchDB image
+- `couchdb:3.3` - official CouchDB image (for CouchDB backend)
+- `denoland/deno:bin-latest` - Deno runtime (for ServerPeer backend)
+- `node:22.14-bookworm-slim` - Node.js runtime (for ServerPeer backend)
+- `scsibug/nostr-rs-relay:latest` - Nostr relay (for ServerPeer P2P signaling)
 
 ### System Requirements
 - Docker 20.10+
@@ -769,9 +909,10 @@ obsidian/
 - Python 3 + python3-boto3 package (for S3 backups)
 - openssl (for password generation)
 - UFW (firewall)
+- **coturn** (for ServerPeer P2P WebRTC) - installed automatically via `install.sh`
 
 ### Optional
-- nginx (if not using Family Budget nginx)
+- nginx (if not using existing nginx)
 - certbot (for SSL certificates)
 - S3-compatible storage (for cloud backups)
 
@@ -782,8 +923,12 @@ obsidian/
 # CouchDB status (use your configured COUCHDB_CONTAINER_NAME)
 docker ps | grep notes-couchdb
 
+# ServerPeer status (use your configured SERVERPEER_CONTAINER_NAME)
+docker ps | grep notes-serverpeer
+
 # Resource usage
 docker stats notes-couchdb
+docker stats notes-serverpeer
 
 # Disk usage
 du -sh /opt/notes/data
@@ -794,12 +939,19 @@ bash scripts/check-ssl-expiration.sh
 
 # Backup status
 tail -20 /opt/notes/logs/backup.log
+
+# TURN server status (for P2P ServerPeer)
+sudo systemctl status coturn
+sudo journalctl -u coturn --since "1 hour ago"
 ```
 
 ### Logs
 - CouchDB: `docker logs notes-couchdb` (or your COUCHDB_CONTAINER_NAME)
+- ServerPeer: `docker logs notes-serverpeer` (or your SERVERPEER_CONTAINER_NAME)
+- Nostr Relay: `docker logs notes-nostr-relay`
 - Backup: `/opt/notes/logs/backup.log`
 - Installation: `/var/log/notes_install.log`
+- TURN Server: `/var/log/turnserver.log`, `sudo journalctl -u coturn`
 
 ### Cron Jobs
 ```bash
@@ -812,7 +964,10 @@ crontab -l | grep couchdb-backup
 
 ## Version Information
 
-- **Version:** 5.1.0
-- **Last Updated:** 2025-11-16
+- **Version:** 5.3.0
+- **Last Updated:** 2025-12-30
 - **CouchDB Version:** 3.3
 - **Docker Compose Version:** v2+
+- **Coturn Version:** 4.6+ (installed via apt)
+- **ServerPeer:** Deno-based (denoland/deno:bin-latest)
+- **Nostr Relay:** nostr-rs-relay (scsibug/nostr-rs-relay:latest)

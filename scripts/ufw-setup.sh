@@ -183,6 +183,34 @@ add_https_rule() {
     success "HTTPS access allowed on port 443"
 }
 
+add_turn_rules() {
+    info "Checking TURN/STUN server rules for P2P..."
+
+    local turn_exists=false
+    if check_rule_exists "3478" "udp" && check_rule_exists "3478" "tcp"; then
+        turn_exists=true
+    fi
+
+    if [[ "$turn_exists" == true ]]; then
+        success "TURN/STUN rules already exist - skipping"
+        return 0
+    fi
+
+    info "Adding TURN/STUN rules..."
+
+    if [[ "$DRY_RUN" == true ]]; then
+        info "[DRY-RUN] Would allow: 3478/udp (TURN/STUN)"
+        info "[DRY-RUN] Would allow: 3478/tcp (TURN/STUN)"
+        info "[DRY-RUN] Would allow: 49152:65535/udp (TURN relay ports)"
+        return 0
+    fi
+
+    ufw allow 3478/udp comment 'TURN/STUN'
+    ufw allow 3478/tcp comment 'TURN/STUN'
+    ufw allow 49152:65535/udp comment 'TURN relay'
+    success "TURN/STUN ports opened for P2P WebRTC"
+}
+
 verify_ssh_rule_exists() {
     local ssh_port=$1
 
@@ -350,6 +378,7 @@ main() {
     echo ""
     add_ssh_rule "$SSH_PORT"
     add_https_rule
+    add_turn_rules
 
     echo ""
     info "Port 80 (HTTP) will remain BLOCKED (not added to rules)"

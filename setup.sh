@@ -750,10 +750,39 @@ configure_serverpeer() {
     NOSTR_RELAY_CONTAINER_NAME=notes-nostr-relay
     NOSTR_RELAY_UPSTREAM=notes-nostr-relay
 
+    # TURN/STUN server configuration for P2P WebRTC
+    info "Configuring TURN/STUN server for P2P WebRTC..."
+
+    # Detect external IP for TURN/STUN
+    EXTERNAL_IP=$(curl -s ifconfig.me || curl -s icanhazip.com || echo "")
+    if [[ -z "$EXTERNAL_IP" ]]; then
+        warning "Could not detect external IP automatically"
+        read -p "Enter server public IP address: " EXTERNAL_IP
+    fi
+
+    # Generate TURN credentials
+    TURN_USERNAME="obsidian"
+    TURN_PASSWORD=$(openssl rand -hex 16)
+    TURN_REALM="turn.${NOTES_DOMAIN}"
+
+    # ServerPeer uses internal Docker network connection to relay
+    SERVERPEER_RELAYS_INTERNAL="ws://notes-nostr-relay:7000"
+
+    # STUN/TURN servers (multiple for redundancy)
+    # Format: stun:<server>:<port>, turn:<user>:<pass>@<server>:<port>
+    SERVERPEER_STUN_SERVERS="stun:stun.l.google.com:19302"
+    SERVERPEER_TURN_SERVERS="turn:${TURN_USERNAME}:${TURN_PASSWORD}@${EXTERNAL_IP}:3478"
+
+    # Coturn configuration
+    COTURN_LISTENING_PORT=3478
+    COTURN_EXTERNAL_IP="$EXTERNAL_IP"
+
     success "All vaults configured"
     echo "  Total vaults: $VAULT_COUNT"
-    echo "  Relay URL:    $SERVERPEER_RELAYS"
+    echo "  Relay URL:    $SERVERPEER_RELAYS (external), $SERVERPEER_RELAYS_INTERNAL (ServerPeer)"
     echo "  Nostr Relay:  Will be deployed as WebSocket signaling server"
+    echo "  STUN Server:  stun.l.google.com:19302 (Google public)"
+    echo "  TURN Server:  ${EXTERNAL_IP}:3478 (local, user: $TURN_USERNAME)"
 }
 
 prompt_s3_credentials() {
@@ -1006,6 +1035,15 @@ SERVERPEER_P2P_ENABLED=$SERVERPEER_P2P_ENABLED
 SERVERPEER_AUTOBROADCAST=$SERVERPEER_AUTOBROADCAST
 SERVERPEER_AUTOSTART=$SERVERPEER_AUTOSTART
 SERVERPEER_LOCATION=${SERVERPEER_LOCATION:-/serverpeer}
+
+# TURN/STUN Configuration for P2P WebRTC
+TURN_USERNAME=${TURN_USERNAME}
+TURN_PASSWORD=${TURN_PASSWORD}
+TURN_REALM=${TURN_REALM}
+COTURN_LISTENING_PORT=${COTURN_LISTENING_PORT}
+COTURN_EXTERNAL_IP=${COTURN_EXTERNAL_IP}
+SERVERPEER_STUN_SERVERS=${SERVERPEER_STUN_SERVERS}
+SERVERPEER_TURN_SERVERS=${SERVERPEER_TURN_SERVERS}
 
 EOF
 

@@ -268,6 +268,25 @@ install_python_deps() {
     success "Python dependencies and rsync installed"
 }
 
+install_coturn() {
+    info "Installing Coturn TURN/STUN server for P2P WebRTC..."
+
+    if command_exists turnserver; then
+        success "Coturn already installed ($(turnserver --version 2>&1 | head -1))"
+        return 0
+    fi
+
+    info "Installing coturn package..."
+    apt-get update -qq
+    apt-get install -y coturn
+
+    # Enable coturn service
+    sed -i 's/^#TURNSERVER_ENABLED=1/TURNSERVER_ENABLED=1/' /etc/default/coturn
+
+    success "Coturn installed successfully"
+    info "Coturn will be configured during setup.sh"
+}
+
 # =============================================================================
 # MAIN INSTALLATION
 # =============================================================================
@@ -292,6 +311,9 @@ main() {
 
     echo ""
     install_python_deps
+
+    echo ""
+    install_coturn
 
     echo ""
     if [[ ! -f "$SCRIPT_DIR/scripts/ufw-setup.sh" ]]; then
