@@ -785,6 +785,48 @@ configure_serverpeer() {
     echo "  TURN Server:  ${EXTERNAL_IP}:3478 (local, user: $TURN_USERNAME)"
 }
 
+configure_turn_firewall() {
+    [[ "$SYNC_BACKEND" != "serverpeer" && "$SYNC_BACKEND" != "both" ]] && return 0
+
+    echo ""
+    info "Configuring firewall for TURN/STUN server..."
+
+    # Check if UFW is installed
+    if ! command -v ufw >/dev/null 2>&1; then
+        warning "UFW not installed - TURN ports will not be configured"
+        warning "Install UFW and run: sudo ufw allow 3478/udp && sudo ufw allow 3478/tcp && sudo ufw allow 49152:65535/udp"
+        return 0
+    fi
+
+    # Check if TURN ports are already open
+    local turn_ports_open=true
+    if ! sudo ufw status | grep -q "3478/udp"; then
+        turn_ports_open=false
+    fi
+    if ! sudo ufw status | grep -q "3478/tcp"; then
+        turn_ports_open=false
+    fi
+    if ! sudo ufw status | grep -q "49152:65535/udp"; then
+        turn_ports_open=false
+    fi
+
+    if [[ "$turn_ports_open" == true ]]; then
+        success "TURN/STUN ports already configured in UFW"
+        return 0
+    fi
+
+    # Open TURN ports
+    info "Opening TURN/STUN ports in UFW..."
+    sudo ufw allow 3478/udp comment 'TURN/STUN' >/dev/null 2>&1 || warning "Failed to add 3478/udp rule"
+    sudo ufw allow 3478/tcp comment 'TURN/STUN' >/dev/null 2>&1 || warning "Failed to add 3478/tcp rule"
+    sudo ufw allow 49152:65535/udp comment 'TURN relay' >/dev/null 2>&1 || warning "Failed to add relay ports rule"
+
+    success "TURN/STUN ports configured in UFW"
+    echo "  - 3478/udp (TURN/STUN signaling)"
+    echo "  - 3478/tcp (TURN/STUN signaling)"
+    echo "  - 49152-65535/udp (TURN relay ports)"
+}
+
 prompt_s3_credentials() {
     echo ""
     info "S3 Backup Configuration (Optional)"
@@ -1279,8 +1321,10 @@ main() {
     if [[ "${SYNC_BACKEND:-couchdb}" == "both" ]]; then
         configure_couchdb
         configure_serverpeer
+        configure_turn_firewall
     elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
         configure_serverpeer
+        configure_turn_firewall
     else
         configure_couchdb
     fi

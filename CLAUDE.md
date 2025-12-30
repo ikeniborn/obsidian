@@ -211,7 +211,7 @@ turnutils_uclient -v -u obsidian -w <TURN_PASSWORD> <SERVER_IP>
 sudo ./install.sh
 
 # Step 2: Configure environment
-sudo ./setup.sh  # Use sudo if configuring Docker proxy
+sudo ./setup.sh  # Requires sudo for Docker proxy and TURN firewall configuration
 # Prompts for:
 # - Docker proxy (optional, for restricted networks/blocked Docker Hub)
 #   * Supports HTTP, HTTPS, SOCKS5 proxies
@@ -219,6 +219,7 @@ sudo ./setup.sh  # Use sudo if configuring Docker proxy
 # - CERTBOT_EMAIL (for Let's Encrypt)
 # - NOTES_DOMAIN (e.g., notes.example.com)
 # - Sync backend selection (CouchDB/ServerPeer/Both)
+#   * For ServerPeer: automatically configures TURN ports in UFW
 # - S3 credentials (optional)
 # Generates: /opt/notes/.env
 
@@ -238,7 +239,7 @@ sudo ./setup.sh  # Use sudo if configuring Docker proxy
 - UFW must allow ports 22 (SSH) and 443 (HTTPS)
 - Port 80 remains closed (opened temporarily only for certbot renewal via UFW hooks)
 - Auto-detection of existing nginx (docker/systemd/standalone)
-- **For P2P ServerPeer**: UFW must allow TURN ports (3478 UDP/TCP, 49152-65535 UDP) - configured automatically by `scripts/ufw-setup.sh`
+- **For P2P ServerPeer**: TURN ports (3478 UDP/TCP, 49152-65535 UDP) are configured automatically by `setup.sh`
 
 ### TURN/STUN Server Configuration (P2P WebRTC)
 
@@ -251,10 +252,11 @@ sudo ./setup.sh  # Use sudo if configuring Docker proxy
 
 **Installation:** Automatic via `install.sh` (installs coturn package)
 
-**Configuration:** Automatic during deployment
-1. `setup.sh` generates TURN credentials and configuration:
+**Configuration:** Fully automatic during setup and deployment
+1. `setup.sh` generates TURN credentials and configures firewall:
    - Detects server external IP via `curl -s ifconfig.me`
    - Generates random TURN credentials (username: `obsidian`, password: 32-char hex)
+   - **Automatically opens TURN ports in UFW** (3478/udp, 3478/tcp, 49152-65535/udp)
    - Creates `/opt/notes/.env` variables:
      ```bash
      TURN_USERNAME=obsidian
@@ -284,6 +286,7 @@ turnutils_uclient -v -u obsidian -w <TURN_PASSWORD> <SERVER_IP>
 ```
 
 **Firewall Rules (UFW):**
+Automatically configured by `setup.sh` when ServerPeer backend is selected:
 ```bash
 # TURN/STUN signaling
 ufw allow 3478/udp comment 'TURN/STUN'
@@ -292,6 +295,8 @@ ufw allow 3478/tcp comment 'TURN/STUN'
 # TURN relay ports (dynamic allocation)
 ufw allow 49152:65535/udp comment 'TURN relay'
 ```
+
+**Note:** If UFW is not installed, `setup.sh` will display a warning with manual commands.
 
 **Obsidian Client Configuration:**
 1. Open Obsidian Self-hosted LiveSync settings
@@ -605,13 +610,14 @@ CouchDB configuration:
   - Generates random TURN credentials
   - Configures STUN server (Google public)
   - Configures TURN server (local coturn)
+  - **Automatically opens TURN ports in UFW firewall** (3478/udp, 3478/tcp, 49152-65535/udp)
 - Optionally configures S3 backup with backend-aware prefix defaults
 - Sets up cron/systemd for automatic backups (backend-aware):
   - Dynamically creates systemd unit files matching selected backend
   - CouchDB only: couchdb-backup.timer/service
   - ServerPeer only: serverpeer-backup.timer/service
   - Both: creates both timers (CouchDB at 3:00 AM, ServerPeer at 3:05 AM)
-- No sudo required (except for systemd timer creation)
+- Requires sudo for: TURN firewall configuration, systemd timer creation
 - **Important:** Backend-specific variables (COUCHDB_CONTAINER_NAME, SERVERPEER_CONTAINER_NAME, TURN credentials) are only added to .env when their respective backend is selected
 
 **deploy.sh**
