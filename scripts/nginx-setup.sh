@@ -458,6 +458,7 @@ deploy_own_nginx() {
     # This prevents Docker from creating notes.conf as a directory
     info "Preparing nginx config directory..."
     sudo mkdir -p /opt/notes/nginx/ssl
+    sudo mkdir -p /opt/notes/logs/nginx
 
     # Generate initial nginx config
     info "Generating initial nginx config..."

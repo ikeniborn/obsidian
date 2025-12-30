@@ -53,6 +53,11 @@ technical_details:
     - path: "/etc/nginx/sites-available/notes.conf"
       purpose: "Nginx site configuration"
 
+    - path: "/opt/notes/logs/nginx"
+      mount: "/opt/notes/logs/nginx:/var/log/nginx"
+      purpose: "Nginx access/error logs (for fail2ban monitoring)"
+      note: "Required for fail2ban to detect nginx-based attacks"
+
   upstream:
     docker_mode: "${COUCHDB_CONTAINER_NAME}:5984"
     system_mode: "127.0.0.1:5984"
@@ -184,6 +189,8 @@ operational:
   logging:
     access_log: "/var/log/nginx/access.log"
     error_log: "/var/log/nginx/error.log"
+    host_mount: "/opt/notes/logs/nginx"
+    note: "Logs mounted to host for fail2ban monitoring"
 
 troubleshooting:
   common_issues:

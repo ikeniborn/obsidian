@@ -223,7 +223,7 @@ create_directories() {
     info "Creating /opt/notes directory structure..."
 
     # Create main directories
-    mkdir -p "$NOTES_DIR"/{data,backups,logs}
+    mkdir -p "$NOTES_DIR"/{data,backups,logs/nginx}
 
     # Set ownership to current user (who invoked sudo)
     local actual_user="${SUDO_USER:-$USER}"
@@ -232,12 +232,14 @@ create_directories() {
     # Set permissions
     chmod 755 "$NOTES_DIR"
     chmod 755 "$NOTES_DIR"/{data,backups,logs}
+    chmod 755 "$NOTES_DIR"/logs/nginx
 
     success "Created directory structure:
     $NOTES_DIR/
     ├── data/     (CouchDB persistent storage)
     ├── backups/  (Backup files)
-    └── logs/     (Application logs)"
+    └── logs/
+        └── nginx/  (Nginx access/error logs for fail2ban)"
 }
 
 install_python_deps() {

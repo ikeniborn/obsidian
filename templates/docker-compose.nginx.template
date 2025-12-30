@@ -10,6 +10,7 @@ services:
       - /opt/notes/nginx/notes.conf:/etc/nginx/conf.d/notes.conf:ro
       - /opt/notes/nginx/ssl:/etc/nginx/ssl:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /opt/notes/logs/nginx:/var/log/nginx
     networks:
       - notes-network
 
