@@ -1,0 +1,208 @@
+# Certbot SSL Certificate Management Component
+
+metadata:
+  id: "component:certbot"
+  name: "Certbot (Let's Encrypt SSL)"
+  type: "infrastructure"
+  category: "security"
+  version: "certbot"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Certbot client for Let's Encrypt SSL certificate management with automatic renewal"
+  purpose: "Obtain and automatically renew SSL/TLS certificates for HTTPS access"
+  responsibilities:
+    - "Obtain SSL certificates from Let's Encrypt"
+    - "Automatically renew certificates every 60-90 days"
+    - "Manage UFW firewall during renewal (via hooks)"
+    - "Validate domain ownership via ACME HTTP-01 challenge"
+    - "Store certificates in /etc/letsencrypt/live/"
+
+technical_details:
+  certificate_authority: "Let's Encrypt"
+  validation_method: "HTTP-01 (ACME challenge)"
+  certificate_type: "Domain Validated (DV)"
+
+  renewal:
+    automatic: true
+    interval: "60 days (before 30-day expiration)"
+    method: "systemd timer or cron"
+    command: "certbot renew"
+
+  challenge_process:
+    - step: 1
+      action: "Certbot requests certificate from Let's Encrypt"
+    - step: 2
+      action: "Let's Encrypt issues HTTP-01 challenge"
+    - step: 3
+      action: "Pre-hook opens port 80 in UFW"
+    - step: 4
+      action: "Certbot serves challenge at http://${NOTES_DOMAIN}/.well-known/acme-challenge/"
+    - step: 5
+      action: "Let's Encrypt validates domain ownership"
+    - step: 6
+      action: "Certificate issued and stored in /etc/letsencrypt/live/${NOTES_DOMAIN}/"
+    - step: 7
+      action: "Post-hook closes port 80 in UFW"
+
+  certificate_files:
+    - name: "fullchain.pem"
+      purpose: "Full certificate chain (used by nginx)"
+    - name: "privkey.pem"
+      purpose: "Private key (used by nginx)"
+    - name: "cert.pem"
+      purpose: "Certificate only"
+    - name: "chain.pem"
+      purpose: "Intermediate certificates"
+
+relationships:
+  depends_on:
+    - id: "component:ufw-firewall"
+      reason: "Requires UFW hooks to manage port 80 during renewal"
+
+  used_by:
+    - id: "component:nginx"
+      reason: "Nginx uses SSL certificates for HTTPS"
+
+  managed_by:
+    - id: "script:ssl-setup"
+      operations: ["obtain_certificate", "install_hooks", "test_renewal"]
+
+  configured_by:
+    - id: "config:env-file"
+      aspects: ["NOTES_DOMAIN", "CERTBOT_EMAIL"]
+
+configuration:
+  environment_variables:
+    - name: "NOTES_DOMAIN"
+      example: "notes.example.com"
+      source: "/opt/notes/.env"
+      required: true
+
+    - name: "CERTBOT_EMAIL"
+      example: "admin@example.com"
+      source: "/opt/notes/.env"
+      required: true
+      purpose: "Receive renewal notices and security bulletins"
+
+  certbot_command: |
+    certbot certonly \
+      --standalone \
+      --non-interactive \
+      --agree-tos \
+      --email ${CERTBOT_EMAIL} \
+      -d ${NOTES_DOMAIN}
+
+  renewal_config:
+    location: "/etc/letsencrypt/renewal/${NOTES_DOMAIN}.conf"
+    contains:
+      - "authenticator = standalone"
+      - "renew_hook = systemctl reload nginx"
+      - "pre_hook = /etc/letsencrypt/renewal-hooks/pre/ufw-allow-http.sh"
+      - "post_hook = /etc/letsencrypt/renewal-hooks/post/ufw-deny-http.sh"
+
+security:
+  private_key:
+    algorithm: "RSA 2048-bit or ECDSA P-256"
+    storage: "/etc/letsencrypt/live/${NOTES_DOMAIN}/privkey.pem"
+    permissions: "0600 (root only)"
+
+  certificate_transparency:
+    enabled: true
+    note: "All Let's Encrypt certificates logged in CT logs"
+
+  renewal_security:
+    ufw_integration: "Port 80 opened only during renewal"
+    nginx_stop: "Nginx stopped during standalone mode"
+
+files:
+  certificates:
+    - path: "/etc/letsencrypt/live/${NOTES_DOMAIN}/fullchain.pem"
+      purpose: "Full certificate chain for nginx"
+
+    - path: "/etc/letsencrypt/live/${NOTES_DOMAIN}/privkey.pem"
+      purpose: "Private key for nginx"
+
+  configuration:
+    - path: "/etc/letsencrypt/renewal/${NOTES_DOMAIN}.conf"
+      purpose: "Renewal configuration"
+
+  hooks:
+    - path: "/etc/letsencrypt/renewal-hooks/pre/ufw-allow-http.sh"
+      purpose: "Open port 80 before renewal"
+
+    - path: "/etc/letsencrypt/renewal-hooks/post/ufw-deny-http.sh"
+      purpose: "Close port 80 after renewal"
+
+  scripts:
+    - id: "script:ssl-setup"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/ssl-setup.sh"
+
+operational:
+  monitoring:
+    check_expiration: "certbot certificates"
+    check_next_renewal: "systemctl list-timers | grep certbot"
+
+  validation:
+    - check: "Certificate exists"
+      command: "ls /etc/letsencrypt/live/${NOTES_DOMAIN}/fullchain.pem"
+
+    - check: "Certificate valid"
+      command: "openssl x509 -in /etc/letsencrypt/live/${NOTES_DOMAIN}/cert.pem -noout -dates"
+
+    - check: "Auto-renewal works"
+      command: "certbot renew --dry-run"
+
+troubleshooting:
+  common_issues:
+    - issue: "Certificate acquisition fails (DNS not resolving)"
+      symptoms:
+        - "Certbot cannot validate domain"
+        - "ACME challenge fails"
+      resolution: |
+        1. Verify DNS: host ${NOTES_DOMAIN}
+        2. Ensure DNS points to this server's IP
+        3. Wait for DNS propagation (up to 48 hours)
+        4. Test with staging: certbot --test-cert
+
+    - issue: "Port 80 blocked during renewal"
+      symptoms:
+        - "Certbot cannot bind to port 80"
+        - "Address already in use"
+      resolution: |
+        1. Check if nginx is using port 80: netstat -tuln | grep :80
+        2. Stop nginx before renewal (standalone mode)
+        3. Or use webroot mode instead of standalone
+        4. Verify UFW hooks are working
+
+    - issue: "Automatic renewal not working"
+      symptoms:
+        - "Certificate expires"
+        - "No renewal attempts in logs"
+      resolution: |
+        1. Check systemd timer: systemctl status certbot.timer
+        2. Or check cron: crontab -l | grep certbot
+        3. Test renewal: certbot renew --dry-run
+        4. Check renewal logs: cat /var/log/letsencrypt/letsencrypt.log
+
+  commands:
+    obtain_cert: "certbot certonly --standalone -d ${NOTES_DOMAIN} --email ${CERTBOT_EMAIL}"
+    renew: "certbot renew"
+    renew_dry_run: "certbot renew --dry-run"
+    list_certs: "certbot certificates"
+    revoke: "certbot revoke --cert-path /etc/letsencrypt/live/${NOTES_DOMAIN}/cert.pem"
+    delete: "certbot delete --cert-name ${NOTES_DOMAIN}"
+
+references:
+  documentation:
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/security.md"
+    - "https://letsencrypt.org/docs/"
+
+  prd_sections:
+    - "FR-004: Automatic SSL Certificates"
+    - "SR-002: SSL/TLS Configuration"
+
+  related_patterns:
+    - "pattern:certificate-management"

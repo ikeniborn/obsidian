@@ -1,0 +1,89 @@
+id: "pattern:docker-image-prepull"
+name: "Docker Image Prepull Pattern"
+category: "deployment"
+description: "Smart image update detection to avoid unnecessary pulls during deployment"
+
+metadata:
+  implemented_in:
+    - scripts/deploy-helpers.sh
+  version: "2.0"
+  last_updated: "2025-12-30"
+
+problem:
+  description: "Docker BuildKit does not respect Docker daemon proxy configuration, causing build failures in restricted networks"
+  impact: "Deployment fails when building containers that need base images from registry"
+
+solution:
+  strategy: "Pre-pull base images using docker pull (respects proxy) before docker build"
+  implementation:
+    - "prepull_serverpeer_images() - pulls denoland/deno:bin and node:22.14-bookworm-slim"
+    - "prepull_couchdb_images() - pulls couchdb:3.3"
+    - "prepull_nostr_relay_images() - pulls scsibug/nostr-rs-relay:latest"
+    - "smart_docker_pull() - only pulls if image needs updating"
+
+image_update_detection:
+  method: "Image ID comparison (Config.Digest)"
+  reason: "Matches Docker's native behavior and works for multi-arch images"
+  functions:
+    - name: "get_local_image_id()"
+      location: "scripts/deploy-helpers.sh:120-125"
+      description: "Extracts Image ID from local image"
+      implementation: "docker inspect --format='{{.Id}}'"
+
+    - name: "get_remote_image_id()"
+      location: "scripts/deploy-helpers.sh:127-141"
+      description: "Extracts Image ID from registry manifest"
+      implementation: "docker manifest inspect → extract config.digest"
+
+    - name: "check_image_needs_update()"
+      location: "scripts/deploy-helpers.sh:143-179"
+      description: "Compares local and remote Image IDs"
+      returns:
+        - "0 (needs pull) - if Image IDs differ or image not found"
+        - "1 (skip pull) - if Image IDs match"
+
+benefits:
+  - "Avoids BuildKit proxy limitation"
+  - "Reduces unnecessary network traffic"
+  - "Faster deployments (skip already-downloaded images)"
+  - "Works correctly for multi-arch images"
+  - "Consistent with Docker native behavior"
+
+usage:
+  force_pull: "FORCE_PULL=true ./deploy.sh - bypass check and always pull"
+  normal_pull: "./deploy.sh - only pull updated images"
+
+relationships:
+  used_by:
+    - "script:deploy"
+  implements:
+    - "pattern:resource-management"
+  related_patterns:
+    - "pattern:docker-proxy-configuration"
+
+technical_details:
+  manifest_digest_vs_image_id:
+    problem: "For multi-arch images, manifest LIST digest ≠ platform-specific digest"
+    solution: "Use Image ID (Config.Digest) which is consistent across architectures"
+    example:
+      couchdb_3_3:
+        manifest_list_digest: "sha256:e99f02d9e474..."  # Parent manifest
+        platform_amd64_digest: "sha256:307a3f5276f6..."  # AMD64-specific
+        image_id: "sha256:abc123..."  # Config.Digest (same for all platforms)
+
+  why_image_id_works:
+    - "Image ID = hash of image configuration (layers, commands, metadata)"
+    - "Same for all platforms of a multi-arch image"
+    - "This is what docker pull actually compares"
+    - "Manifest digest is just metadata wrapper"
+
+  old_implementation_issue:
+    description: "Previous code compared RepoDigests with manifest digest"
+    result: "False positives for multi-arch images"
+    log_output: |
+      🔍 Checking if image needs update: couchdb:3.3
+      📥 Update available
+         Local:  sha256:307a3f5276f6...
+         Remote: sha256:e99f02d9e474...
+      🔄 Pulling updated image: couchdb:3.3
+      Status: Image is up to date for couchdb:3.3  # Docker disagreed!

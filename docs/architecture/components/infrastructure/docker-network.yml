@@ -1,0 +1,163 @@
+# Docker Network Component
+
+metadata:
+  id: "component:docker-network"
+  name: "Docker Network"
+  type: "infrastructure"
+  category: "network"
+  version: "bridge"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Docker bridge network for container connectivity with flexible modes"
+  purpose: "Provide network isolation and connectivity between CouchDB and nginx containers"
+  responsibilities:
+    - "Isolate CouchDB from external network (in isolated mode)"
+    - "Enable DNS-based service discovery between containers"
+    - "Manage subnet allocation (in isolated mode)"
+    - "Integrate with existing networks (in shared mode)"
+
+technical_details:
+  network_modes:
+    - mode: "shared"
+      network_name: "Configurable via NETWORK_NAME (e.g., webproxy_default)"
+      external: true
+      subnet: "Inherited from existing network"
+      use_case: "Integration with existing services like Family Budget"
+
+    - mode: "isolated"
+      network_name: "obsidian_network"
+      external: false
+      subnet: "Auto-allocated from 172.24-31.0.0/16"
+      gateway: "Auto-assigned (first IP in subnet)"
+      use_case: "Standalone deployment with maximum network isolation"
+
+    - mode: "custom"
+      network_name: "User-specified via NETWORK_NAME"
+      external: "User-specified via NETWORK_EXTERNAL"
+      subnet: "User-specified via NETWORK_SUBNET (optional)"
+      use_case: "Enterprise environments with specific networking requirements"
+
+  subnet_allocation:
+    range: "172.24.0.0/16 to 172.31.0.0/16"
+    total_subnets: 8
+    allocation_method: "Auto-detect first available subnet"
+    script: "network-manager.sh:find_free_subnet()"
+
+  dns:
+    enabled: true
+    resolution: "Container name resolves to container IP"
+    example: "notes-couchdb resolves to 172.25.0.2 (within network)"
+
+relationships:
+  depends_on:
+    - id: "script:network-manager"
+      reason: "Creates and manages network configuration"
+
+  used_by:
+    - id: "component:couchdb"
+      reason: "CouchDB container connects to this network"
+
+    - id: "component:nginx"
+      reason: "Nginx container connects to this network (docker mode)"
+      conditional: "Only in docker nginx mode"
+
+  managed_by:
+    - id: "script:network-manager"
+      operations: ["create", "validate", "detect"]
+
+    - id: "script:setup"
+      operations: ["configure"]
+
+    - id: "script:deploy"
+      operations: ["validate"]
+
+  configured_by:
+    - id: "config:env-file"
+      aspects: ["NETWORK_MODE", "NETWORK_NAME", "NETWORK_EXTERNAL", "NETWORK_SUBNET"]
+
+configuration:
+  environment_variables:
+    - name: "NETWORK_MODE"
+      values: ["shared", "isolated", "custom"]
+      source: "/opt/notes/.env"
+
+    - name: "NETWORK_NAME"
+      example: "obsidian_network"
+      source: "/opt/notes/.env"
+
+    - name: "NETWORK_EXTERNAL"
+      values: ["true", "false"]
+      source: "/opt/notes/.env"
+
+    - name: "NETWORK_SUBNET"
+      example: "172.25.0.0/16"
+      source: "/opt/notes/.env"
+      note: "Only used in isolated mode"
+
+  docker_compose_config: |
+    networks:
+      notes-network:
+        external: ${NETWORK_EXTERNAL:-false}
+        name: ${NETWORK_NAME}
+        # Subnet auto-created for isolated mode
+
+operational:
+  monitoring:
+    check_existence: "docker network ls | grep ${NETWORK_NAME}"
+    check_connectivity: "docker network inspect ${NETWORK_NAME}"
+
+  validation:
+    - check: "Network exists"
+      command: "docker network inspect ${NETWORK_NAME}"
+
+    - check: "Containers connected"
+      command: "docker network inspect ${NETWORK_NAME} -f '{{json .Containers}}'"
+
+    - check: "Subnet availability (isolated mode)"
+      script: "network-manager.sh:validate_subnet()"
+
+troubleshooting:
+  common_issues:
+    - issue: "Network not found"
+      symptoms:
+        - "docker compose up fails with 'network not found'"
+      resolution: |
+        1. For shared mode: verify network exists: docker network ls
+        2. For isolated mode: network should be created automatically
+        3. Check NETWORK_EXTERNAL setting in .env
+        4. Manually create: docker network create ${NETWORK_NAME}
+
+    - issue: "Subnet conflict"
+      symptoms:
+        - "Network creation fails with subnet overlap error"
+      resolution: |
+        1. Run find_free_subnet() to find available subnet
+        2. Update NETWORK_SUBNET in .env
+        3. Remove conflicting network if unused
+
+    - issue: "DNS resolution not working"
+      symptoms:
+        - "Nginx cannot reach notes-couchdb by name"
+      resolution: |
+        1. Verify both containers on same network
+        2. Check container names match
+        3. Test DNS: docker exec nginx ping notes-couchdb
+
+  commands:
+    list_networks: "docker network ls"
+    inspect: "docker network inspect ${NETWORK_NAME}"
+    create: "docker network create --subnet ${NETWORK_SUBNET} ${NETWORK_NAME}"
+    remove: "docker network rm ${NETWORK_NAME}"
+
+references:
+  documentation:
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+    - "https://docs.docker.com/network/"
+
+  prd_sections:
+    - "FR-004: Docker & Docker Compose"
+
+  related_patterns:
+    - "pattern:flexible-network-architecture"

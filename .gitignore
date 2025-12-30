@@ -1,0 +1,287 @@
+# =============================================================================
+# Node.js & JavaScript
+# =============================================================================
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Directory for instrumented libs
+lib-cov
+
+# Coverage directory
+coverage
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Isolated npm environment (created by install.sh)
+.npm-isolated/
+
+# TypeScript
+typings/
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache
+.cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Clasp
+.clasprc.json
+
+# =============================================================================
+# Python
+# =============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Python lib/ directory (but NOT scripts/lib/)
+lib/
+!scripts/lib/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# =============================================================================
+# Database
+# =============================================================================
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# PostgreSQL data directory (Docker volume)
+data/
+
+# Database dumps and backups
+backups/
+*.dump
+
+# SQL Schema Files (NOT ignored - must be in git!)
+!backend/db/schema/*.sql
+
+# Minified files (build artifacts) - НЕ vendor!
+frontend/**/static/**/*.min.js
+frontend/**/static/**/*.min.css
+
+# Vendor files (third-party libraries) - TRACKED в git
+# Минифицированные vendor файлы должны быть в git для доставки на сервер
+!frontend/**/static/**/vendor/*.min.js
+!frontend/**/static/**/vendor/*.min.css
+
+# =============================================================================
+# Docker & Infrastructure
+# =============================================================================
+
+# Docker Compose override
+docker-compose.override.yml
+
+# HAProxy certificates
+**/haproxy/certs
+
+# =============================================================================
+# Environment & Configuration
+# =============================================================================
+
+# Environment variables
+.env
+.env.test
+.env.local
+
+# Allow example environment files
+!.env.dev
+!.env.example
+
+# Environment backups from setup.sh
+.env.backup.*
+
+# =============================================================================
+# Security & Certificates
+# =============================================================================
+
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+certbot/
+
+# =============================================================================
+# Project-specific (Family Budget)
+# =============================================================================
+
+# Deployment script backups from refactoring phases
+*.phase*-backup
+
+# Screenshots and images (documentation assets excluded)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.svg
+
+# Frontend API (legacy)
+frontend-api/
+
+# Workflow files (legacy)
+workflow/
+requests/
+plans/
+
+# Uploads and temporary files
+uploads/
+tmp/
+temp/
+
+# General backups
+*.bak
+
+# =============================================================================
+# IDE & Editor
+# =============================================================================
+
+# VSCode
+.vscode/
+
+# JetBrains IDEs
+.idea/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Auto-generated docker-compose files
+docker-compose.serverpeers.yml
+
+# Generated nginx configs
+unified.conf
+
+# Obsolete patch files (now integrated in Dockerfile)
+serverpeer/fix-p2p-enabled-types.patch

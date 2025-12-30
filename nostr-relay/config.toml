@@ -1,0 +1,50 @@
+# Nostr relay configuration for livesync-serverpeer
+
+[info]
+relay_url = "wss://sync.ikeniborn.ru/serverpeer/"
+name = "Obsidian LiveSync Nostr Relay"
+description = "WebSocket relay for P2P synchronization signaling"
+pubkey = ""
+contact = ""
+
+[database]
+# SQLite database path
+data_directory = "/data"
+# Database connection pool size
+min_conn = 4
+max_conn = 8
+
+[network]
+# Bind to all interfaces inside container
+address = "0.0.0.0"
+# Port for WebSocket connections
+port = 7000
+# Increase connection limits for relay operations
+remote_ip_header = "x-forwarded-for"
+# Maximum WebSocket message size (bytes)
+max_ws_message_bytes = 262144
+# Maximum WebSocket frame size (bytes)
+max_ws_frame_bytes = 262144
+
+[limits]
+# Connection and message rate limits
+messages_per_sec = 100
+subscriptions_per_min = 30
+max_event_bytes = 131072
+max_subscriptions = 20
+max_filters = 100
+
+# Authorization disabled - allow all peers to publish events
+# NOTE: When pubkey_whitelist is defined (even as empty array []),
+# nostr-rs-relay blocks ALL publishing. To allow unrestricted publishing,
+# the [authorization] section must be completely absent or commented out.
+# [authorization]
+# pubkey_whitelist = []
+
+[verified_users]
+# No NIP-05 verification required
+mode = "disabled"
+
+[logging]
+# Log level: error, warn, info, debug, trace
+level = "info"

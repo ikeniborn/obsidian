@@ -1,0 +1,144 @@
+name: Release Management
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v2.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 ${VERSION}^ 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "First release - using all commits"
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            echo "Generating changelog from $PREV_TAG to $VERSION"
+            COMMITS=$(git log ${PREV_TAG}..${VERSION} --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          # Group commits by type
+          FEATURES=$(echo "$COMMITS" | grep -E "^- (feat|feature)" || echo "")
+          FIXES=$(echo "$COMMITS" | grep -E "^- (fix|bugfix)" || echo "")
+          PERF=$(echo "$COMMITS" | grep -E "^- (perf|performance)" || echo "")
+          REFACTOR=$(echo "$COMMITS" | grep -E "^- refactor" || echo "")
+          DOCS=$(echo "$COMMITS" | grep -E "^- docs" || echo "")
+          INFRA=$(echo "$COMMITS" | grep -E "^- (chore|ci|infrastructure)" || echo "")
+          SECURITY=$(echo "$COMMITS" | grep -E "^- (security|sec)" || echo "")
+          BREAKING=$(echo "$COMMITS" | grep -E "BREAKING CHANGE" || echo "")
+          OTHER=$(echo "$COMMITS" | grep -vE "^- (feat|feature|fix|bugfix|perf|performance|refactor|docs|chore|ci|infrastructure|security|sec)" || echo "")
+
+          # Build changelog
+          CHANGELOG=""
+
+          if [ -n "$BREAKING" ]; then
+            CHANGELOG="${CHANGELOG}## ⚠️ Breaking Changes\n${BREAKING}\n\n"
+          fi
+
+          if [ -n "$FEATURES" ]; then
+            CHANGELOG="${CHANGELOG}## 🚀 New Features\n${FEATURES}\n\n"
+          fi
+
+          if [ -n "$FIXES" ]; then
+            CHANGELOG="${CHANGELOG}## 🐛 Bug Fixes\n${FIXES}\n\n"
+          fi
+
+          if [ -n "$PERF" ]; then
+            CHANGELOG="${CHANGELOG}## ⚡ Performance Improvements\n${PERF}\n\n"
+          fi
+
+          if [ -n "$SECURITY" ]; then
+            CHANGELOG="${CHANGELOG}## 🔒 Security\n${SECURITY}\n\n"
+          fi
+
+          if [ -n "$REFACTOR" ]; then
+            CHANGELOG="${CHANGELOG}## 🔧 Refactoring\n${REFACTOR}\n\n"
+          fi
+
+          if [ -n "$DOCS" ]; then
+            CHANGELOG="${CHANGELOG}## 📝 Documentation\n${DOCS}\n\n"
+          fi
+
+          if [ -n "$INFRA" ]; then
+            CHANGELOG="${CHANGELOG}## 🏗️ Infrastructure\n${INFRA}\n\n"
+          fi
+
+          if [ -n "$OTHER" ]; then
+            CHANGELOG="${CHANGELOG}## Other Changes\n${OTHER}\n\n"
+          fi
+
+          # Save to file for release notes
+          echo -e "$CHANGELOG" > release_notes.md
+
+          # Output for GitHub Actions
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Create new entry
+          NEW_ENTRY="## [${VERSION#v}] - ${DATE}\n\n"
+          NEW_ENTRY="${NEW_ENTRY}$(cat release_notes.md)"
+
+          # Insert after first line (# Changelog)
+          if [ -f CHANGELOG.md ]; then
+            sed -i "1a\\${NEW_ENTRY}" CHANGELOG.md
+          else
+            echo "# Changelog\n\n${NEW_ENTRY}" > CHANGELOG.md
+          fi
+
+          # Commit and push changes
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs: Update CHANGELOG.md for $VERSION" || echo "No changes to commit"
+          git push origin HEAD:${GITHUB_REF#refs/heads/} || echo "Could not push to branch"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        run: rm -f release_notes.md

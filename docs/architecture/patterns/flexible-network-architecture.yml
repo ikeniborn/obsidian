@@ -1,0 +1,38 @@
+# Flexible Network Architecture Pattern
+
+metadata:
+  id: "pattern:flexible-network"
+  name: "Flexible Network Architecture"
+  category: "architectural"
+  maturity: "proven"
+  version: "1.0"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Adaptive Docker networking supporting shared, isolated, and custom deployment modes"
+  problem: "Different deployment scenarios require different network isolation levels"
+  context: "Use when deploying containerized services in multiple environments"
+  solution: "Dynamic network configuration system with auto-detection and interactive selection"
+
+variants:
+  - name: "Shared Mode"
+    description: "Use existing Docker network for service integration"
+    when_to_use: "Integrating with existing nginx proxy or other services"
+
+  - name: "Isolated Mode"
+    description: "Create dedicated network for standalone deployment"
+    when_to_use: "Standalone deployment with maximum network isolation"
+
+implementation:
+  scripts:
+    - "script:network-manager"
+    - "script:setup"
+    - "script:deploy"
+
+  configuration:
+    - file: "/opt/notes/.env"
+      variables: ["NETWORK_MODE", "NETWORK_NAME", "NETWORK_EXTERNAL", "NETWORK_SUBNET"]
+
+references:
+  prd_sections:
+    - "FR-004: Docker & Docker Compose"

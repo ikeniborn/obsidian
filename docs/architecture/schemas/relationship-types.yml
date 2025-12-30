@@ -1,0 +1,99 @@
+# Relationship Types Schema
+# Defines all valid relationship types in the knowledge graph
+
+relationship_types:
+  structural:
+    depends_on:
+      description: "Component/script requires another to function"
+      inverse: "depended_on_by"
+      cardinality: "many-to-many"
+
+    used_by:
+      description: "Component is used by another"
+      inverse: "uses"
+      cardinality: "many-to-many"
+
+    part_of:
+      description: "Component is part of a larger system"
+      inverse: "contains"
+      cardinality: "many-to-one"
+
+    configured_by:
+      description: "Component configuration is managed by script/file"
+      inverse: "configures"
+      cardinality: "many-to-many"
+
+  behavioral:
+    calls:
+      description: "Script calls another script or function"
+      inverse: "called_by"
+      cardinality: "many-to-many"
+
+    triggers:
+      description: "Event triggers workflow or script"
+      inverse: "triggered_by"
+      cardinality: "many-to-many"
+
+    executes:
+      description: "Workflow executes script or component operation"
+      inverse: "executed_by"
+      cardinality: "many-to-many"
+
+  data:
+    produces:
+      description: "Component produces data consumed by another"
+      inverse: "consumes"
+      cardinality: "many-to-many"
+
+    stores:
+      description: "Component stores data in another"
+      inverse: "stored_by"
+      cardinality: "many-to-many"
+
+    transforms:
+      description: "Component transforms data from one format to another"
+      inverse: "transformed_by"
+      cardinality: "many-to-many"
+
+  network:
+    communicates_with:
+      description: "Component communicates with another over network"
+      inverse: "communicates_with"  # Symmetric
+      cardinality: "many-to-many"
+
+    proxies_to:
+      description: "Proxy forwards requests to backend"
+      inverse: "proxied_by"
+      cardinality: "many-to-many"
+
+    connected_to:
+      description: "Connected via Docker network"
+      inverse: "connected_to"  # Symmetric
+      cardinality: "many-to-many"
+
+  temporal:
+    precedes:
+      description: "Must execute before another"
+      inverse: "follows"
+      cardinality: "many-to-many"
+
+    replaces:
+      description: "Supersedes deprecated component/script"
+      inverse: "replaced_by"
+      cardinality: "one-to-one"
+
+  semantic:
+    implements:
+      description: "Implements pattern or interface"
+      inverse: "implemented_by"
+      cardinality: "many-to-many"
+
+    validates:
+      description: "Validates correctness of another"
+      inverse: "validated_by"
+      cardinality: "many-to-many"
+
+    monitors:
+      description: "Monitors health/status of another"
+      inverse: "monitored_by"
+      cardinality: "many-to-many"

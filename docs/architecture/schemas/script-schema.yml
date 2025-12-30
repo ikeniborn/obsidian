@@ -1,0 +1,99 @@
+# Script Schema Template
+# Use this template for documenting shell scripts and Python utilities
+
+metadata:
+  id: string                    # Unique identifier (e.g., script:deploy)
+  name: string                  # Script name
+  file_path: string             # Absolute path from project root
+  type: enum                    # [deployment, helper, test, utility]
+  language: enum                # [bash, python]
+  version: string
+  status: enum                  # [active, deprecated, experimental]
+  last_updated: date
+  lines_of_code: integer
+
+description:
+  summary: string               # One-line description
+  purpose: string               # What this script does
+  use_cases: list               # When to use this script
+
+interface:
+  usage: string                 # Usage syntax
+  arguments:
+    - name: string
+      type: string
+      required: boolean
+      default: string
+      description: string
+  options:
+    - flag: string
+      description: string
+      example: string
+  exit_codes:
+    - code: integer
+      meaning: string
+
+execution:
+  requires_sudo: boolean
+  prerequisites: list           # Scripts that must run first
+  environment_variables: list   # Required env vars
+  runtime_dependencies: list    # External commands/packages
+  execution_time: string        # Typical execution time
+
+behavior:
+  idempotent: boolean           # Can be run multiple times safely
+  destructive: boolean          # Makes irreversible changes
+  interactive: boolean          # Requires user input
+  logging:
+    enabled: boolean
+    location: string
+  error_handling:
+    strategy: string            # set -e, trap, manual
+    rollback: boolean
+
+key_functions:
+  - name: string
+    line_number: integer
+    purpose: string
+    parameters: list
+    returns: string
+    called_by: list             # Other functions that call this
+
+relationships:
+  calls_scripts: list           # Script IDs this calls
+  called_by_scripts: list       # Script IDs that call this
+  sources: list                 # Scripts it sources
+  configures_components: list   # Component IDs it configures
+  modifies_files: list          # Files it creates/modifies
+  depends_on_patterns: list     # Pattern IDs it implements
+
+workflow:
+  sequential_steps: list
+    - step: integer
+      action: string
+      components_affected: list
+      validation: string
+      error_handling: string
+
+validation:
+  pre_execution_checks: list    # What it validates before running
+  post_execution_checks: list   # What it validates after running
+  test_coverage:
+    test_scripts: list          # Test script IDs
+    coverage_percentage: integer
+
+examples:
+  - scenario: string
+    command: string
+    expected_output: string
+
+troubleshooting:
+  common_errors: list
+    - error_message: string
+      cause: string
+      resolution: string
+
+references:
+  documentation: list
+  prd_requirements: list        # FR-XXX references
+  related_workflows: list       # Workflow IDs

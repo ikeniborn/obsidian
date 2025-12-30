@@ -1,0 +1,281 @@
+# ServerPeer P2P Client Component (Multi-Vault Support)
+
+metadata:
+  id: "component:serverpeer"
+  name: "ServerPeer P2P Client"
+  type: "infrastructure"
+  category: "p2p-sync"
+  version: "latest"
+  status: "active"
+  last_updated: "2025-12-29"
+
+description:
+  summary: "Deno-based P2P client with always-on vault buffer for Obsidian LiveSync (multi-vault support)"
+  purpose: "Provide always-available peer for P2P synchronization, acting as buffer when client devices are offline"
+  responsibilities:
+    - "Maintain headless Obsidian vault as synchronization buffer"
+    - "Connect to Nostr Relay for WebRTC signaling"
+    - "Broadcast changes to connected peers automatically"
+    - "Support multiple independent vaults with isolated Room IDs"
+    - "Enable P2P sync when client devices are not online simultaneously"
+
+technical_details:
+  technology: "livesync-serverpeer (Deno-based, uses Trystero library)"
+  deployment_mode: "Docker Compose (dynamically generated)"
+  base_image: "denoland/deno:bin-latest + node:22.14-bookworm-slim"
+  build_context: "./serverpeer/Dockerfile"
+
+  multi_vault_architecture:
+    description: "One ServerPeer container per vault, dynamically generated via generate-serverpeer-compose.sh"
+    container_naming: "notes-serverpeer-{vault_name_lowercase}"
+    vault_isolation: "Each vault has unique Room ID and Passphrase"
+    port_allocation: "Sequential ports starting from 3001 (3001, 3002, 3003, ...)"
+
+  container_configuration:
+    template: "docker-compose.serverpeers.yml (auto-generated)"
+    generator_script: "scripts/generate-serverpeer-compose.sh"
+
+  port_bindings_per_vault:
+    - host: "127.0.0.1:${VAULT_N_PORT}"
+      container: "3000"
+      protocol: "HTTP"
+      exposure: "localhost-only"
+      note: "ServerPeer is P2P client, not HTTP server; port used for internal communication"
+
+  volumes_per_vault:
+    - host: "${VAULT_N_VAULT_DIR}"
+      container: "/app/vault"
+      purpose: "Persistent headless vault storage for this specific vault"
+
+  environment_variables_common:
+    - name: "SERVERPEER_APPID"
+      source: "/opt/notes/.env"
+      default: "self-hosted-livesync"
+      required: true
+      description: "Application identifier for LiveSync protocol"
+
+    - name: "SERVERPEER_RELAYS"
+      source: "/opt/notes/.env"
+      default: "wss://${NOTES_DOMAIN}/serverpeer"
+      required: true
+      description: "WebSocket relay URL (Nostr Relay) - shared by all vaults"
+
+    - name: "SERVERPEER_AUTOBROADCAST"
+      source: "/opt/notes/.env"
+      default: "true"
+      description: "Auto-broadcast changes to peers"
+
+    - name: "SERVERPEER_AUTOSTART"
+      source: "/opt/notes/.env"
+      default: "true"
+      description: "Auto-start sync on container launch"
+
+  environment_variables_per_vault:
+    - name: "VAULT_N_NAME"
+      example: "VAULT_1_NAME=Work, VAULT_2_NAME=Personal"
+      description: "Human-readable vault name"
+
+    - name: "VAULT_N_ROOMID"
+      example: "VAULT_1_ROOMID=f6-9f-93-de-3a-5d"
+      security: "Generated in setup.sh using openssl rand -hex 3 (format: xx-xx-xx)"
+      description: "Unique Room ID for vault isolation (Group ID in Obsidian UI)"
+
+    - name: "VAULT_N_PASSPHRASE"
+      example: "VAULT_1_PASSPHRASE=f64a50c669934a2f60a6f188aaa29506"
+      security: "Generated in setup.sh using openssl rand -hex 16 (32-char hex, 128-bit entropy)"
+      description: "Passphrase for end-to-end encryption"
+
+    - name: "VAULT_N_PORT"
+      example: "VAULT_1_PORT=3001, VAULT_2_PORT=3002"
+      description: "Localhost port for this vault's ServerPeer"
+
+    - name: "VAULT_N_CONTAINER"
+      example: "VAULT_1_CONTAINER=notes-serverpeer-work"
+      description: "Container name for this vault's ServerPeer"
+
+    - name: "VAULT_N_VAULT_DIR"
+      example: "VAULT_1_VAULT_DIR=/opt/notes/serverpeer-vault-work"
+      description: "Directory for headless vault storage"
+
+  resource_limits_per_container:
+    cpu: "0.5"
+    cpu_reservation: "0.1"
+    memory: "512M"
+    memory_reservation: "128M"
+
+  health_check:
+    command: '["CMD", "sh", "-c", "pgrep -f ''deno.*main.ts'' > /dev/null"]'
+    interval: "30s"
+    timeout: "10s"
+    retries: 3
+    start_period: "30s"
+    note: "Checks Deno process instead of HTTP endpoint (ServerPeer is P2P client, not HTTP server)"
+
+  restart_policy: "unless-stopped"
+
+deployment_workflow:
+  configuration_phase:
+    script: "setup.sh"
+    steps:
+      - "Prompt: How many vaults do you want to configure?"
+      - "For each vault: Prompt for vault name"
+      - "Auto-generate Room ID and Passphrase for each vault"
+      - "Assign sequential ports (3001, 3002, ...)"
+      - "Generate container names and vault directories"
+      - "Write all VAULT_N_* variables to /opt/notes/.env"
+
+  build_phase:
+    script: "deploy.sh → generate-serverpeer-compose.sh"
+    steps:
+      - "Read VAULT_COUNT from /opt/notes/.env"
+      - "Generate docker-compose.serverpeers.yml with N services"
+      - "Create vault directories for all vaults"
+      - "Initialize vault with P2P enabled (via init-serverpeer-vault.sh)"
+      - "Pre-pull base images (denoland/deno, node)"
+      - "Build all ServerPeer containers"
+
+  vault_initialization:
+    script: "scripts/init-serverpeer-vault.sh"
+    description: "Creates .obsidian/plugins/obsidian-livesync/data.json with P2P enabled"
+    template: "templates/serverpeer-data.json.template"
+    steps:
+      - "Create .obsidian/plugins/obsidian-livesync/ structure"
+      - "Generate data.json from template with substituted variables"
+      - "Set P2P_Enabled: true (default is false)"
+      - "Configure Room ID, Passphrase, Relay from .env"
+      - "Set device name to {VAULT_NAME}-peer"
+    critical_settings:
+      - "P2P_Enabled: true (enables P2P sync in headless vault)"
+      - "P2P_AutoStart: true (connect to relay on startup)"
+      - "P2P_AutoBroadcast: true (broadcast changes automatically)"
+      - "P2P_IsHeadless: true (headless mode for ServerPeer)"
+      - "remoteType: NONE (P2P-only, no CouchDB backend)"
+
+  runtime_phase:
+    steps:
+      - "Start all ServerPeer containers simultaneously"
+      - "Plugin reads data.json and connects to relay with P2P enabled"
+      - "Each container connects to shared Nostr Relay"
+      - "Vault isolation via unique Room IDs"
+      - "Health check verification for all containers"
+
+relationships:
+  depends_on:
+    - id: "component:nostr-relay"
+      reason: "Requires Nostr Relay for WebRTC signaling (WebSocket server)"
+
+    - id: "component:docker-network"
+      reason: "Requires Docker network for container connectivity"
+
+    - id: "script:generate-serverpeer-compose"
+      reason: "Dynamically generates docker-compose file based on VAULT_COUNT"
+
+  used_by:
+    - id: "component:nginx"
+      reason: "Nginx does NOT proxy to ServerPeer (P2P client, not HTTP server)"
+
+    - id: "script:deploy"
+      reason: "deploy.sh orchestrates multi-vault ServerPeer deployment"
+
+  integrates_with:
+    - technology: "Obsidian Self-hosted LiveSync Plugin"
+      protocol: "P2P over WebRTC"
+      connection_params:
+        - "Relay URL: wss://sync.ikeniborn.ru/serverpeer (shared)"
+        - "Group ID: ${VAULT_N_ROOMID} (unique per vault)"
+        - "Passphrase: ${VAULT_N_PASSPHRASE} (unique per vault)"
+
+configuration_files:
+  - path: "docker-compose.serverpeers.yml"
+    type: "auto-generated"
+    generator: "scripts/generate-serverpeer-compose.sh"
+    description: "Dynamically created compose file with N ServerPeer services"
+
+  - path: "/opt/notes/.env"
+    variables_pattern: "VAULT_{1..N}_{NAME,ROOMID,PASSPHRASE,PORT,CONTAINER,VAULT_DIR}"
+    description: "Indexed vault variables for multi-vault configuration"
+
+security:
+  vault_isolation:
+    mechanism: "Room ID-based routing in Nostr Relay"
+    description: "Each vault uses unique Room ID; Nostr Relay routes messages only to peers in same room"
+
+  encryption:
+    level: "End-to-end"
+    mechanism: "Passphrase-based encryption in LiveSync protocol"
+    key_derivation: "128-bit entropy (32-char hex passphrase)"
+
+  network_exposure:
+    external: false
+    note: "Ports bound to 127.0.0.1 only; no direct external access"
+
+monitoring:
+  health_indicators:
+    - "Deno process running (pgrep -f 'deno.*main.ts')"
+    - "Container health status"
+    - "Logs show 'Sending Advertisement to All'"
+    - "Logs show 'Received advertisement from {peer_id}'"
+    - "Logs show 'P2P_Enabled: true' (NOT false)"
+
+  commands:
+    list_containers: "docker ps --filter 'name=serverpeer'"
+    view_logs: "docker logs notes-serverpeer-{vault_name} --tail 50"
+    restart_vault: "docker restart notes-serverpeer-{vault_name}"
+    check_health: "docker ps --filter 'name=serverpeer' --filter 'health=healthy'"
+    check_p2p_status: "docker logs notes-serverpeer-{vault_name} | grep -E 'P2P_Enabled|Settings:' -A 15"
+
+troubleshooting:
+  p2p_disabled:
+    symptom: "Logs show 'P2P_Enabled: false', Obsidian can't find peers"
+    root_cause: "envToSetting mapping lacked P2P_Enabled → SLS_SERVER_PEER_P2P_ENABLED entry"
+    diagnosis:
+      - "Check logs: docker logs notes-serverpeer-work | grep 'P2P_Enabled'"
+      - "If shows 'P2P_Enabled: false' → environment variable not mapped"
+      - "Check env var: docker exec notes-serverpeer-work env | grep P2P_ENABLED"
+    solution:
+      - "Ensure SERVERPEER_P2P_ENABLED=true in /opt/notes/.env"
+      - "Ensure SLS_SERVER_PEER_P2P_ENABLED in docker-compose environment"
+      - "Rebuild image: docker compose -f docker-compose.serverpeers.yml build --no-cache"
+      - "Restart containers: docker compose -f docker-compose.serverpeers.yml up -d"
+      - "Verify logs show 'P2P_Enabled: true'"
+    fixed_in_commit: "c6e17b1 (2025-12-30)"
+    fix_details:
+      - "Added sed command in Dockerfile to inject P2P_Enabled mapping into src/types.ts"
+      - "Added SERVERPEER_P2P_ENABLED=true to setup.sh common settings"
+      - "Added SLS_SERVER_PEER_P2P_ENABLED to generate-serverpeer-compose.sh environment"
+
+  peers_not_found:
+    symptom: "Obsidian reports 'cannot find peers' even though ServerPeer is running"
+    possible_causes:
+      - "P2P_Enabled: false in ServerPeer (see p2p_disabled)"
+      - "Room ID mismatch between Obsidian and ServerPeer"
+      - "Passphrase mismatch"
+      - "Nostr Relay connection failure"
+    diagnosis:
+      - "Check ServerPeer logs for P2P_Enabled status"
+      - "Verify Room ID matches between .env and Obsidian settings"
+      - "Check Nostr Relay logs for connection attempts"
+    solution:
+      - "Ensure P2P_Enabled: true in ServerPeer"
+      - "Verify Group ID in Obsidian matches VAULT_N_ROOMID from .env"
+      - "Verify Passphrase in Obsidian matches VAULT_N_PASSPHRASE"
+      - "Check Nostr Relay is accepting connections (no 'blocked' errors)"
+
+backup:
+  strategy: "Vault directory backup (file-based)"
+  script: "scripts/serverpeer-backup.sh"
+  target: "${VAULT_N_VAULT_DIR} → tar.gz → S3"
+  note: "Each vault backed up independently"
+
+documentation:
+  setup_guide: "docs/P2P-SETUP.md"
+  quick_start: "docs/P2P-QUICK-START.md"
+  multi_vault_guide: "docs/P2P-SYNC-MULTIPLE-VAULTS.md"
+  parameters_reference: "docs/VAULT-PARAMETERS.md (auto-generated by generate-vault-docs.sh)"
+
+notes:
+  - "ServerPeer is NOT an HTTP server - it's a P2P WebRTC client"
+  - "One Nostr Relay serves unlimited vaults via Room ID routing"
+  - "Each vault requires own ServerPeer container for 'always-on' buffer"
+  - "Direct P2P sync (without ServerPeer) possible if devices online simultaneously"
+  - "Room ID acts as Group ID in Obsidian Self-hosted LiveSync UI"

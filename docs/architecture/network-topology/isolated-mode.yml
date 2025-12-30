@@ -1,0 +1,54 @@
+# Isolated Network Mode Topology
+
+metadata:
+  id: "topology:isolated-mode"
+  name: "Isolated Network Mode"
+  type: "network_topology"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Standalone deployment with dedicated obsidian_network"
+  purpose: "Maximum network isolation for single-purpose deployment"
+  use_case: "Standalone Obsidian Sync Server without integration to other services"
+
+network_configuration:
+  network_name: "obsidian_network"
+  external: false
+  subnet: "Auto-allocated from 172.24-31.0.0/16"
+  gateway: "Auto-assigned (first IP in subnet)"
+
+topology_diagram: |
+  ┌──────────────────────────────────────────────────────────┐
+  │ Docker Network: obsidian_network (isolated)              │
+  │ Subnet: 172.25.0.0/16 (auto-selected)                   │
+  │ ┌────────────────┐          ┌──────────────────┐        │
+  │ │ notes-nginx    │          │ notes-couchdb    │        │
+  │ │ 172.25.0.2     │  ---->   │ 172.25.0.3       │        │
+  │ │ :80, :443      │  HTTP    │ :5984            │        │
+  │ └────────────────┘          └──────────────────┘        │
+  └──────────────────────────────────────────────────────────┘
+               ↑
+               │ HTTPS (port 443)
+               │
+        [Internet / Clients]
+
+components:
+  - name: "notes-nginx"
+    ip: "Auto-assigned by Docker (e.g., 172.25.0.2)"
+    ports: [80, 443]
+    purpose: "Reverse proxy and SSL termination"
+
+  - name: "notes-couchdb"
+    ip: "Auto-assigned by Docker (e.g., 172.25.0.3)"
+    ports: [5984]
+    purpose: "CouchDB database"
+
+security:
+  isolation_level: "Maximum"
+  external_access: "Only via nginx on port 443"
+  couchdb_exposure: "Network-internal only"
+
+references:
+  implemented_by: "pattern:flexible-network-architecture"
+  prd_sections: ["FR-004: Docker & Docker Compose"]

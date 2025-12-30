@@ -1,0 +1,277 @@
+# Architecture Documentation Knowledge Graph
+# Entry point for navigating the Obsidian Sync Server architecture
+# This is a SKELETON - will be completed with file references in Phase 14
+
+metadata:
+  project: "Obsidian Sync Server"
+  version: "5.1.0"
+  last_updated: "2025-12-29"
+  documentation_version: "1.0"
+  maintainers:
+    - "Development Team"
+
+overview:
+  description: "Production-ready self-hosted sync server for Obsidian with dual backend support (CouchDB + P2P)"
+  key_features:
+    - "Dual sync backends: CouchDB (client-server) and ServerPeer (P2P with WebRTC)"
+    - "Multi-vault P2P support with isolated Room IDs"
+    - "Nostr Relay WebSocket signaling server"
+    - "Flexible network architecture (shared/isolated modes)"
+    - "Automated SSL certificate management"
+    - "S3-compatible backup system"
+    - "UFW firewall security"
+    - "Nginx reverse proxy integration"
+
+navigation:
+  components:
+    path: "components/"
+    description: "Infrastructure and application components"
+    index:
+      infrastructure:
+        - id: "component:couchdb"
+          file: "components/infrastructure/couchdb.yml"
+          name: "CouchDB Database"
+
+        - id: "component:serverpeer"
+          file: "components/infrastructure/serverpeer.yml"
+          name: "ServerPeer P2P Client (Multi-Vault)"
+
+        - id: "component:nostr-relay"
+          file: "components/infrastructure/nostr-relay.yml"
+          name: "Nostr Relay WebSocket Server"
+
+        - id: "component:nginx"
+          file: "components/infrastructure/nginx.yml"
+          name: "Nginx Reverse Proxy"
+
+        - id: "component:docker-network"
+          file: "components/infrastructure/docker-network.yml"
+          name: "Docker Network"
+
+        - id: "component:ufw-firewall"
+          file: "components/infrastructure/ufw-firewall.yml"
+          name: "UFW Firewall"
+
+        - id: "component:certbot"
+          file: "components/infrastructure/certbot.yml"
+          name: "Certbot (Let's Encrypt SSL)"
+
+        - id: "component:s3-storage"
+          file: "components/infrastructure/s3-storage.yml"
+          name: "S3-Compatible Storage"
+
+      application:
+        - id: "component:backup-system"
+          file: "components/application/backup-system.yml"
+          name: "Backup Orchestration System"
+
+        - id: "component:deployment-system"
+          file: "components/application/deployment-system.yml"
+          name: "Deployment Orchestration System"
+
+        - id: "component:monitoring-system"
+          file: "components/application/monitoring-system.yml"
+          name: "Monitoring & Health Check System"
+
+  scripts:
+    path: "scripts/"
+    description: "Deployment, helper, and test scripts"
+    index:
+      deployment:
+        - id: "script:deploy"
+          file: "scripts/deployment/deploy.yml"
+          path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/deploy.sh"
+          name: "Production Deployment Script"
+
+        - id: "script:install"
+          file: "scripts/deployment/install.yml"
+          path: "/home/ikeniborn/Documents/Project/obsidian/install.sh"
+          name: "Dependency Installation Script"
+
+        - id: "script:setup"
+          file: "scripts/deployment/setup.yml"
+          path: "/home/ikeniborn/Documents/Project/obsidian/setup.sh"
+          name: "Interactive Configuration Script"
+
+      helpers:
+        - id: "script:couchdb-backup"
+          file: "scripts/helpers/couchdb-backup.yml"
+          path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/couchdb-backup.sh"
+          name: "CouchDB Backup Script"
+
+        - id: "script:network-manager"
+          path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/network-manager.sh"
+          name: "Network Management Script"
+          note: "Documentation pending"
+
+        - id: "script:nginx-setup"
+          path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/nginx-setup.sh"
+          name: "Nginx Setup Script"
+          note: "Documentation pending"
+
+        - id: "script:ssl-setup"
+          path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/ssl-setup.sh"
+          name: "SSL Setup Script"
+          note: "Documentation pending"
+
+      testing:
+        - id: "script:run-all-tests"
+          path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/run-all-tests.sh"
+          name: "Test Suite Orchestrator"
+          note: "Documentation pending"
+
+        - id: "script:test-ssl-renewal"
+          path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/test-ssl-renewal.sh"
+          name: "SSL Renewal Test"
+          note: "Documentation pending"
+
+  workflows:
+    path: "workflows/"
+    description: "End-to-end process flows"
+    index:
+      - id: "workflow:deployment"
+        file: "workflows/deployment-flow.yml"
+        name: "Full Deployment Workflow"
+
+      - id: "workflow:network-setup"
+        name: "Network Configuration Workflow"
+        note: "Documentation pending"
+
+      - id: "workflow:backup"
+        name: "Backup Process Workflow"
+        note: "Documentation pending"
+
+  patterns:
+    path: "patterns/"
+    description: "Architectural patterns and design decisions"
+    index:
+      - id: "pattern:flexible-network"
+        file: "patterns/flexible-network-architecture.yml"
+        name: "Flexible Network Architecture"
+        category: "architectural"
+
+      - id: "pattern:nginx-integration"
+        name: "Nginx Integration Pattern"
+        note: "Documentation pending"
+
+      - id: "pattern:certificate-management"
+        name: "Certificate Management Pattern"
+        note: "Documentation pending"
+
+      - id: "pattern:resource-management"
+        name: "Resource Management Pattern"
+        note: "Documentation pending"
+
+  data_flows:
+    path: "data-flows/"
+    description: "Data flow diagrams"
+    index:
+      - id: "dataflow:user-request"
+        file: "data-flows/user-request-flow.yml"
+        name: "User Request Flow"
+        flow: "Internet → UFW → Nginx → CouchDB"
+
+      - id: "dataflow:backup"
+        name: "Backup Data Flow"
+        note: "Documentation pending"
+
+  network_topology:
+    path: "network-topology/"
+    description: "Network architecture diagrams"
+    index:
+      - id: "topology:isolated-mode"
+        file: "network-topology/isolated-mode.yml"
+        name: "Isolated Network Mode"
+
+      - id: "topology:shared-mode"
+        name: "Shared Network Mode"
+        note: "Documentation pending"
+
+  security:
+    path: "security/"
+    description: "Security architecture and threat model"
+    index:
+      - id: "security:firewall-rules"
+        file: "security/firewall-rules.yml"
+        name: "UFW Firewall Rules"
+
+      - id: "security:ssl-configuration"
+        name: "SSL/TLS Configuration"
+        note: "Documentation pending"
+
+  configurations:
+    path: "configurations/"
+    description: "Configuration files documentation"
+    index:
+      - id: "config:env-file"
+        file: "configurations/env-file.yml"
+        name: "/opt/notes/.env Configuration"
+
+      - id: "config:docker-compose"
+        name: "docker-compose.notes.yml"
+        note: "Documentation pending"
+
+      - id: "config:local-ini"
+        name: "CouchDB local.ini"
+        note: "Documentation pending"
+
+  dependencies:
+    path: "dependencies/"
+    description: "Dependency graphs"
+    index:
+      - id: "dependencies:scripts"
+        name: "Script Dependencies"
+        note: "Documentation pending"
+
+      - id: "dependencies:components"
+        name: "Component Dependencies"
+        note: "Documentation pending"
+
+query_examples:
+  - question: "What scripts handle SSL certificate management?"
+    approach: "Navigate to patterns → filter category='security' → find certificate-management → check implementation.scripts"
+    answer_location: "patterns/certificate-management.yml"
+
+  - question: "How does network configuration flow through the system?"
+    approach: "Navigate to workflows → find network-setup-flow → read phases and data_flow"
+    answer_location: "workflows/network-setup-flow.yml"
+
+  - question: "What are the dependencies of deploy.sh?"
+    approach: "Navigate to scripts.deployment → find deploy → check relationships.calls_scripts"
+    answer_location: "scripts/deployment/deploy.yml"
+
+  - question: "What security patterns are used?"
+    approach: "Navigate to patterns → filter category='security'"
+    answer_location: "patterns/*.yml (filter by category)"
+
+cross_references:
+  prd: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+  security_doc: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/security.md"
+  claude_md: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/CLAUDE.md"
+  readme: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/README.md"
+
+usage_instructions: |
+  ## How to Use This Knowledge Graph
+
+  1. **Start Here**: You're at the index.yml file - the root of the knowledge graph
+
+  2. **Navigate by Category**: Use the 'navigation' section to find:
+     - Components (infrastructure/application)
+     - Scripts (deployment/helpers/testing)
+     - Workflows (processes)
+     - Patterns (architectural decisions)
+     - Data flows, Network topology, Security, Configurations, Dependencies
+
+  3. **Follow References**: Each YAML file contains 'relationships' with IDs
+     - IDs use format: component:name, script:name, workflow:name, pattern:name
+     - Use IDs to jump between related files
+
+  4. **Query Examples**: See 'query_examples' section for common queries
+
+  5. **Schemas**: Check schemas/ directory for file structure templates
+
+  ## Example Navigation Path
+
+  Question: "How does deployment work?"
+  Path: index.yml → workflows → deployment-flow.yml → check phases → see scripts
+  Result: Understand full deployment process with all scripts and dependencies

@@ -1,0 +1,292 @@
+# Nostr Relay WebSocket Server Component
+
+metadata:
+  id: "component:nostr-relay"
+  name: "Nostr Relay WebSocket Server"
+  type: "infrastructure"
+  category: "p2p-signaling"
+  version: "latest"
+  status: "active"
+  last_updated: "2025-12-29"
+
+description:
+  summary: "Rust-based Nostr protocol relay for WebRTC signaling in P2P synchronization"
+  purpose: "Provide WebSocket signaling server for WebRTC peer discovery and connection establishment"
+  responsibilities:
+    - "Accept WebSocket connections from Obsidian clients and ServerPeer containers"
+    - "Route signaling messages (SDP offers/answers) between peers"
+    - "Isolate vaults via Room ID-based message routing"
+    - "Handle WebSocket keep-alive and connection management"
+    - "Serve multiple independent vaults through single relay"
+
+technical_details:
+  technology: "nostr-rs-relay (Rust implementation of Nostr protocol)"
+  deployment_mode: "Docker Compose"
+  image: "scsibug/nostr-rs-relay:latest"
+  container_name: "${NOSTR_RELAY_CONTAINER_NAME:-notes-nostr-relay}"
+
+  port_bindings:
+    - host: "127.0.0.1:7000"
+      container: "7000"
+      protocol: "WebSocket (WSS via nginx)"
+      exposure: "localhost-only"
+      note: "External access via nginx reverse proxy at wss://{domain}/serverpeer"
+
+  volumes:
+    - host: "${NOSTR_RELAY_DATA_DIR:-/opt/notes/nostr-relay-data}"
+      container: "/data"
+      purpose: "Persistent storage for relay database (event history, subscriptions)"
+
+    - host: "./nostr-relay/config.toml"
+      container: "/usr/src/app/config.toml"
+      mode: "read-only"
+      purpose: "Relay configuration (network, limits, logging)"
+
+  environment_variables:
+    - name: "NOSTR_RELAY_PORT"
+      source: "/opt/notes/.env"
+      default: "7000"
+      required: true
+      description: "Internal WebSocket port"
+
+    - name: "NOSTR_RELAY_DATA_DIR"
+      source: "/opt/notes/.env"
+      default: "/opt/notes/nostr-relay-data"
+      description: "Data directory for relay database"
+
+    - name: "NOSTR_RELAY_CONTAINER_NAME"
+      source: "/opt/notes/.env"
+      default: "notes-nostr-relay"
+      description: "Container name"
+
+    - name: "NOSTR_RELAY_UPSTREAM"
+      source: "/opt/notes/.env"
+      default: "notes-nostr-relay"
+      description: "Upstream name for nginx proxy_pass"
+
+  resource_limits:
+    cpu: "0.5"
+    cpu_reservation: "0.1"
+    memory: "512M"
+    memory_reservation: "128M"
+
+  health_check:
+    status: "disabled"
+    reason: "nostr-rs-relay minimal Alpine image lacks diagnostic tools (nc, curl)"
+    alternative: "Service health verified via logs showing 'listening on: 0.0.0.0:7000'"
+
+  restart_policy: "unless-stopped"
+
+configuration:
+  file: "nostr-relay/config.toml"
+  sections:
+    info:
+      relay_url: "wss://${NOTES_DOMAIN}/serverpeer/"
+      name: "Obsidian LiveSync Nostr Relay"
+      description: "WebSocket relay for P2P synchronization signaling"
+
+    database:
+      data_directory: "/data"
+      min_conn: 4
+      max_conn: 8
+
+    network:
+      address: "0.0.0.0"
+      port: 7000
+      remote_ip_header: "x-forwarded-for"
+      max_ws_message_bytes: 262144
+      max_ws_frame_bytes: 262144
+
+    limits:
+      messages_per_sec: 100
+      subscriptions_per_min: 30
+      max_event_bytes: 131072
+      max_subscriptions: 20
+      max_filters: 100
+
+    logging:
+      level: "info"
+
+nginx_integration:
+  location: "${SERVERPEER_LOCATION:-/serverpeer}"
+  upstream: "${NOSTR_RELAY_UPSTREAM}:7000"
+
+  proxy_config:
+    websocket_upgrade: true
+    headers:
+      - "Upgrade: $http_upgrade"
+      - "Connection: 'upgrade'"
+      - "Host: $host"
+      - "X-Real-IP: $remote_addr"
+      - "X-Forwarded-For: $proxy_add_x_forwarded_for"
+      - "X-Forwarded-Proto: $scheme"
+
+    timeouts:
+      connect: "7d"
+      send: "7d"
+      read: "7d"
+      note: "Long timeouts for persistent WebSocket connections"
+
+  public_url: "wss://${NOTES_DOMAIN}/serverpeer"
+
+multi_vault_support:
+  architecture:
+    description: "Single Nostr Relay serves unlimited vaults via Room ID routing"
+    isolation_mechanism: "Nostr protocol routes messages only to subscribed channels (Room IDs)"
+
+  room_id_mapping:
+    vault_1_work: "Room ID: f6-9f-93-de-3a-5d"
+    vault_2_personal: "Room ID: a7-4f-e2"
+    vault_n: "Room ID: {auto-generated}"
+
+  message_flow:
+    - "Client A (Vault Work, Room f6-9f-93) connects to relay"
+    - "Client B (Vault Personal, Room a7-4f-e2) connects to relay"
+    - "Client C (Vault Work, Room f6-9f-93) connects to relay"
+    - "Relay routes Room f6-9f-93 messages only to Clients A and C"
+    - "Client B never receives Room f6-9f-93 messages (vault isolation)"
+
+protocol:
+  name: "Nostr (Notes and Other Stuff Transmitted by Relays)"
+  specification: "NIPs (Nostr Implementation Possibilities)"
+  message_types:
+    - "EVENT: Publish signaling data (SDP offers/answers)"
+    - "REQ: Subscribe to Room ID events"
+    - "CLOSE: Unsubscribe from Room ID"
+    - "NOTICE: Relay notifications"
+
+  use_case_for_p2p:
+    purpose: "WebRTC signaling channel"
+    data_exchanged:
+      - "SDP offers (session descriptions)"
+      - "SDP answers"
+      - "ICE candidates"
+    note: "Actual file data transferred via WebRTC data channels, NOT through relay"
+
+deployment_workflow:
+  configuration_phase:
+    script: "setup.sh"
+    steps:
+      - "Set NOSTR_RELAY_PORT=7000"
+      - "Set NOSTR_RELAY_DATA_DIR=/opt/notes/nostr-relay-data"
+      - "Set SERVERPEER_RELAYS=wss://${NOTES_DOMAIN}/serverpeer"
+
+  build_phase:
+    script: "deploy.sh"
+    steps:
+      - "Create ${NOSTR_RELAY_DATA_DIR}"
+      - "Copy nostr-relay/config.toml to /opt/notes/nostr-relay/"
+      - "Pre-pull scsibug/nostr-rs-relay:latest"
+      - "Deploy via docker-compose.nostr-relay.yml"
+
+  runtime_phase:
+    steps:
+      - "Start Nostr Relay container"
+      - "Listen on 0.0.0.0:7000 (WebSocket)"
+      - "Accept connections from Obsidian clients and ServerPeer containers"
+      - "Route messages by Room ID subscriptions"
+
+relationships:
+  depends_on:
+    - id: "component:docker-network"
+      reason: "Requires Docker network for container connectivity"
+
+    - id: "config:nostr-relay-config"
+      reason: "Configuration file required for startup"
+
+  used_by:
+    - id: "component:serverpeer"
+      reason: "All ServerPeer containers connect to this relay for signaling"
+
+    - id: "component:nginx"
+      reason: "Nginx proxies WSS connections to Nostr Relay"
+
+    - technology: "Obsidian Self-hosted LiveSync Plugin"
+      reason: "Obsidian clients connect to relay for P2P peer discovery"
+
+  integrates_with:
+    - id: "script:nginx-setup"
+      reason: "nginx-setup.sh configures proxy_pass to NOSTR_RELAY_UPSTREAM"
+
+security:
+  authentication: "None (public relay for this domain)"
+  authorization: "Room ID-based message routing provides vault isolation"
+  encryption: "WSS (WebSocket Secure) via nginx SSL termination"
+
+  vault_isolation:
+    mechanism: "Nostr subscription filtering"
+    description: "Clients subscribe only to their Room ID; relay filters messages accordingly"
+
+  data_exposure:
+    signaling_data: "SDP offers/answers visible to relay (not end-to-end encrypted)"
+    file_data: "NOT transmitted through relay (direct WebRTC P2P connection)"
+    passphrase: "Used for end-to-end encryption of file data, never sent to relay"
+
+monitoring:
+  health_indicators:
+    - "Container running status"
+    - "Logs show 'listening on: 0.0.0.0:7000'"
+    - "Logs show 'new client connection (cid: xxx, ip: ...')'"
+    - "Logs show 'origin: app://obsidian.md'"
+
+  commands:
+    view_logs: "docker logs notes-nostr-relay --tail 50"
+    check_connections: "docker logs notes-nostr-relay | grep 'new client connection'"
+    restart: "docker restart notes-nostr-relay"
+    check_status: "docker ps --filter 'name=nostr-relay'"
+
+  expected_log_patterns:
+    startup: "relay listening on: 0.0.0.0:7000"
+    client_connect: "[INFO] new client connection (cid: abc123, ip: '78.107.114.37')"
+    obsidian_client: "[INFO] origin: 'app://obsidian.md', user-agent: '...obsidian...'"
+
+troubleshooting:
+  connection_failures:
+    symptom: "Obsidian shows 'Connection failed'"
+    checks:
+      - "Verify Nostr Relay container running: docker ps | grep nostr-relay"
+      - "Check relay logs: docker logs notes-nostr-relay --tail 30"
+      - "Verify nginx proxy config: grep serverpeer /opt/notes/unified.conf"
+      - "Test WebSocket: wscat -c wss://${NOTES_DOMAIN}/serverpeer"
+
+  pubkey_blocked_publishing:
+    symptom: "Trystero: relay failure - blocked: pubkey is not allowed to publish to this relay"
+    root_cause: "Empty pubkey_whitelist in [authorization] section blocks ALL publishing"
+    explanation: |
+      When [authorization] section exists with pubkey_whitelist defined (even as empty array []),
+      nostr-rs-relay blocks ALL event publishing. This is because:
+      - Defined whitelist (even empty) activates authorization checking
+      - Empty list = no pubkeys allowed = all publishing blocked
+      - To allow unrestricted publishing, [authorization] section must be absent/commented
+    solution:
+      - "Comment out entire [authorization] section in nostr-relay/config.toml"
+      - "Restart Nostr Relay container: docker restart notes-nostr-relay"
+      - "Verify in logs: should see 'Sending Advertisement' without 'blocked' errors"
+    prevention: "Never include empty [authorization] section in config - either omit or populate whitelist"
+    fixed_in_commit: "2025-12-30"
+    reference: "https://github.com/scsibug/nostr-rs-relay/issues/68"
+
+  vault_isolation_issues:
+    symptom: "Devices from different vaults see each other"
+    checks:
+      - "Verify Room IDs are unique in /opt/notes/.env"
+      - "Check Obsidian config: Group ID must match VAULT_N_ROOMID exactly"
+      - "Confirm relay routing: docker logs notes-nostr-relay | grep 'REQ'"
+
+performance:
+  concurrency: "Handles multiple WebSocket connections (clients + ServerPeers)"
+  scalability: "Single relay sufficient for dozens of vaults and clients"
+  resource_usage: "Low (Rust-based, minimal memory footprint)"
+
+documentation:
+  nostr_protocol: "https://nostr.com/"
+  relay_implementation: "https://github.com/scsibug/nostr-rs-relay"
+  livesync_p2p: "https://fancy-syncing.vrtmrz.net/blog/0034-p2p-sync-en"
+
+notes:
+  - "Nostr Relay is SHARED by all vaults - no need for multiple relay instances"
+  - "Room ID acts as vault identifier in Nostr subscriptions"
+  - "Relay does NOT store file data - only WebRTC signaling messages"
+  - "Actual sync data transferred via WebRTC P2P, not through relay"
+  - "Relay URL must be identical on all devices: wss://${NOTES_DOMAIN}/serverpeer"
+  - "Room ID must be unique per vault but identical across all devices in that vault"

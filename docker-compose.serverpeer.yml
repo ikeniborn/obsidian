@@ -1,0 +1,56 @@
+services:
+  serverpeer:
+    build:
+      context: ./serverpeer
+      dockerfile: Dockerfile
+    container_name: ${SERVERPEER_CONTAINER_NAME:-notes-serverpeer}
+    restart: unless-stopped
+
+    env_file:
+      - /opt/notes/.env
+
+    environment:
+      SLS_SERVER_PEER_APPID: ${SERVERPEER_APPID}
+      SLS_SERVER_PEER_ROOMID: ${SERVERPEER_ROOMID}
+      SLS_SERVER_PEER_PASSPHRASE: ${SERVERPEER_PASSPHRASE}
+      SLS_SERVER_PEER_RELAYS: ${SERVERPEER_RELAYS}
+      SLS_SERVER_PEER_NAME: ${SERVERPEER_NAME}
+      SLS_SERVER_PEER_AUTOBROADCAST: ${SERVERPEER_AUTOBROADCAST}
+      SLS_SERVER_PEER_AUTOSTART: ${SERVERPEER_AUTOSTART}
+      SLS_SERVER_PEER_VAULT_NAME: ${SERVERPEER_VAULT_NAME}
+
+    volumes:
+      - ${SERVERPEER_VAULT_DIR:-/opt/notes/serverpeer-vault}:/app/vault
+
+    ports:
+      - "127.0.0.1:${SERVERPEER_PORT:-3000}:3000"
+
+    networks:
+      - notes-network
+
+    # ServerPeer is a P2P client, not an HTTP server
+    # Check if deno process is running instead of HTTP endpoint
+    healthcheck:
+      test: ["CMD", "sh", "-c", "pgrep -f 'deno.*main.ts' > /dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+networks:
+  notes-network:
+    # Network mode configured via NETWORK_MODE in .env:
+    # - shared: use existing network (NETWORK_EXTERNAL=true)
+    # - isolated: create new obsidian_network (NETWORK_EXTERNAL=false)
+    # - custom: use custom NETWORK_NAME
+    external: ${NETWORK_EXTERNAL:-false}
+    name: ${NETWORK_NAME}

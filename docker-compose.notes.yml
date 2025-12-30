@@ -1,0 +1,54 @@
+services:
+  couchdb:
+    image: couchdb:3.3
+    container_name: ${COUCHDB_CONTAINER_NAME:-notes-couchdb}
+    restart: unless-stopped
+    stop_grace_period: 30s
+    stop_signal: SIGTERM
+
+    env_file:
+      - /opt/notes/.env
+
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER:-admin}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+
+    volumes:
+      # CouchDB data isolated in /opt/notes
+      - ${NOTES_DATA_DIR:-/opt/notes/data}:/opt/couchdb/data
+      # CouchDB config from notes/ directory
+      - ./local.ini:/opt/couchdb/etc/local.ini
+
+    # Port 5984 bound to localhost ONLY
+    # External access through nginx reverse proxy
+    ports:
+      - "127.0.0.1:${COUCHDB_PORT:-5984}:5984"
+
+    # Connect to notes network (configurable via NETWORK_NAME)
+    networks:
+      - notes-network
+
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -f -u \"$${COUCHDB_USER}:$${COUCHDB_PASSWORD}\" http://localhost:5984/_up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+networks:
+  notes-network:
+    # Network mode configured via NETWORK_MODE in .env:
+    # - shared: use existing network (NETWORK_EXTERNAL=true)
+    # - isolated: create new obsidian_network (NETWORK_EXTERNAL=false)
+    # - custom: use custom NETWORK_NAME
+    external: ${NETWORK_EXTERNAL:-false}
+    name: ${NETWORK_NAME}

@@ -1,0 +1,77 @@
+# Pattern Schema Template
+# Use this template for documenting architectural patterns
+
+metadata:
+  id: string                    # Unique identifier (e.g., pattern:flexible-network)
+  name: string
+  category: enum                # [architectural, deployment, security, integration, resource-management]
+  maturity: enum                # [proven, experimental, deprecated]
+  version: string
+  last_updated: date
+
+description:
+  summary: string               # One-line description
+  problem: string               # What problem does this solve
+  context: string               # When to use this pattern
+  solution: string              # How the pattern solves the problem
+
+forces:
+  - force: string
+    impact: string
+    resolution: string
+
+structure:
+  components: list              # Component IDs involved
+    - id: string
+      role: string
+      constraints: list
+  relationships: list
+    - from: string
+      to: string
+      type: string
+      description: string
+
+implementation:
+  approach: string              # How this is implemented
+  code_locations: list          # File paths where this is implemented
+    - file: string
+      lines: string             # Line range
+      description: string
+  configuration: list           # Config files involved
+  scripts: list                 # Script IDs implementing this
+
+variants:
+  - name: string
+    description: string
+    when_to_use: string
+    trade_offs: list
+    examples: list
+
+consequences:
+  benefits: list
+  liabilities: list
+  trade_offs: list
+
+related_patterns:
+  uses: list                    # Pattern IDs this uses
+  used_by: list                 # Pattern IDs that use this
+  alternatives: list            # Alternative pattern IDs
+  complements: list             # Complementary pattern IDs
+
+examples:
+  - scenario: string
+    description: string
+    code_reference: string
+    configuration: string
+
+quality_attributes:
+  security: string
+  performance: string
+  reliability: string
+  maintainability: string
+  scalability: string
+
+references:
+  documentation: list
+  prd_sections: list
+  external_resources: list

@@ -1,0 +1,208 @@
+# S3-Compatible Storage Component
+
+metadata:
+  id: "component:s3-storage"
+  name: "S3-Compatible Backup Storage"
+  type: "infrastructure"
+  category: "storage"
+  version: "S3 API"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "S3-compatible object storage for CouchDB backups (AWS S3, Yandex, MinIO, etc.)"
+  purpose: "Provide off-site cloud backup storage with long-term retention"
+  responsibilities:
+    - "Store daily CouchDB database backups"
+    - "Provide geographic redundancy for disaster recovery"
+    - "Implement retention policies (30 days Standard, 365 days Glacier)"
+    - "Enable restoration from any backup point"
+
+technical_details:
+  supported_providers:
+    - provider: "AWS S3"
+      endpoint: "s3.amazonaws.com"
+      regions: "All AWS regions"
+
+    - provider: "Yandex Object Storage"
+      endpoint: "storage.yandexcloud.net"
+      regions: "ru-central1"
+
+    - provider: "MinIO"
+      endpoint: "Custom (self-hosted)"
+      regions: "N/A"
+
+    - provider: "DigitalOcean Spaces"
+      endpoint: "*.digitaloceanspaces.com"
+      regions: "Multiple"
+
+  upload_method: "boto3 Python library (s3_upload.py)"
+
+  retention:
+    local: "7 days"
+    s3_standard: "30 days"
+    s3_glacier: "365 days"
+    lifecycle_policy: "Automatic transition to Glacier after 30 days"
+
+  backup_format:
+    extension: ".tar.gz"
+    compression: "gzip level 6"
+    naming: "couchdb_backup_YYYY-MM-DD_HH-MM-SS.tar.gz"
+
+relationships:
+  depends_on: []
+
+  used_by:
+    - id: "component:backup-system"
+      reason: "Backup system uploads compressed backups to S3"
+
+  managed_by:
+    - id: "script:couchdb-backup"
+      operations: ["upload"]
+
+    - id: "script:s3-upload"
+      operations: ["upload", "list", "delete"]
+
+  configured_by:
+    - id: "config:env-file"
+      aspects: ["S3 credentials", "bucket name", "endpoint", "region"]
+
+configuration:
+  environment_variables:
+    - name: "S3_ACCESS_KEY_ID"
+      source: "/opt/notes/.env"
+      required: false
+      note: "Optional - skip S3 upload if not set"
+
+    - name: "S3_SECRET_ACCESS_KEY"
+      source: "/opt/notes/.env"
+      required: false
+      security: "Sensitive - store in .env with chmod 600"
+
+    - name: "S3_BUCKET_NAME"
+      example: "my-couchdb-backups"
+      source: "/opt/notes/.env"
+
+    - name: "S3_ENDPOINT_URL"
+      example: "https://storage.yandexcloud.net"
+      source: "/opt/notes/.env"
+      note: "Optional for AWS S3 (uses default)"
+
+    - name: "S3_REGION"
+      example: "us-east-1"
+      source: "/opt/notes/.env"
+
+  s3_upload_command: |
+    python3 scripts/s3_upload.py \
+      --file /opt/notes/backups/couchdb_backup_*.tar.gz \
+      --bucket ${S3_BUCKET_NAME} \
+      --region ${S3_REGION} \
+      --endpoint ${S3_ENDPOINT_URL}
+
+security:
+  credentials:
+    storage: "/opt/notes/.env (chmod 600)"
+    method: "Access key + secret key"
+    rotation: "Manual (recommended every 90 days)"
+
+  encryption:
+    in_transit: "TLS/HTTPS"
+    at_rest: "S3 server-side encryption (SSE-S3 or SSE-KMS)"
+
+  access_control:
+    iam_policy: "Minimum required: s3:PutObject, s3:ListBucket"
+    bucket_policy: "Private (no public access)"
+
+files:
+  scripts:
+    - id: "script:s3-upload"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/s3_upload.py"
+      language: "Python"
+
+  backups:
+    - path: "/opt/notes/backups/"
+      purpose: "Local backups before S3 upload"
+
+operational:
+  monitoring:
+    check_uploads: "aws s3 ls s3://${S3_BUCKET_NAME}/ OR python3 scripts/s3_upload.py --list"
+    check_quota: "aws s3api list-bucket-metrics-configurations"
+
+  validation:
+    - check: "Credentials valid"
+      command: "aws s3 ls s3://${S3_BUCKET_NAME}/"
+
+    - check: "Upload successful"
+      command: "aws s3 ls s3://${S3_BUCKET_NAME}/ | tail -1"
+
+disaster_recovery:
+  scenarios:
+    - scenario: "Server failure"
+      rto: "2 hours"
+      rpo: "24 hours"
+      steps:
+        - "Provision new server"
+        - "Run install.sh and setup.sh"
+        - "Download latest backup from S3"
+        - "Extract and restore to /opt/notes/data"
+        - "Run deploy.sh"
+
+    - scenario: "Data corruption"
+      rto: "1 hour"
+      rpo: "24 hours"
+      steps:
+        - "Stop CouchDB"
+        - "Download specific backup from S3"
+        - "Extract to temporary location"
+        - "Restore specific databases"
+        - "Restart CouchDB"
+
+troubleshooting:
+  common_issues:
+    - issue: "Upload fails (credentials invalid)"
+      symptoms:
+        - "AccessDenied error"
+        - "InvalidAccessKeyId"
+      resolution: |
+        1. Verify credentials in .env: grep S3_ /opt/notes/.env
+        2. Test credentials: aws s3 ls (requires AWS CLI)
+        3. Check IAM permissions
+        4. Regenerate access keys if needed
+
+    - issue: "Upload fails (network error)"
+      symptoms:
+        - "Connection timeout"
+        - "SSL verification failed"
+      resolution: |
+        1. Check internet connectivity: ping storage.yandexcloud.net
+        2. Verify endpoint URL is correct
+        3. Check firewall allows HTTPS outbound
+        4. Test manual upload: aws s3 cp test.txt s3://${S3_BUCKET_NAME}/
+
+    - issue: "Backup not uploaded to S3"
+      symptoms:
+        - "Local backup exists but not in S3"
+      resolution: |
+        1. Check if S3 credentials are set in .env
+        2. Check backup logs: tail -50 /opt/notes/logs/backup.log
+        3. Manually run upload: python3 scripts/s3_upload.py --file <backup>
+        4. Verify S3_BUCKET_NAME exists
+
+  commands:
+    upload: "python3 scripts/s3_upload.py --file <file> --bucket ${S3_BUCKET_NAME}"
+    list: "aws s3 ls s3://${S3_BUCKET_NAME}/"
+    download: "aws s3 cp s3://${S3_BUCKET_NAME}/<file> /tmp/"
+    delete: "aws s3 rm s3://${S3_BUCKET_NAME}/<file>"
+
+references:
+  documentation:
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+    - "https://docs.aws.amazon.com/s3/"
+    - "https://cloud.yandex.com/docs/storage/"
+
+  prd_sections:
+    - "FR-005: Automated S3 Backups"
+    - "Backup & Disaster Recovery"
+
+  related_patterns:
+    - "pattern:resource-management"

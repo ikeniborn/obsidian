@@ -1,0 +1,196 @@
+# Backup System Component
+
+metadata:
+  id: "component:backup-system"
+  name: "Backup Orchestration System"
+  type: "application"
+  category: "orchestration"
+  version: "1.0"
+  status: "active"
+  last_updated: "2025-11-16"
+
+description:
+  summary: "Automated CouchDB backup system with S3 upload and retention management"
+  purpose: "Ensure data durability through regular backups with local and cloud storage"
+  responsibilities:
+    - "Schedule daily CouchDB database backups"
+    - "Compress backups to minimize storage"
+    - "Upload backups to S3-compatible storage"
+    - "Manage local retention (7 days)"
+    - "Implement resource limits (CPU, memory, I/O)"
+    - "Track backup progress and health"
+
+technical_details:
+  schedule:
+    frequency: "daily"
+    time: "3:00 AM"
+    method: "cron or systemd timer"
+
+  backup_process:
+    - step: 1
+      action: "Health check CouchDB container"
+      validation: "docker ps | grep healthy"
+
+    - step: 2
+      action: "List all databases via /_all_dbs"
+
+    - step: 3
+      action: "Backup each database via /_all_docs?include_docs=true"
+      note: "Dynamic timeout based on database size"
+
+    - step: 4
+      action: "Compress with gzip level 6"
+
+    - step: 5
+      action: "Upload to S3 (if configured)"
+
+    - step: 6
+      action: "Clean up local backups older than 7 days"
+
+  resource_management:
+    cpu_limit: "50% of one core (nice level 19)"
+    memory_limit: "512MB"
+    io_priority: "Idle class (ionice class 3)"
+    compression_level: 6
+
+  timeout_calculation:
+    base_timeout: 60  # seconds
+    per_mb: 2         # seconds
+    max_timeout: 1800 # 30 minutes
+    formula: "base_timeout + (database_size_mb * per_mb)"
+
+relationships:
+  depends_on:
+    - id: "component:couchdb"
+      reason: "Backs up CouchDB databases"
+
+    - id: "component:s3-storage"
+      reason: "Uploads backups to S3 (optional)"
+      conditional: "Only if S3 credentials configured"
+
+  managed_by:
+    - id: "script:couchdb-backup"
+      operations: ["backup", "compress", "upload", "cleanup"]
+
+  configured_by:
+    - id: "config:env-file"
+      aspects: ["S3 credentials", "backup paths"]
+
+operational:
+  monitoring:
+    progress_tracking: "Visual progress bar (█░ format)"
+    health_checks: "Container status between database backups"
+    logging: "/opt/notes/logs/backup.log"
+
+  metrics:
+    - name: "Backup duration"
+      command: "grep 'Backup completed' /opt/notes/logs/backup.log | tail -1"
+
+    - name: "Backup size"
+      command: "ls -lh /opt/notes/backups/ | tail -1"
+
+    - name: "S3 upload status"
+      command: "grep 'S3 upload' /opt/notes/logs/backup.log | tail -1"
+
+  retention:
+    local:
+      period: "7 days"
+      location: "/opt/notes/backups/"
+      cleanup: "Automatic via find -mtime +7 -delete"
+
+    s3:
+      period: "30 days (Standard), 365 days (Glacier)"
+      lifecycle: "Automatic via S3 lifecycle policy"
+
+disaster_recovery:
+  restore_process:
+    - step: 1
+      action: "Stop CouchDB"
+      command: "docker compose -f docker-compose.notes.yml down"
+
+    - step: 2
+      action: "Download backup from S3"
+      command: "aws s3 cp s3://${S3_BUCKET_NAME}/<backup>.tar.gz /tmp/"
+
+    - step: 3
+      action: "Extract backup"
+      command: "tar -xzf <backup>.tar.gz -C /tmp/"
+
+    - step: 4
+      action: "Restore database files"
+      command: "cp -r /tmp/couchdb_backup/* /opt/notes/data/"
+
+    - step: 5
+      action: "Start CouchDB"
+      command: "docker compose -f docker-compose.notes.yml up -d"
+
+    - step: 6
+      action: "Verify restoration"
+      command: "curl http://localhost:5984/_all_dbs"
+
+  rto: "2 hours (worst case)"
+  rpo: "24 hours (daily backups)"
+
+files:
+  scripts:
+    - id: "script:couchdb-backup"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/couchdb-backup.sh"
+
+    - id: "script:s3-upload"
+      path: "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/scripts/s3_upload.py"
+
+  logs:
+    - path: "/opt/notes/logs/backup.log"
+      purpose: "Backup execution logs with timestamps"
+
+  backups:
+    - path: "/opt/notes/backups/"
+      purpose: "Local backup storage (7-day retention)"
+
+troubleshooting:
+  common_issues:
+    - issue: "Backup fails (CouchDB not responding)"
+      symptoms:
+        - "Timeout errors"
+        - "Connection refused"
+      resolution: |
+        1. Check CouchDB health: curl http://localhost:5984/_up
+        2. Check container status: docker ps | grep couchdb
+        3. Review CouchDB logs: docker logs notes-couchdb
+        4. Restart CouchDB if needed
+
+    - issue: "S3 upload fails"
+      symptoms:
+        - "Upload error in logs"
+        - "Backup exists locally but not in S3"
+      resolution: |
+        1. Verify S3 credentials in .env
+        2. Test S3 connectivity: aws s3 ls
+        3. Check S3 permissions
+        4. Manually upload: python3 scripts/s3_upload.py --file <backup>
+
+    - issue: "Disk space full"
+      symptoms:
+        - "No space left on device"
+        - "Backup creation fails"
+      resolution: |
+        1. Check disk usage: df -h /opt/notes
+        2. Manually clean old backups: rm /opt/notes/backups/*.tar.gz
+        3. Reduce retention period if needed
+
+  commands:
+    run_backup: "bash /opt/notes/scripts/couchdb-backup.sh"
+    view_logs: "tail -f /opt/notes/logs/backup.log"
+    list_backups: "ls -lh /opt/notes/backups/"
+    restore_test: "bash /opt/notes/scripts/test-backup.sh"
+
+references:
+  documentation:
+    - "/home/UF.RT.RU/i.y.tischenko/Документы/Git/obsidian/docs/prd/obsidian-sync-server.md"
+
+  prd_sections:
+    - "FR-005: Automated S3 Backups"
+    - "Backup & Disaster Recovery"
+
+  related_patterns:
+    - "pattern:resource-management"

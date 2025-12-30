@@ -1,167 +1,353 @@
 #!/bin/bash
+#
+# Notes CouchDB - Installation Script
+#
+# This script installs dependencies for Notes application:
+# - Checks Docker and Docker Compose are installed
+# - Creates /opt/notes directory structure
+# - Sets proper permissions
+#
+# Usage:
+#   sudo ./install.sh
+#
+# Requirements:
+#   - Docker 20.10+
+#   - Docker Compose v2+
+#   - Root/sudo access
+#
+# Author: Obsidian Sync Server Team
+# Version: 2.0.0
+# Date: 2025-12-29
+#
 
-set -e
+set -e  # Exit on error
+set -u  # Exit on undefined variable
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_FILE="/var/log/notes_install.log"
 
-echo "======================================================"
-echo "    Obsidian + CouchDB Services Installation"
-echo "======================================================"
-echo ""
+# Deployment directory for notes
+NOTES_DIR="/opt/notes"
 
-if [ "$EUID" -ne 0 ]; then 
-  echo "Please run as root"
-  exit 1
-fi
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# Проверяем зависимости
-echo "Checking dependencies..."
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
 
-# Docker
-if ! command -v docker &> /dev/null; then
-    echo "Installing Docker..."
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sh get-docker.sh
-    rm get-docker.sh
-    systemctl enable docker
-    systemctl start docker
-fi
+print_message() {
+    local color=$1
+    shift
+    echo -e "${color}$*${NC}"
+}
 
-# Docker Compose
-if ! command -v docker-compose &> /dev/null; then
-    echo "Installing Docker Compose..."
-    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
-fi
+info() {
+    print_message "$BLUE" "[INFO] $*"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [INFO] $*" >> "$LOG_FILE" 2>&1 || true
+}
 
-# Git
-if ! command -v git &> /dev/null; then
-    echo "Installing Git..."
-    apt-get update
-    apt-get install -y git
-fi
+success() {
+    print_message "$GREEN" "[SUCCESS] $*"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [SUCCESS] $*" >> "$LOG_FILE" 2>&1 || true
+}
 
-# Проверяем сеть Traefik
-if ! docker network ls | grep -q traefik; then
-    echo "Creating Traefik network..."
-    docker network create traefik
-fi
+warning() {
+    print_message "$YELLOW" "[WARNING] $*"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [WARNING] $*" >> "$LOG_FILE" 2>&1 || true
+}
 
-echo ""
-echo "Dependencies check completed."
-echo ""
+error() {
+    print_message "$RED" "[ERROR] $*"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] [ERROR] $*" >> "$LOG_FILE" 2>&1 || true
+    exit 1
+}
 
-# Выбираем что устанавливать
-echo "What would you like to install?"
-echo "1) CouchDB only"
-echo "2) Obsidian LiveSync only"
-echo "3) Both services"
-echo "4) Firewall setup only"
-echo "5) Full installation (all + firewall)"
-echo ""
-read -p "Enter your choice [1-5]: " INSTALL_CHOICE
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 
-case $INSTALL_CHOICE in
-    1)
-        echo "Installing CouchDB..."
-        chmod +x "$SCRIPT_DIR/install-couchdb.sh"
-        "$SCRIPT_DIR/install-couchdb.sh"
-        
-        read -p "Setup CouchDB backup? [y/N]: " SETUP_BACKUP
-        if [[ $SETUP_BACKUP =~ ^[Yy]$ ]]; then
-            chmod +x "$SCRIPT_DIR/backup-couchdb.sh"
-            "$SCRIPT_DIR/backup-couchdb.sh" install
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        error "This script must be run as root (use sudo)"
+    fi
+}
+
+# =============================================================================
+# VALIDATION FUNCTIONS
+# =============================================================================
+
+check_docker() {
+    info "Checking Docker installation..."
+
+    if ! command_exists docker; then
+        error "Docker is not installed. Please install Docker first:
+
+For Ubuntu/Debian:
+    curl -fsSL https://get.docker.com | sh
+    sudo usermod -aG docker \$USER
+
+Then re-run this script."
+    fi
+
+    # Check Docker is running
+    if ! docker ps >/dev/null 2>&1; then
+        error "Docker is not running. Please start Docker:
+    sudo systemctl start docker"
+    fi
+
+    local docker_version=$(docker --version | grep -oP '\d+\.\d+' | head -1)
+    success "Docker $docker_version is installed and running"
+}
+
+check_docker_compose() {
+    info "Checking Docker Compose installation..."
+
+    if ! command_exists docker compose version; then
+        error "Docker Compose is not installed. Please install Docker Compose:
+
+For Ubuntu/Debian with Docker already installed:
+    Docker Compose v2 is included with Docker installation
+
+If you need to install manually:
+    sudo apt-get update
+    sudo apt-get install docker-compose-plugin
+
+Then re-run this script."
+    fi
+
+    local compose_version=$(docker compose version --short)
+    success "Docker Compose $compose_version is installed"
+}
+
+
+check_ufw() {
+    info "Checking UFW firewall..."
+
+    if ! command_exists ufw; then
+        warning "UFW is not installed"
+        warning "Run scripts/ufw-setup.sh after installation for security"
+        return 1
+    fi
+
+    local ufw_status=$(ufw status 2>/dev/null | grep -i "Status:" | awk '{print $2}')
+    if [[ "$ufw_status" == "active" ]]; then
+        success "UFW is installed and active"
+    else
+        warning "UFW is installed but not active"
+        warning "Run scripts/ufw-setup.sh to configure firewall"
+    fi
+}
+
+detect_nginx() {
+    info "Detecting nginx instances..."
+
+    local nginx_found=false
+    local nginx_type=""
+
+    if docker ps 2>/dev/null | grep -q nginx; then
+        nginx_found=true
+        nginx_type="docker"
+        success "Found nginx running in Docker"
+    fi
+
+    if systemctl is-active --quiet nginx 2>/dev/null; then
+        nginx_found=true
+        nginx_type="${nginx_type:+$nginx_type, }systemd"
+        success "Found nginx running via systemd"
+    fi
+
+    if pgrep -x nginx >/dev/null 2>&1; then
+        if [[ "$nginx_found" == false ]]; then
+            nginx_found=true
+            nginx_type="process"
+            success "Found nginx running as process"
         fi
-        ;;
-    2)
-        echo "Installing Obsidian LiveSync..."
-        chmod +x "$SCRIPT_DIR/install-obsidian-sync.sh"
-        "$SCRIPT_DIR/install-obsidian-sync.sh"
-        ;;
-    3)
-        echo "Installing both services..."
-        
-        echo "Step 1: Installing CouchDB..."
-        chmod +x "$SCRIPT_DIR/install-couchdb.sh"
-        "$SCRIPT_DIR/install-couchdb.sh"
-        
-        echo ""
-        echo "Step 2: Installing Obsidian LiveSync..."
-        chmod +x "$SCRIPT_DIR/install-obsidian-sync.sh"
-        "$SCRIPT_DIR/install-obsidian-sync.sh"
-        
-        read -p "Setup CouchDB backup? [y/N]: " SETUP_BACKUP
-        if [[ $SETUP_BACKUP =~ ^[Yy]$ ]]; then
-            chmod +x "$SCRIPT_DIR/backup-couchdb.sh"
-            "$SCRIPT_DIR/backup-couchdb.sh" install
+    fi
+
+    if [[ "$nginx_found" == false ]]; then
+        warning "No nginx instance detected"
+        warning "Notes requires nginx reverse proxy for HTTPS"
+    fi
+
+    echo "$nginx_found" > /tmp/nginx_detected
+    echo "$nginx_type" > /tmp/nginx_type
+}
+
+check_ports() {
+    info "Checking port availability..."
+
+    local port_80_used=false
+    local port_443_used=false
+
+    if command_exists netstat; then
+        if netstat -tuln 2>/dev/null | grep -q ':80 '; then
+            port_80_used=true
+            warning "Port 80 is already in use"
         fi
-        ;;
-    4)
-        echo "Setting up firewall..."
-        chmod +x "$SCRIPT_DIR/setup-firewall.sh"
-        "$SCRIPT_DIR/setup-firewall.sh"
-        ;;
-    5)
-        echo "Full installation..."
-        
-        echo "Step 1: Setting up firewall..."
-        chmod +x "$SCRIPT_DIR/setup-firewall.sh"
-        "$SCRIPT_DIR/setup-firewall.sh"
-        
-        echo ""
-        echo "Step 2: Installing CouchDB..."
-        chmod +x "$SCRIPT_DIR/install-couchdb.sh"
-        "$SCRIPT_DIR/install-couchdb.sh"
-        
-        echo ""
-        echo "Step 3: Installing Obsidian LiveSync..."
-        chmod +x "$SCRIPT_DIR/install-obsidian-sync.sh"
-        "$SCRIPT_DIR/install-obsidian-sync.sh"
-        
-        echo ""
-        echo "Step 4: Setting up CouchDB backup..."
-        chmod +x "$SCRIPT_DIR/backup-couchdb.sh"
-        "$SCRIPT_DIR/backup-couchdb.sh" install
-        ;;
-    *)
-        echo "Invalid choice. Exiting."
-        exit 1
-        ;;
-esac
 
-echo ""
-echo "======================================================"
-echo "              Installation Completed"
-echo "======================================================"
-echo ""
-echo "Installed services location: /opt/"
-echo ""
-echo "Service management:"
-echo ""
-if [ -d "/opt/couchdb" ]; then
-    echo "CouchDB:"
-    echo "  Start: cd /opt/couchdb && docker-compose up -d"
-    echo "  Stop:  cd /opt/couchdb && docker-compose down"
-    echo "  Logs:  cd /opt/couchdb && docker-compose logs -f"
+        if netstat -tuln 2>/dev/null | grep -q ':443 '; then
+            port_443_used=true
+            warning "Port 443 is already in use"
+        fi
+    elif command_exists ss; then
+        if ss -tuln 2>/dev/null | grep -q ':80 '; then
+            port_80_used=true
+            warning "Port 80 is already in use"
+        fi
+
+        if ss -tuln 2>/dev/null | grep -q ':443 '; then
+            port_443_used=true
+            warning "Port 443 is already in use"
+        fi
+    fi
+
+    if [[ "$port_80_used" == false && "$port_443_used" == false ]]; then
+        success "Ports 80 and 443 are available"
+    fi
+}
+
+# =============================================================================
+# INSTALLATION FUNCTIONS
+# =============================================================================
+
+create_directories() {
+    info "Creating /opt/notes directory structure..."
+
+    # Create main directories
+    mkdir -p "$NOTES_DIR"/{data,backups,logs/nginx}
+
+    # Set ownership to current user (who invoked sudo)
+    local actual_user="${SUDO_USER:-$USER}"
+    chown -R "$actual_user:$actual_user" "$NOTES_DIR"
+
+    # Set permissions
+    chmod 755 "$NOTES_DIR"
+    chmod 755 "$NOTES_DIR"/{data,backups,logs}
+    chmod 755 "$NOTES_DIR"/logs/nginx
+
+    success "Created directory structure:
+    $NOTES_DIR/
+    ├── data/     (CouchDB persistent storage)
+    ├── backups/  (Backup files)
+    └── logs/
+        └── nginx/  (Nginx access/error logs for fail2ban)"
+}
+
+install_python_deps() {
+    info "Installing Python dependencies for S3 backup..."
+
+    if ! command_exists python3; then
+        info "Installing Python 3..."
+        apt-get update -qq
+        apt-get install -y python3
+    fi
+
+    # Install boto3 from system package (respects PEP 668)
+    if ! python3 -c "import boto3" 2>/dev/null; then
+        info "Installing boto3..."
+        apt-get update -qq
+        apt-get install -y python3-boto3
+    fi
+
+    # Install rsync for deployment synchronization
+    if ! command_exists rsync; then
+        info "Installing rsync..."
+        apt-get update -qq
+        apt-get install -y rsync
+    fi
+
+    success "Python dependencies and rsync installed"
+}
+
+install_coturn() {
+    info "Installing Coturn TURN/STUN server for P2P WebRTC..."
+
+    if command_exists turnserver; then
+        success "Coturn already installed ($(turnserver --version 2>&1 | head -1))"
+        return 0
+    fi
+
+    info "Installing coturn package..."
+    apt-get update -qq
+    apt-get install -y coturn
+
+    # Enable coturn service
+    sed -i 's/^#TURNSERVER_ENABLED=1/TURNSERVER_ENABLED=1/' /etc/default/coturn
+
+    success "Coturn installed successfully"
+    info "Coturn will be configured during setup.sh"
+}
+
+# =============================================================================
+# MAIN INSTALLATION
+# =============================================================================
+
+main() {
+    info "========================================"
+    info "Obsidian Sync Server - Installation"
+    info "========================================"
     echo ""
-fi
 
-if [ -d "/opt/obsidian-sync" ]; then
-    echo "Obsidian LiveSync:"
-    echo "  Start: cd /opt/obsidian-sync && docker-compose up -d"
-    echo "  Stop:  cd /opt/obsidian-sync && docker-compose down"
-    echo "  Logs:  cd /opt/obsidian-sync && docker-compose logs -f"
-    echo "  Or use management scripts:"
-    echo "    /opt/obsidian-sync/start.sh"
-    echo "    /opt/obsidian-sync/stop.sh"
-    echo "    /opt/obsidian-sync/update.sh"
+    check_root
+    check_docker
+    check_docker_compose
+
     echo ""
-fi
+    check_ufw
+    detect_nginx
+    check_ports
 
-echo "Important next steps:"
-echo "1. Configure your domain DNS to point to this server"
-echo "2. Ensure Traefik is running and configured properly"
-echo "3. Check that all services are accessible via their domains"
-echo "4. Review and customize .env files for security"
-echo ""
-echo "For troubleshooting, check Docker logs for each service."
+    echo ""
+    create_directories
+
+    echo ""
+    install_python_deps
+
+    echo ""
+    install_coturn
+
+    echo ""
+    if [[ ! -f "$SCRIPT_DIR/scripts/ufw-setup.sh" ]]; then
+        warning "UFW setup script not found at scripts/ufw-setup.sh"
+    else
+        echo ""
+        info "Security: UFW Firewall Setup"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "For production security, configure UFW firewall:"
+        echo "  sudo bash scripts/ufw-setup.sh"
+        echo ""
+        echo "This will:"
+        echo "  - Allow SSH (port 22)"
+        echo "  - Allow HTTPS (port 443)"
+        echo "  - Block all other incoming traffic"
+        echo ""
+        read -p "Configure UFW now? (y/N): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            bash "$SCRIPT_DIR/scripts/ufw-setup.sh"
+        else
+            warning "Skipping UFW setup. Run manually later for security."
+        fi
+    fi
+
+    echo ""
+    success "========================================"
+    success "Notes installation completed!"
+    success "========================================"
+    echo ""
+    info "Next steps:"
+    echo "  1. Configure notes:  ./setup.sh"
+    echo "  2. Deploy notes:     ./deploy.sh"
+    echo ""
+}
+
+main "$@"

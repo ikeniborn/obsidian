@@ -1,0 +1,1450 @@
+#!/bin/bash
+#
+# Notes CouchDB - Setup Script
+#
+# This script configures Notes application:
+# - Creates /opt/notes/.env configuration file
+# - Generates secure COUCHDB_PASSWORD
+# - Prompts for NOTES_DOMAIN
+#
+# Usage:
+#   ./setup.sh
+#
+# Requirements:
+#   - notes/install.sh must be run first
+#   - /opt/notes directory must exist
+#
+# Author: Family Budget Team
+# Version: 1.0.0
+# Date: 2025-11-16
+#
+
+set -e  # Exit on error
+set -u  # Exit on undefined variable
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+NOTES_DIR="/opt/notes"
+ENV_FILE="$NOTES_DIR/.env"
+ENV_EXAMPLE="$SCRIPT_DIR/.env.example"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+print_message() {
+    local color=$1
+    shift
+    echo -e "${color}$*${NC}"
+}
+
+info() {
+    print_message "$BLUE" "[INFO] $*"
+}
+
+success() {
+    print_message "$GREEN" "[SUCCESS] $*"
+}
+
+warning() {
+    print_message "$YELLOW" "[WARNING] $*"
+}
+
+error() {
+    print_message "$RED" "[ERROR] $*"
+    exit 1
+}
+
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# =============================================================================
+# VALIDATION FUNCTIONS
+# =============================================================================
+
+check_notes_directory() {
+    if [[ ! -d "$NOTES_DIR" ]]; then
+        error "/opt/notes directory not found. Please run install.sh first:
+    sudo ./install.sh"
+    fi
+}
+
+check_existing_env() {
+    if [[ -f "$ENV_FILE" ]]; then
+        warning "Configuration file already exists: $ENV_FILE"
+        echo ""
+        read -p "Do you want to overwrite it? (y/N): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            info "Setup cancelled. Existing configuration preserved."
+            exit 0
+        fi
+
+        local backup_file="$ENV_FILE.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$ENV_FILE" "$backup_file"
+        success "Backed up existing configuration to: $backup_file"
+    fi
+}
+
+# Resolve DNS with multiple fallback methods
+resolve_dns() {
+    local domain=$1
+    local result=""
+
+    # Try dig first (most reliable)
+    if command -v dig &>/dev/null; then
+        result=$(dig +short @8.8.8.8 A "$domain" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+        [[ -n "$result" ]] && echo "$result" && return 0
+    fi
+
+    # Try nslookup
+    if command -v nslookup &>/dev/null; then
+        result=$(nslookup "$domain" 8.8.8.8 2>/dev/null | grep -A1 "Name:" | grep "Address:" | awk '{print $2}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+        [[ -n "$result" ]] && echo "$result" && return 0
+    fi
+
+    # Try host command
+    if command -v host &>/dev/null; then
+        result=$(host -t A "$domain" 8.8.8.8 2>/dev/null | grep "has address" | head -1 | awk '{print $NF}')
+        [[ -n "$result" ]] && echo "$result" && return 0
+    fi
+
+    # Try getent (uses system resolver, but worth trying)
+    if command -v getent &>/dev/null; then
+        result=$(getent hosts "$domain" 2>/dev/null | awk '{print $1}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+        [[ -n "$result" ]] && echo "$result" && return 0
+    fi
+
+    return 1
+}
+
+fix_docker_hub_dns() {
+    echo ""
+    info "Docker Hub DNS Fix"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "In restricted networks, DNS may redirect docker.io to blocked mirrors"
+    echo "This adds correct Docker Hub IPs to /etc/hosts to bypass DNS hijacking"
+    echo ""
+
+    read -p "Fix Docker Hub DNS (recommended for restricted networks)? (Y/n): " -n 1 -r
+    echo ""
+
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        info "Skipping Docker Hub DNS fix"
+        return 0
+    fi
+
+    info "Resolving real Docker Hub IPs..."
+    info "Trying multiple DNS resolution methods (dig, nslookup, host, getent)..."
+
+    local registry_ip=$(resolve_dns "registry-1.docker.io")
+    local auth_ip=$(resolve_dns "auth.docker.io")
+    local cloudflare_ip=$(resolve_dns "production.cloudflare.docker.com")
+
+    # Fallback to known-good IPs if DNS resolution completely fails
+    if [[ -z "$registry_ip" ]] || [[ -z "$auth_ip" ]]; then
+        warning "DNS resolution failed for all methods"
+        info "Using fallback IPs (verified 2025-01-29):"
+
+        # These are real Docker Hub IPs, periodically verified
+        # registry-1.docker.io is on AWS CloudFront
+        registry_ip="${registry_ip:-3.226.190.193}"
+        auth_ip="${auth_ip:-18.205.34.3}"
+        cloudflare_ip="${cloudflare_ip:-104.16.100.215}"
+
+        warning "  registry-1.docker.io: $registry_ip (fallback)"
+        warning "  auth.docker.io: $auth_ip (fallback)"
+        warning "  production.cloudflare.docker.com: $cloudflare_ip (fallback)"
+        warning ""
+        warning "Note: These IPs may change over time. If Docker pull fails,"
+        warning "check https://github.com/moby/moby/issues for updated IPs"
+        echo ""
+
+        read -p "Continue with fallback IPs? (Y/n): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            error "DNS fix aborted"
+            return 1
+        fi
+    else
+        success "DNS resolution successful"
+    fi
+
+    info "  registry-1.docker.io: $registry_ip"
+    info "  auth.docker.io: $auth_ip"
+    [[ -n "$cloudflare_ip" ]] && info "  production.cloudflare.docker.com: $cloudflare_ip"
+
+    # Backup /etc/hosts
+    cp /etc/hosts /etc/hosts.backup.$(date +%Y%m%d_%H%M%S)
+    success "Backed up /etc/hosts"
+
+    # Remove old Docker Hub entries
+    sed -i '/# Docker Hub fix/d' /etc/hosts
+    sed -i '/registry-1.docker.io/d' /etc/hosts
+    sed -i '/auth.docker.io/d' /etc/hosts
+    sed -i '/production.cloudflare.docker.com/d' /etc/hosts
+
+    # Add new entries
+    echo "" >> /etc/hosts
+    echo "# Docker Hub fix - bypass DNS hijacking (added by setup.sh)" >> /etc/hosts
+    echo "$registry_ip registry-1.docker.io" >> /etc/hosts
+    echo "$auth_ip auth.docker.io" >> /etc/hosts
+    [[ -n "$cloudflare_ip" ]] && echo "$cloudflare_ip production.cloudflare.docker.com" >> /etc/hosts
+
+    success "/etc/hosts updated with Docker Hub IPs"
+
+    # Test
+    info "Testing Docker pull..."
+    if timeout 15 docker pull hello-world:latest &>/dev/null; then
+        success "Docker pull works! DNS fix successful"
+        docker rmi hello-world:latest 2>/dev/null || true
+    else
+        warning "Docker pull test failed"
+        warning "You may need additional network configuration"
+    fi
+
+    echo ""
+    success "Docker Hub DNS fix completed"
+}
+
+configure_docker_proxy() {
+    echo ""
+    info "Docker Proxy Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configure Docker daemon to use HTTP/HTTPS/SOCKS5 proxy for image pulls"
+    echo "This is useful in restricted networks or when Docker Hub is blocked"
+    echo ""
+
+    read -p "Configure Docker proxy? (y/N): " -n 1 -r
+    echo ""
+
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        info "Skipping Docker proxy configuration"
+        return 0
+    fi
+
+    # Check if running as root
+    if [[ $EUID -ne 0 ]]; then
+        error "Docker proxy configuration requires root privileges"
+        error "Please run setup.sh with sudo to configure Docker proxy"
+        error "Alternatively, manually configure /etc/systemd/system/docker.service.d/http-proxy.conf"
+        read -p "Continue without proxy? (Y/n): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            exit 1
+        fi
+        return 0
+    fi
+
+    echo ""
+    info "Proxy URL Examples:"
+    echo "  HTTPS: https://user:pass@proxy.example.com:8080"
+    echo "  HTTP:  http://proxy.example.com:3128"
+    echo "  SOCKS5: socks5://proxy.example.com:1080"
+    echo ""
+
+    read -p "Proxy URL: " DOCKER_PROXY_URL
+
+    if [[ -z "$DOCKER_PROXY_URL" ]]; then
+        warning "No proxy URL provided, skipping"
+        return 0
+    fi
+
+    # Validate proxy URL format
+    if [[ ! "$DOCKER_PROXY_URL" =~ ^(https?|socks5):// ]]; then
+        error "Invalid proxy URL format. Must start with http://, https://, or socks5://"
+        return 1
+    fi
+
+    echo ""
+    info "NO_PROXY Configuration"
+    echo "Specify addresses that should bypass the proxy (comma-separated)"
+    echo "Default: localhost,127.0.0.1,::1,docker-registry.local"
+    echo ""
+
+    read -p "NO_PROXY addresses [default]: " DOCKER_NO_PROXY
+    DOCKER_NO_PROXY=${DOCKER_NO_PROXY:-localhost,127.0.0.1,::1,docker-registry.local}
+
+    info "Configuring Docker daemon proxy..."
+
+    # Create systemd override directory
+    mkdir -p /etc/systemd/system/docker.service.d
+
+    # Create proxy configuration
+    cat > /etc/systemd/system/docker.service.d/http-proxy.conf << EOF
+[Service]
+Environment="HTTP_PROXY=${DOCKER_PROXY_URL}"
+Environment="HTTPS_PROXY=${DOCKER_PROXY_URL}"
+Environment="NO_PROXY=${DOCKER_NO_PROXY}"
+EOF
+
+    success "Docker daemon proxy configuration created"
+    info "  HTTP_PROXY: ${DOCKER_PROXY_URL}"
+    info "  HTTPS_PROXY: ${DOCKER_PROXY_URL}"
+    info "  NO_PROXY: ${DOCKER_NO_PROXY}"
+
+    # Reload systemd and restart Docker
+    info "Reloading systemd daemon..."
+    systemctl daemon-reload
+
+    info "Restarting Docker service..."
+    if systemctl restart docker; then
+        success "Docker service restarted with proxy configuration"
+    else
+        error "Failed to restart Docker service"
+        error "Please check: journalctl -u docker.service"
+        return 1
+    fi
+
+    # Verify configuration
+    info "Verifying Docker proxy configuration..."
+    sleep 2
+
+    if systemctl show --property=Environment docker | grep -qi proxy; then
+        success "Docker proxy configuration active"
+    else
+        warning "Docker proxy configuration not detected"
+    fi
+
+    echo ""
+    info "Testing Docker pull through proxy..."
+    if timeout 30 docker pull hello-world:latest &>/dev/null; then
+        success "Docker can pull images through proxy"
+        docker rmi hello-world:latest 2>/dev/null || true
+    else
+        warning "Docker pull test failed or timed out"
+        warning "This may be caused by DNS hijacking (redirecting to blocked mirrors)"
+        warning "You can test manually: docker pull hello-world"
+
+        # Offer DNS fix
+        echo ""
+        read -p "Try fixing Docker Hub DNS now? (Y/n): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            fix_docker_hub_dns
+        fi
+    fi
+
+    echo ""
+    success "Docker proxy configuration completed"
+}
+
+validate_network_config() {
+    if [ "$NETWORK_MODE" = "custom" ] && [ -z "$NETWORK_NAME" ]; then
+        error "NETWORK_NAME required for custom mode"
+        exit 1
+    fi
+
+    if [ -n "${NETWORK_SUBNET:-}" ]; then
+        if ! echo "$NETWORK_SUBNET" | grep -qE '^172\.(2[4-9]|3[0-1])\.0\.0/16$'; then
+            error "Invalid subnet format. Use 172.24-31.0.0/16"
+            exit 1
+        fi
+    fi
+
+    success "Network configuration validated"
+}
+
+validate_config() {
+    info "Validating configuration..."
+
+    local has_errors=false
+
+    if [[ -z "${CERTBOT_EMAIL:-}" ]]; then
+        error "CERTBOT_EMAIL is required"
+        has_errors=true
+    fi
+
+    if [[ -z "${NOTES_DOMAIN:-}" ]]; then
+        error "NOTES_DOMAIN is required"
+        has_errors=true
+    fi
+
+    if [[ -n "${S3_ACCESS_KEY_ID:-}" ]]; then
+        if [[ -z "${S3_SECRET_ACCESS_KEY:-}" ]]; then
+            warning "S3_ACCESS_KEY_ID is set but S3_SECRET_ACCESS_KEY is missing"
+            has_errors=true
+        fi
+
+        if [[ -z "${S3_BUCKET_NAME:-}" ]]; then
+            warning "S3_ACCESS_KEY_ID is set but S3_BUCKET_NAME is missing"
+            has_errors=true
+        fi
+    fi
+
+    if [[ "$has_errors" == true ]]; then
+        error "Configuration validation failed"
+    fi
+
+    validate_network_config
+
+    success "Configuration validation passed"
+}
+
+test_dns_resolution() {
+    info "Testing DNS resolution for $NOTES_DOMAIN..."
+
+    if [[ "$NOTES_DOMAIN" == "notes.localhost" ]]; then
+        info "Development domain detected, skipping DNS check"
+        return 0
+    fi
+
+    if ! command_exists host && ! command_exists dig && ! command_exists nslookup; then
+        warning "DNS tools not available, skipping DNS check"
+        return 0
+    fi
+
+    local resolved_ip=""
+
+    if command_exists host; then
+        resolved_ip=$(host "$NOTES_DOMAIN" 2>/dev/null | grep "has address" | awk '{print $4}' | head -1)
+    elif command_exists dig; then
+        resolved_ip=$(dig +short "$NOTES_DOMAIN" 2>/dev/null | head -1)
+    elif command_exists nslookup; then
+        resolved_ip=$(nslookup "$NOTES_DOMAIN" 2>/dev/null | grep -A1 "Name:" | tail -1 | awk '{print $2}')
+    fi
+
+    if [[ -z "$resolved_ip" ]]; then
+        warning "DNS resolution failed for $NOTES_DOMAIN"
+        warning "Make sure the domain is configured in DNS before deploying"
+        echo ""
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            info "Setup cancelled. Configure DNS first."
+            exit 0
+        fi
+    else
+        success "Domain resolves to: $resolved_ip"
+
+        local server_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        if [[ -n "$server_ip" && "$resolved_ip" != "$server_ip" ]]; then
+            warning "Domain resolves to $resolved_ip, but server IP is $server_ip"
+            warning "Make sure DNS points to this server"
+        fi
+    fi
+}
+
+# =============================================================================
+# GENERATION FUNCTIONS
+# =============================================================================
+
+generate_password() {
+    local length=${1:-32}
+
+    if command_exists openssl; then
+        openssl rand -hex "$length"
+    else
+        tr -dc 'a-f0-9' < /dev/urandom | head -c $((length * 2))
+    fi
+}
+
+validate_email() {
+    local email=$1
+    local email_regex='^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+    if [[ $email =~ $email_regex ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# =============================================================================
+# CONFIGURATION FUNCTIONS
+# =============================================================================
+
+prompt_certbot_email() {
+    echo ""
+    info "Let's Encrypt Email Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Email for Let's Encrypt SSL certificate notifications:"
+    echo "(Required for production HTTPS certificates)"
+    echo ""
+
+    while true; do
+        read -p "Email: " CERTBOT_EMAIL
+
+        if [[ -z "$CERTBOT_EMAIL" ]]; then
+            warning "Email is required for SSL certificates"
+            continue
+        fi
+
+        if validate_email "$CERTBOT_EMAIL"; then
+            success "Email set to: $CERTBOT_EMAIL"
+            break
+        else
+            warning "Invalid email format. Please try again."
+        fi
+    done
+}
+
+prompt_notes_domain() {
+    echo ""
+    info "Notes Domain Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Enter the domain for Obsidian Sync access:"
+    echo ""
+    echo "  Development:  notes.localhost"
+    echo "  Production:   notes.example.com"
+    echo ""
+    warning "IMPORTANT: Domain must be configured in DNS and point to this server"
+    echo ""
+
+    while true; do
+        read -p "Domain: " NOTES_DOMAIN
+
+        if [[ -z "$NOTES_DOMAIN" ]]; then
+            NOTES_DOMAIN="notes.localhost"
+            warning "Using default: notes.localhost (development mode)"
+            break
+        fi
+
+        if [[ "$NOTES_DOMAIN" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]] || [[ "$NOTES_DOMAIN" == "notes.localhost" ]]; then
+            success "Domain set to: $NOTES_DOMAIN"
+            break
+        else
+            warning "Invalid domain format. Please try again."
+        fi
+    done
+}
+
+configure_network() {
+    echo ""
+    info "Docker Network Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configure Docker network for CouchDB container"
+    echo ""
+
+    source "${SCRIPT_DIR}/scripts/network-manager.sh"
+
+    local result=$(prompt_network_selection)
+    NETWORK_MODE=$(echo "$result" | cut -d'|' -f1)
+    NETWORK_NAME=$(echo "$result" | cut -d'|' -f2)
+
+    if [ "$NETWORK_MODE" = "shared" ]; then
+        NETWORK_EXTERNAL="true"
+        NETWORK_SUBNET=""
+    else
+        NETWORK_EXTERNAL="false"
+        NETWORK_SUBNET=$(find_free_subnet)
+    fi
+
+    echo ""
+    info "Network configuration:"
+    echo "  Mode: $NETWORK_MODE"
+    echo "  Name: $NETWORK_NAME"
+    echo "  External: $NETWORK_EXTERNAL"
+    [ -n "$NETWORK_SUBNET" ] && echo "  Subnet: $NETWORK_SUBNET"
+    echo ""
+}
+
+configure_nginx() {
+    echo ""
+    info "Nginx Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configure nginx for reverse proxy"
+    echo ""
+
+    source "${SCRIPT_DIR}/scripts/nginx-setup.sh"
+
+    local nginx_result=$(prompt_nginx_selection)
+    local nginx_container=$(echo "$nginx_result" | cut -d'|' -f1)
+    local nginx_config_dir=$(echo "$nginx_result" | cut -d'|' -f2)
+    local nginx_create_flag=$(echo "$nginx_result" | cut -d'|' -f3)
+
+    if [ "$nginx_container" = "none" ]; then
+        info "Will deploy own nginx container"
+        NGINX_CONTAINER_NAME="notes-nginx"
+        NGINX_CONFIG_DIR="/etc/nginx/conf.d"
+        DEPLOY_OWN_NGINX="true"
+    else
+        info "Will use existing nginx: $nginx_container"
+        NGINX_CONTAINER_NAME="$nginx_container"
+        NGINX_CONFIG_DIR="$nginx_config_dir"
+        DEPLOY_OWN_NGINX="false"
+
+        if [ "$nginx_create_flag" = "CREATE" ]; then
+            info "Creating nginx config directory: $nginx_config_dir"
+            if docker exec "$nginx_container" mkdir -p "$nginx_config_dir" 2>/dev/null; then
+                success "Directory created in container: $nginx_config_dir"
+            elif sudo mkdir -p "$nginx_config_dir" 2>/dev/null; then
+                success "Directory created on host: $nginx_config_dir"
+            else
+                error "Failed to create directory: $nginx_config_dir"
+                exit 1
+            fi
+        fi
+    fi
+
+    echo ""
+    info "Nginx configuration:"
+    echo "  Container: $NGINX_CONTAINER_NAME"
+    echo "  Config dir: $NGINX_CONFIG_DIR"
+    echo "  Deploy own: $DEPLOY_OWN_NGINX"
+    echo ""
+}
+
+configure_couchdb() {
+    echo ""
+    info "CouchDB Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    read -p "CouchDB container name [notes-couchdb]: " couchdb_name
+    COUCHDB_CONTAINER_NAME="${couchdb_name:-notes-couchdb}"
+    success "CouchDB container name: $COUCHDB_CONTAINER_NAME"
+}
+
+prompt_sync_backend() {
+    echo ""
+    info "Sync Backend Selection"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "1) CouchDB only - Client-Server (HTTP REST API)"
+    echo "2) ServerPeer only - P2P (WebSocket relay)"
+    echo "3) Both - Run both backends simultaneously"
+    echo ""
+
+    while true; do
+        read -p "Select backend [1-3] (default: 1): " choice
+        choice=${choice:-1}
+
+        case "$choice" in
+            1)
+                SYNC_BACKEND="couchdb"
+                S3_BACKUP_PREFIX="couchdb-backups/"
+                COUCHDB_LOCATION="/"
+                success "Selected: CouchDB only"
+                break
+                ;;
+            2)
+                SYNC_BACKEND="serverpeer"
+                S3_BACKUP_PREFIX="serverpeer-backups/"
+                SERVERPEER_LOCATION="/"
+                success "Selected: ServerPeer only (Docker-based)"
+                info "All dependencies (Deno, Node.js) are containerized - no host installation needed"
+                break
+                ;;
+            3)
+                SYNC_BACKEND="both"
+                # Use separate S3 prefixes for each backend to avoid conflicts
+                COUCHDB_S3_BACKUP_PREFIX="couchdb-backups/"
+                SERVERPEER_S3_BACKUP_PREFIX="serverpeer-backups/"
+                success "Selected: Both backends (dual mode)"
+                info "All dependencies (Deno, Node.js) are containerized - no host installation needed"
+
+                # Prompt for location paths
+                echo ""
+                info "Nginx Location Paths Configuration"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "Configure URL paths for each backend on ${NOTES_DOMAIN:-your-domain}"
+                echo ""
+
+                read -p "CouchDB location path (default: /couchdb): " COUCHDB_LOCATION
+                COUCHDB_LOCATION=${COUCHDB_LOCATION:-/couchdb}
+                # Ensure leading slash
+                [[ "$COUCHDB_LOCATION" != /* ]] && COUCHDB_LOCATION="/$COUCHDB_LOCATION"
+                echo ""  # Explicit newline to ensure clean prompt
+
+                read -p "ServerPeer location path (default: /serverpeer): " SERVERPEER_LOCATION
+                SERVERPEER_LOCATION=${SERVERPEER_LOCATION:-/serverpeer}
+                # Ensure leading slash
+                [[ "$SERVERPEER_LOCATION" != /* ]] && SERVERPEER_LOCATION="/$SERVERPEER_LOCATION"
+
+                success "CouchDB will be available at: https://${NOTES_DOMAIN:-domain}${COUCHDB_LOCATION}"
+                success "ServerPeer will be available at: https://${NOTES_DOMAIN:-domain}${SERVERPEER_LOCATION}"
+                break
+                ;;
+            *)
+                warning "Invalid choice"
+                ;;
+        esac
+    done
+}
+
+configure_serverpeer() {
+    [[ "$SYNC_BACKEND" != "serverpeer" && "$SYNC_BACKEND" != "both" ]] && return 0
+
+    echo ""
+    info "ServerPeer Configuration - Multiple Vaults Support"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "You can configure multiple independent vaults."
+    echo "Each vault will have its own Room ID, Passphrase, and ServerPeer container."
+    echo ""
+    read -p "How many vaults do you want to configure? [1]: " vault_count
+    VAULT_COUNT=${vault_count:-1}
+
+    if [[ ! "$VAULT_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+        warning "Invalid number. Using 1 vault."
+        VAULT_COUNT=1
+    fi
+
+    success "Configuring $VAULT_COUNT vault(s)"
+    echo ""
+
+    # Loop through each vault
+    for ((vault_num=1; vault_num<=VAULT_COUNT; vault_num++)); do
+        echo ""
+        info "Vault #$vault_num Configuration"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+        # Vault name
+        read -p "Vault #$vault_num name (e.g., Work, Personal) [Vault$vault_num]: " vault_name
+        vault_name=${vault_name:-"Vault$vault_num"}
+
+        # Auto-generate Room ID and Passphrase for this vault
+        local room_id=$(openssl rand -hex 3 | sed 's/\(..\)/\1-/g;s/-$//')
+        local passphrase=$(openssl rand -hex 16)
+
+        # Calculate port (3001 for vault1, 3002 for vault2, etc.)
+        local port=$((3000 + vault_num))
+
+        # Generate container name and vault dir from vault name
+        local vault_name_lower=$(echo "$vault_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+        local container="notes-serverpeer-$vault_name_lower"
+        local vault_dir="/opt/notes/serverpeer-vault-$vault_name_lower"
+
+        # Save vault variables using indexed names
+        eval "VAULT_${vault_num}_NAME='$vault_name'"
+        eval "VAULT_${vault_num}_ROOMID='$room_id'"
+        eval "VAULT_${vault_num}_PASSPHRASE='$passphrase'"
+        eval "VAULT_${vault_num}_PORT='$port'"
+        eval "VAULT_${vault_num}_CONTAINER='$container'"
+        eval "VAULT_${vault_num}_VAULT_DIR='$vault_dir'"
+
+        success "Vault '$vault_name' configured"
+        echo "  Room ID:    $room_id"
+        echo "  Passphrase: $passphrase"
+        echo "  Port:       127.0.0.1:$port"
+        echo "  Container:  $container"
+    done
+    echo ""
+
+    # Configure WebSocket Relay (shared for all vaults)
+    info "WebSocket Relay Configuration (Shared for all vaults)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "All vaults will use the same Nostr Relay for WebSocket signaling."
+
+    local default_relay="wss://${NOTES_DOMAIN}${SERVERPEER_LOCATION:-/serverpeer}"
+    SERVERPEER_RELAYS="$default_relay"
+
+    # Common ServerPeer settings (shared by all vault instances)
+    SERVERPEER_APPID=self-hosted-livesync
+    SERVERPEER_P2P_ENABLED=true
+    SERVERPEER_AUTOBROADCAST=true
+    SERVERPEER_AUTOSTART=true
+
+    # Nostr Relay configuration (WebSocket signaling server for P2P)
+    NOSTR_RELAY_PORT=7000
+    NOSTR_RELAY_DATA_DIR=/opt/notes/nostr-relay-data
+    NOSTR_RELAY_CONTAINER_NAME=notes-nostr-relay
+    NOSTR_RELAY_UPSTREAM=notes-nostr-relay
+
+    # TURN/STUN server configuration for P2P WebRTC
+    info "Configuring TURN/STUN server for P2P WebRTC..."
+
+    # Detect external IP for TURN/STUN
+    EXTERNAL_IP=$(curl -s ifconfig.me || curl -s icanhazip.com || echo "")
+    if [[ -z "$EXTERNAL_IP" ]]; then
+        warning "Could not detect external IP automatically"
+        read -p "Enter server public IP address: " EXTERNAL_IP
+    fi
+
+    # Generate TURN credentials
+    TURN_USERNAME="obsidian"
+    TURN_PASSWORD=$(openssl rand -hex 16)
+    TURN_REALM="turn.${NOTES_DOMAIN}"
+
+    # ServerPeer uses internal Docker network connection to relay
+    SERVERPEER_RELAYS_INTERNAL="ws://notes-nostr-relay:7000"
+
+    # STUN/TURN servers (multiple for redundancy)
+    # Format: stun:<server>:<port>, turn:<user>:<pass>@<server>:<port>
+    SERVERPEER_STUN_SERVERS="stun:stun.l.google.com:19302"
+    SERVERPEER_TURN_SERVERS="turn:${TURN_USERNAME}:${TURN_PASSWORD}@${EXTERNAL_IP}:3478"
+
+    # Coturn configuration
+    COTURN_LISTENING_PORT=3478
+    COTURN_EXTERNAL_IP="$EXTERNAL_IP"
+
+    success "All vaults configured"
+    echo "  Total vaults: $VAULT_COUNT"
+    echo "  Relay URL:    $SERVERPEER_RELAYS (external), $SERVERPEER_RELAYS_INTERNAL (ServerPeer)"
+    echo "  Nostr Relay:  Will be deployed as WebSocket signaling server"
+    echo "  STUN Server:  stun.l.google.com:19302 (Google public)"
+    echo "  TURN Server:  ${EXTERNAL_IP}:3478 (local, user: $TURN_USERNAME)"
+}
+
+configure_turn_firewall() {
+    [[ "$SYNC_BACKEND" != "serverpeer" && "$SYNC_BACKEND" != "both" ]] && return 0
+
+    echo ""
+    info "Configuring firewall for TURN/STUN server..."
+
+    # Check if UFW is installed
+    if ! command -v ufw >/dev/null 2>&1; then
+        warning "UFW not installed - TURN ports will not be configured"
+        warning "Install UFW and run: sudo ufw allow 3478/udp && sudo ufw allow 3478/tcp && sudo ufw allow 49152:65535/udp"
+        return 0
+    fi
+
+    # Check if TURN ports are already open
+    local turn_ports_open=true
+    if ! sudo ufw status | grep -q "3478/udp"; then
+        turn_ports_open=false
+    fi
+    if ! sudo ufw status | grep -q "3478/tcp"; then
+        turn_ports_open=false
+    fi
+    if ! sudo ufw status | grep -q "49152:65535/udp"; then
+        turn_ports_open=false
+    fi
+
+    if [[ "$turn_ports_open" == true ]]; then
+        success "TURN/STUN ports already configured in UFW"
+        return 0
+    fi
+
+    # Open TURN ports
+    info "Opening TURN/STUN ports in UFW..."
+    sudo ufw allow 3478/udp comment 'TURN/STUN' >/dev/null 2>&1 || warning "Failed to add 3478/udp rule"
+    sudo ufw allow 3478/tcp comment 'TURN/STUN' >/dev/null 2>&1 || warning "Failed to add 3478/tcp rule"
+    sudo ufw allow 49152:65535/udp comment 'TURN relay' >/dev/null 2>&1 || warning "Failed to add relay ports rule"
+
+    success "TURN/STUN ports configured in UFW"
+    echo "  - 3478/udp (TURN/STUN signaling)"
+    echo "  - 3478/tcp (TURN/STUN signaling)"
+    echo "  - 49152-65535/udp (TURN relay ports)"
+}
+
+prompt_s3_credentials() {
+    echo ""
+    info "S3 Backup Configuration (Optional)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configure S3-compatible storage for automatic backups"
+    echo "(Supports: AWS S3, Yandex Object Storage, MinIO, etc.)"
+    echo ""
+    echo "Press Enter to skip S3 configuration"
+    echo ""
+
+    read -p "S3 Access Key ID [skip]: " S3_ACCESS_KEY_ID
+
+    if [[ -n "$S3_ACCESS_KEY_ID" ]]; then
+        read -p "S3 Secret Access Key: " S3_SECRET_ACCESS_KEY
+
+        if [[ -z "$S3_SECRET_ACCESS_KEY" ]]; then
+            warning "S3 Secret Access Key is required. Skipping S3 configuration."
+            S3_ACCESS_KEY_ID=""
+            return
+        fi
+
+        read -p "S3 Bucket Name: " S3_BUCKET_NAME
+        if [[ -z "$S3_BUCKET_NAME" ]]; then
+            warning "S3 Bucket Name is required. Skipping S3 configuration."
+            S3_ACCESS_KEY_ID=""
+            return
+        fi
+
+        read -p "S3 Endpoint URL [https://storage.yandexcloud.net]: " S3_ENDPOINT_URL
+        S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-https://storage.yandexcloud.net}
+
+        read -p "S3 Region [ru-central1]: " S3_REGION
+        S3_REGION=${S3_REGION:-ru-central1}
+
+        # Backend-specific S3 prefix configuration
+        if [[ "$SYNC_BACKEND" == "both" ]]; then
+            echo ""
+            info "Dual mode: Using separate S3 prefixes for each backend"
+            echo "  CouchDB:    ${COUCHDB_S3_BACKUP_PREFIX}"
+            echo "  ServerPeer: ${SERVERPEER_S3_BACKUP_PREFIX}"
+            echo ""
+            read -p "Customize prefixes? (y/N): " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                read -p "CouchDB S3 prefix [${COUCHDB_S3_BACKUP_PREFIX}]: " couchdb_prefix
+                COUCHDB_S3_BACKUP_PREFIX=${couchdb_prefix:-${COUCHDB_S3_BACKUP_PREFIX}}
+
+                read -p "ServerPeer S3 prefix [${SERVERPEER_S3_BACKUP_PREFIX}]: " serverpeer_prefix
+                SERVERPEER_S3_BACKUP_PREFIX=${serverpeer_prefix:-${SERVERPEER_S3_BACKUP_PREFIX}}
+            fi
+        else
+            # Single backend - use backend-specific default prefix
+            read -p "S3 Backup Prefix [${S3_BACKUP_PREFIX}]: " user_prefix
+            S3_BACKUP_PREFIX=${user_prefix:-${S3_BACKUP_PREFIX}}
+        fi
+
+        success "S3 configuration saved"
+    else
+        info "Skipping S3 configuration. Backups will be stored locally."
+    fi
+}
+
+create_env_file() {
+    info "Creating configuration file: $ENV_FILE"
+
+    # CouchDB password configuration
+    echo ""
+    info "CouchDB Password Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "1. Generate secure random password (recommended)"
+    echo "2. Enter password manually"
+    echo ""
+
+    local couchdb_password
+    while true; do
+        read -p "Choose option (1/2): " -n 1 -r password_choice
+        echo ""
+
+        if [[ "$password_choice" == "1" ]]; then
+            couchdb_password=$(generate_password 32)
+            success "Generated secure 64-character password"
+            break
+        elif [[ "$password_choice" == "2" ]]; then
+            echo ""
+            warning "Manual password requirements:"
+            echo "  - Minimum 12 characters"
+            echo "  - Use strong password for production"
+            echo ""
+
+            while true; do
+                read -s -p "Enter CouchDB password: " password1
+                echo ""
+                read -s -p "Confirm password: " password2
+                echo ""
+
+                if [[ -z "$password1" ]]; then
+                    error "Password cannot be empty"
+                    continue
+                fi
+
+                if [[ ${#password1} -lt 12 ]]; then
+                    error "Password must be at least 12 characters"
+                    continue
+                fi
+
+                if [[ "$password1" != "$password2" ]]; then
+                    error "Passwords do not match"
+                    continue
+                fi
+
+                couchdb_password="$password1"
+                success "Password accepted"
+                break
+            done
+            break
+        else
+            warning "Invalid option. Please choose 1 or 2"
+        fi
+    done
+    echo ""
+
+    cat > "$ENV_FILE" << EOF
+# =============================================================================
+# Notes CouchDB Environment Configuration
+# =============================================================================
+# Generated by notes/setup.sh at $(date +'%Y-%m-%d %H:%M:%S')
+# DO NOT commit this file to git
+
+# =============================================================================
+# CouchDB Credentials
+# =============================================================================
+
+COUCHDB_USER=admin
+COUCHDB_PASSWORD=$couchdb_password
+
+# =============================================================================
+# Notes Domain Configuration
+# =============================================================================
+
+NOTES_DOMAIN=$NOTES_DOMAIN
+
+# =============================================================================
+# SSL/TLS Configuration (Let's Encrypt)
+# =============================================================================
+
+CERTBOT_EMAIL=$CERTBOT_EMAIL
+CERTBOT_STAGING=false
+
+# =============================================================================
+# Data Directories
+# =============================================================================
+
+NOTES_DATA_DIR=/opt/notes/data
+NOTES_BACKUP_DIR=/opt/notes/backups
+NOTES_LOG_DIR=/opt/notes/logs
+
+# =============================================================================
+# Network Configuration
+# =============================================================================
+
+NETWORK_MODE=$NETWORK_MODE
+NETWORK_NAME=$NETWORK_NAME
+NETWORK_EXTERNAL=$NETWORK_EXTERNAL
+${NETWORK_SUBNET:+NETWORK_SUBNET=$NETWORK_SUBNET}
+
+# =============================================================================
+# Nginx Configuration
+# =============================================================================
+
+NGINX_CONTAINER_NAME=$NGINX_CONTAINER_NAME
+NGINX_CONFIG_DIR=$NGINX_CONFIG_DIR
+DEPLOY_OWN_NGINX=$DEPLOY_OWN_NGINX
+EOF
+
+    if [[ -n "${S3_ACCESS_KEY_ID:-}" ]]; then
+        cat >> "$ENV_FILE" << EOF
+
+# =============================================================================
+# S3 Backup Configuration
+# =============================================================================
+
+S3_ACCESS_KEY_ID=$S3_ACCESS_KEY_ID
+S3_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY
+S3_BUCKET_NAME=$S3_BUCKET_NAME
+S3_ENDPOINT_URL=$S3_ENDPOINT_URL
+S3_REGION=$S3_REGION
+EOF
+
+        # Backend-specific S3 prefixes
+        if [[ "$SYNC_BACKEND" == "both" ]]; then
+            cat >> "$ENV_FILE" << EOF
+
+# Backend-specific S3 backup prefixes (dual mode)
+COUCHDB_S3_BACKUP_PREFIX=$COUCHDB_S3_BACKUP_PREFIX
+SERVERPEER_S3_BACKUP_PREFIX=$SERVERPEER_S3_BACKUP_PREFIX
+EOF
+        elif [[ "$SYNC_BACKEND" == "serverpeer" ]]; then
+            cat >> "$ENV_FILE" << EOF
+S3_BACKUP_PREFIX=$S3_BACKUP_PREFIX
+EOF
+        else
+            # CouchDB only
+            cat >> "$ENV_FILE" << EOF
+S3_BACKUP_PREFIX=$S3_BACKUP_PREFIX
+EOF
+        fi
+    fi
+
+    # Backend-specific configuration
+    cat >> "$ENV_FILE" << EOF
+
+# =============================================================================
+# Sync Backend Configuration
+# =============================================================================
+
+SYNC_BACKEND=$SYNC_BACKEND
+EOF
+
+    # CouchDB configuration (if enabled)
+    if [[ "$SYNC_BACKEND" == "couchdb" || "$SYNC_BACKEND" == "both" ]]; then
+        cat >> "$ENV_FILE" << EOF
+
+# =============================================================================
+# CouchDB Configuration
+# =============================================================================
+
+COUCHDB_CONTAINER_NAME=$COUCHDB_CONTAINER_NAME
+COUCHDB_PORT=5984
+COUCHDB_LOCATION=${COUCHDB_LOCATION:-/}
+EOF
+    fi
+
+    # ServerPeer configuration (if enabled)
+    if [[ "$SYNC_BACKEND" == "serverpeer" || "$SYNC_BACKEND" == "both" ]]; then
+        cat >> "$ENV_FILE" << EOF
+
+# =============================================================================
+# ServerPeer Configuration - Multiple Vaults Support
+# =============================================================================
+
+# Number of vaults
+VAULT_COUNT=${VAULT_COUNT:-1}
+
+# Common ServerPeer settings (shared by all vault instances)
+SERVERPEER_APPID=$SERVERPEER_APPID
+SERVERPEER_RELAYS=$SERVERPEER_RELAYS
+SERVERPEER_P2P_ENABLED=$SERVERPEER_P2P_ENABLED
+SERVERPEER_AUTOBROADCAST=$SERVERPEER_AUTOBROADCAST
+SERVERPEER_AUTOSTART=$SERVERPEER_AUTOSTART
+SERVERPEER_LOCATION=${SERVERPEER_LOCATION:-/serverpeer}
+
+# TURN/STUN Configuration for P2P WebRTC
+TURN_USERNAME=${TURN_USERNAME}
+TURN_PASSWORD=${TURN_PASSWORD}
+TURN_REALM=${TURN_REALM}
+COTURN_LISTENING_PORT=${COTURN_LISTENING_PORT}
+COTURN_EXTERNAL_IP=${COTURN_EXTERNAL_IP}
+SERVERPEER_STUN_SERVERS=${SERVERPEER_STUN_SERVERS}
+SERVERPEER_TURN_SERVERS=${SERVERPEER_TURN_SERVERS}
+
+EOF
+
+        # Write vault-specific variables
+        for ((i=1; i<=VAULT_COUNT; i++)); do
+            local vault_name_var="VAULT_${i}_NAME"
+            local vault_roomid_var="VAULT_${i}_ROOMID"
+            local vault_passphrase_var="VAULT_${i}_PASSPHRASE"
+            local vault_port_var="VAULT_${i}_PORT"
+            local vault_container_var="VAULT_${i}_CONTAINER"
+            local vault_dir_var="VAULT_${i}_VAULT_DIR"
+
+            cat >> "$ENV_FILE" << EOF
+# Vault #$i: ${!vault_name_var}
+VAULT_${i}_NAME=${!vault_name_var}
+VAULT_${i}_ROOMID=${!vault_roomid_var}
+VAULT_${i}_PASSPHRASE=${!vault_passphrase_var}
+VAULT_${i}_PORT=${!vault_port_var}
+VAULT_${i}_CONTAINER=${!vault_container_var}
+VAULT_${i}_VAULT_DIR=${!vault_dir_var}
+
+EOF
+        done
+
+        cat >> "$ENV_FILE" << EOF
+# =============================================================================
+# Nostr Relay Configuration (WebSocket signaling server for P2P)
+# =============================================================================
+
+NOSTR_RELAY_PORT=$NOSTR_RELAY_PORT
+NOSTR_RELAY_DATA_DIR=$NOSTR_RELAY_DATA_DIR
+NOSTR_RELAY_CONTAINER_NAME=$NOSTR_RELAY_CONTAINER_NAME
+NOSTR_RELAY_UPSTREAM=$NOSTR_RELAY_UPSTREAM
+EOF
+    fi
+
+    chmod 600 "$ENV_FILE"
+
+    success "Configuration file created: $ENV_FILE"
+}
+
+setup_backup_cron() {
+    info "Setting up automatic backups..."
+
+    echo ""
+    echo "Automatic backups configuration:"
+    echo "  Backend: ${SYNC_BACKEND:-couchdb}"
+    echo "  Schedule: Daily at 3:00 AM"
+    echo "  Target: S3 (if configured) + local /opt/notes/backups/"
+    echo ""
+    read -p "Enable automatic backups? (Y/n): " -n 1 -r
+    echo ""
+
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        # Remove old backup cron jobs (both couchdb and serverpeer)
+        if crontab -l 2>/dev/null | grep -qE "couchdb-backup.sh|serverpeer-backup.sh"; then
+            info "Removing old backup cron jobs..."
+            crontab -l 2>/dev/null | grep -vE "couchdb-backup.sh|serverpeer-backup.sh" | crontab -
+        fi
+
+        # Add cron jobs based on backend
+        if [[ "${SYNC_BACKEND}" == "both" ]]; then
+            info "Installing backup cron jobs for both backends..."
+            COUCHDB_CRON="0 3 * * * /bin/bash /opt/notes/scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+            SERVERPEER_CRON="5 3 * * * /bin/bash /opt/notes/scripts/serverpeer-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+            (crontab -l 2>/dev/null; echo "$COUCHDB_CRON"; echo "$SERVERPEER_CRON") | crontab -
+            success "Backup cron jobs created:"
+            echo "  - CouchDB: daily at 3:00 AM"
+            echo "  - ServerPeer: daily at 3:05 AM"
+        elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
+            CRON_JOB="0 3 * * * /bin/bash /opt/notes/scripts/serverpeer-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+            (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+            success "Backup cron job created (ServerPeer, daily at 3:00 AM)"
+        else
+            CRON_JOB="0 3 * * * /bin/bash /opt/notes/scripts/couchdb-backup.sh >> /opt/notes/logs/backup.log 2>&1"
+            (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+            success "Backup cron job created (CouchDB, daily at 3:00 AM)"
+        fi
+
+        touch /opt/notes/logs/backup.log
+        chmod 644 /opt/notes/logs/backup.log
+    else
+        info "Automatic backups not configured"
+        if [[ "${SYNC_BACKEND}" == "both" ]]; then
+            info "You can run backups manually:"
+            info "  bash /opt/notes/scripts/couchdb-backup.sh"
+            info "  bash /opt/notes/scripts/serverpeer-backup.sh"
+        elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
+            info "You can run backups manually: bash /opt/notes/scripts/serverpeer-backup.sh"
+        else
+            info "You can run backups manually: bash /opt/notes/scripts/couchdb-backup.sh"
+        fi
+    fi
+}
+
+setup_systemd_timer() {
+    info "Setting up systemd timer for backups..."
+
+    # Determine backup script based on backend
+    local backup_script=""
+    local service_name=""
+    local service_description=""
+
+    case "${SYNC_BACKEND:-couchdb}" in
+        couchdb)
+            backup_script="/opt/notes/scripts/couchdb-backup.sh"
+            service_name="couchdb-backup"
+            service_description="CouchDB Backup to S3"
+            ;;
+        serverpeer)
+            backup_script="/opt/notes/scripts/serverpeer-backup.sh"
+            service_name="serverpeer-backup"
+            service_description="ServerPeer Backup to S3"
+            ;;
+        both)
+            # For dual mode, we'll create two separate timers
+            info "Creating systemd timers for both backends..."
+            setup_systemd_timer_for_backend "couchdb" "/opt/notes/scripts/couchdb-backup.sh" "CouchDB Backup to S3"
+            setup_systemd_timer_for_backend "serverpeer" "/opt/notes/scripts/serverpeer-backup.sh" "ServerPeer Backup to S3"
+            success "Systemd timers configured for both backends (daily at 3:00 AM)"
+            info "Check status: systemctl status couchdb-backup.timer serverpeer-backup.timer"
+            return 0
+            ;;
+        *)
+            error "Unknown backend: ${SYNC_BACKEND}"
+            ;;
+    esac
+
+    setup_systemd_timer_for_backend "$service_name" "$backup_script" "$service_description"
+    success "Systemd timer configured (daily at 3:00 AM)"
+    info "Check status: systemctl status ${service_name}.timer"
+}
+
+setup_systemd_timer_for_backend() {
+    local service_name="$1"
+    local backup_script="$2"
+    local service_description="$3"
+
+    # Create systemd service file
+    sudo tee /etc/systemd/system/${service_name}.service > /dev/null << EOF
+[Unit]
+Description=${service_description}
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/notes
+ExecStart=/bin/bash ${backup_script}
+StandardOutput=append:/opt/notes/logs/backup.log
+StandardError=append:/opt/notes/logs/backup.log
+User=root
+EOF
+
+    # Create systemd timer file
+    sudo tee /etc/systemd/system/${service_name}.timer > /dev/null << EOF
+[Unit]
+Description=Daily ${service_description} Timer
+
+[Timer]
+OnCalendar=daily
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    # Reload and enable
+    sudo systemctl daemon-reload
+    sudo systemctl enable ${service_name}.timer
+    sudo systemctl start ${service_name}.timer
+
+    info "Created and started ${service_name}.timer"
+}
+
+display_summary() {
+    echo ""
+    success "========================================"
+    success "Notes Configuration Summary"
+    success "========================================"
+    echo ""
+    echo "  Configuration file: $ENV_FILE"
+    echo "  CouchDB user:       admin"
+    echo "  CouchDB password:   [generated - 64 chars]"
+    echo "  Notes domain:       $NOTES_DOMAIN"
+    echo "  Certbot email:      $CERTBOT_EMAIL"
+    echo "  Data directory:     /opt/notes/data"
+
+    if [[ -n "${S3_ACCESS_KEY_ID:-}" ]]; then
+        echo ""
+        echo "  S3 Backup:"
+        echo "    Bucket:           $S3_BUCKET_NAME"
+        echo "    Endpoint:         $S3_ENDPOINT_URL"
+        echo "    Region:           $S3_REGION"
+    else
+        echo ""
+        echo "  S3 Backup:          Not configured (local backups only)"
+    fi
+
+    echo ""
+    info "IMPORTANT: Keep $ENV_FILE secure!"
+    info "           This file contains sensitive credentials."
+    echo ""
+}
+
+# =============================================================================
+# MAIN SETUP
+# =============================================================================
+
+main() {
+    info "========================================"
+    info "Notes CouchDB - Setup"
+    info "========================================"
+    echo ""
+
+    check_notes_directory
+    check_existing_env
+
+    # Docker proxy configuration (optional, for restricted networks)
+    configure_docker_proxy
+
+    configure_network
+    configure_nginx
+
+    # Domain and email configuration (needed before backend setup)
+    prompt_notes_domain
+    prompt_certbot_email
+
+    # Backend selection
+    prompt_sync_backend
+
+    # Conditional backend configuration
+    if [[ "${SYNC_BACKEND:-couchdb}" == "both" ]]; then
+        configure_couchdb
+        configure_serverpeer
+        configure_turn_firewall
+    elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
+        configure_serverpeer
+        configure_turn_firewall
+    else
+        configure_couchdb
+    fi
+
+    prompt_s3_credentials
+
+    echo ""
+    validate_config
+    test_dns_resolution
+
+    echo ""
+    create_env_file
+    display_summary
+
+    echo ""
+    info "Backup scheduler:"
+    echo "  1) Cron (traditional)"
+    echo "  2) Systemd timer (modern)"
+    read -p "Choose [1]: " SCHEDULER_CHOICE
+    SCHEDULER_CHOICE=${SCHEDULER_CHOICE:-1}
+
+    if [[ "$SCHEDULER_CHOICE" == "2" ]]; then
+        setup_systemd_timer
+    else
+        setup_backup_cron
+    fi
+
+    echo ""
+    echo ""
+    success "╔════════════════════════════════════════════════════════════════════╗"
+    success "║                 ✅ УСТАНОВКА ЗАВЕРШЕНА УСПЕШНО                    ║"
+    success "╚════════════════════════════════════════════════════════════════════╝"
+    echo ""
+
+    echo "📋 ИТОГОВЫЕ ПАРАМЕТРЫ:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  🌐 Network:"
+    echo "     Mode:     $NETWORK_MODE"
+    echo "     Name:     $NETWORK_NAME"
+    [ -n "$NETWORK_SUBNET" ] && echo "     Subnet:   $NETWORK_SUBNET"
+    echo ""
+    echo "  🔧 Nginx:"
+    echo "     Container:  $NGINX_CONTAINER_NAME"
+    echo "     Config dir: $NGINX_CONFIG_DIR"
+    echo "     Deploy own: $DEPLOY_OWN_NGINX"
+    echo ""
+
+    # Backend-specific summary
+    if [[ "$SYNC_BACKEND" == "couchdb" || "$SYNC_BACKEND" == "both" ]]; then
+        echo "  💾 CouchDB:"
+        echo "     Container:  $COUCHDB_CONTAINER_NAME"
+        echo "     User:       admin"
+        echo "     Password:   [generated - 64 chars]"
+        echo "     Port:       5984 (localhost only)"
+        [[ "$SYNC_BACKEND" == "both" ]] && echo "     Location:   $COUCHDB_LOCATION"
+        echo ""
+    fi
+
+    if [[ "$SYNC_BACKEND" == "serverpeer" || "$SYNC_BACKEND" == "both" ]]; then
+        echo "  🔄 ServerPeer:"
+        echo "     Container:  $SERVERPEER_CONTAINER_NAME"
+        echo "     App ID:     $SERVERPEER_APPID"
+        echo "     Room ID:    $SERVERPEER_ROOMID"
+        echo "     Port:       3000 (localhost only)"
+        [[ "$SYNC_BACKEND" == "both" ]] && echo "     Location:   $SERVERPEER_LOCATION"
+        echo ""
+    fi
+
+    echo "  🌍 Domain & SSL:"
+    echo "     Domain:     $NOTES_DOMAIN"
+    echo "     Email:      $CERTBOT_EMAIL"
+    echo "     SSL:        Let's Encrypt (автообновление каждые 60 дней)"
+    echo ""
+
+    if [[ -n "${S3_ACCESS_KEY_ID:-}" ]]; then
+        echo "  ☁️  S3 Backup:"
+        echo "     Bucket:     $S3_BUCKET_NAME"
+        echo "     Endpoint:   $S3_ENDPOINT_URL"
+        echo "     Region:     $S3_REGION"
+        echo ""
+    fi
+
+    if [[ "$SCHEDULER_CHOICE" == "2" ]]; then
+        echo "  🕐 Backup Schedule:"
+        echo "     Type:       Systemd timer"
+        echo "     Schedule:   Daily at 3:00 AM"
+        echo ""
+    else
+        echo "  🕐 Backup Schedule:"
+        echo "     Type:       Cron"
+        echo "     Schedule:   Daily at 3:00 AM"
+        echo ""
+    fi
+
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "📁 КОНФИГУРАЦИЯ СОХРАНЕНА:"
+    echo "   $ENV_FILE"
+    echo ""
+    warning "⚠️  ВАЖНО: Храните $ENV_FILE в безопасности!"
+    warning "⚠️  Файл содержит пароли и секретные ключи."
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    info "🚀 СЛЕДУЮЩИЕ ШАГИ:"
+    echo ""
+    echo "   1. Проверьте конфигурацию:"
+    echo "      cat $ENV_FILE"
+    echo ""
+    echo "   2. Запустите deploy:"
+    echo "      sudo ./deploy.sh"
+    echo ""
+    echo "   3. После успешного deploy:"
+    echo "      - Откройте https://$NOTES_DOMAIN"
+    echo "      - Настройте Obsidian Self-hosted LiveSync plugin"
+    echo "      - Используйте credentials из $ENV_FILE"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+}
+
+main "$@"

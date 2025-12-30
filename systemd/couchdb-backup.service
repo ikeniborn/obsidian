@@ -1,0 +1,11 @@
+[Unit]
+Description=CouchDB Backup to S3
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/notes
+ExecStart=/bin/bash /opt/notes/scripts/couchdb-backup.sh
+StandardOutput=append:/opt/notes/logs/backup.log
+StandardError=append:/opt/notes/logs/backup.log
+User=root

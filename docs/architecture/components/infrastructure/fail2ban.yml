@@ -1,0 +1,393 @@
+metadata:
+  id: "component:fail2ban"
+  type: "infrastructure"
+  category: "security"
+  version: "1.0.0"
+  status: "active"
+  date_created: "2025-12-29"
+
+description:
+  short: "Dynamic intrusion prevention system"
+  full: |
+    fail2ban monitors system logs and automatically bans IP addresses
+    that show malicious signs (brute-force attacks, port scanning, API abuse)
+    by adding dynamic deny rules to UFW firewall.
+
+    This provides a second layer of defense beyond static UFW rules, protecting
+    against:
+    - SSH brute-force password guessing
+    - HTTP directory scanning and DoS attempts
+    - CouchDB API authentication abuse
+    - ServerPeer WebSocket connection flooding
+
+technical_details:
+  installation:
+    package: "fail2ban"
+    command: "apt-get install -y fail2ban"
+    systemd_service: "fail2ban.service"
+
+  configuration_dir: "/etc/fail2ban/"
+  log_file: "/var/log/fail2ban/fail2ban.log"
+
+  jails:
+    sshd:
+      enabled: true
+      description: "SSH brute-force protection"
+      filter: "sshd (system filter)"
+      log_path: "/var/log/auth.log"
+      port: "auto-detect from /etc/ssh/sshd_config"
+      maxretry: 5
+      findtime: 600  # 10 minutes
+      bantime: 3600  # 1 hour
+      purpose: "Blocks IPs after 5 failed SSH login attempts"
+
+    nginx-http-auth:
+      enabled: true
+      description: "HTTP authentication failure protection"
+      filter: "nginx-http-auth (system filter)"
+      log_path: "/var/log/nginx/access.log"
+      port: "http,https"
+      maxretry: 10
+      findtime: 600
+      bantime: 3600
+      purpose: "Blocks IPs showing HTTP authentication abuse"
+
+    nginx-noscript:
+      enabled: true
+      description: "Script injection protection"
+      filter: "nginx-noscript (system filter)"
+      log_path: "/var/log/nginx/access.log"
+      port: "http,https"
+      maxretry: 10
+      findtime: 600
+      bantime: 3600
+      purpose: "Blocks IPs attempting script injection"
+
+    nginx-badbots:
+      enabled: true
+      description: "Malicious bot protection"
+      filter: "nginx-badbots (system filter)"
+      log_path: "/var/log/nginx/access.log"
+      port: "http,https"
+      maxretry: 10
+      findtime: 600
+      bantime: 3600
+      purpose: "Blocks known malicious user agents"
+
+    nginx-noproxy:
+      enabled: true
+      description: "Proxy abuse protection"
+      filter: "nginx-noproxy (system filter)"
+      log_path: "/var/log/nginx/access.log"
+      port: "http,https"
+      maxretry: 10
+      findtime: 600
+      bantime: 3600
+      purpose: "Blocks IPs attempting to use server as proxy"
+
+    notes-couchdb:
+      enabled: "conditional (if SYNC_BACKEND = couchdb or both)"
+      description: "CouchDB API abuse protection"
+      filter: "notes-couchdb (custom filter)"
+      log_path: "/var/log/nginx/access.log"
+      port: "http,https"
+      maxretry: 3
+      findtime: 300  # 5 minutes
+      bantime: 7200  # 2 hours
+      purpose: "Blocks IPs after 3 failed CouchDB authentication attempts"
+      backend_aware: true
+
+    notes-serverpeer:
+      enabled: "conditional (if SYNC_BACKEND = serverpeer or both)"
+      description: "ServerPeer WebSocket abuse protection"
+      filter: "notes-serverpeer (custom filter)"
+      log_path: "/var/log/nginx/access.log"
+      port: "http,https"
+      maxretry: 3
+      findtime: 300
+      bantime: 7200
+      purpose: "Blocks IPs after 3 failed ServerPeer WebSocket auth attempts"
+      backend_aware: true
+      wss_protocol: "Monitors WSS (WebSocket Secure) over port 443"
+
+  custom_filters:
+    notes-couchdb:
+      path: "/etc/fail2ban/filter.d/notes-couchdb.conf"
+      description: "Custom filter for CouchDB API authentication failures"
+      pattern: '^<HOST> .* "(GET|POST|PUT|DELETE) /couchdb.* HTTP/.*" 401 .*$'
+      matches:
+        - "HTTP 401 Unauthorized on /couchdb location"
+      ignores:
+        - "/_up (health check endpoint)"
+        - "/_session (session endpoint)"
+      example_match: '192.168.1.100 - - [29/Dec/2025:12:00:00 +0000] "GET /couchdb/_all_dbs HTTP/1.1" 401 51'
+
+    notes-serverpeer:
+      path: "/etc/fail2ban/filter.d/notes-serverpeer.conf"
+      description: "Custom filter for ServerPeer WebSocket authentication failures"
+      pattern: '^<HOST> .* "(GET|POST) /serverpeer.* HTTP/.*" (401|403) .*$'
+      matches:
+        - "HTTP 401/403 on /serverpeer location"
+      ignores:
+        - "HTTP 101 (WebSocket upgrade - successful connection)"
+        - "HTTP 200 (successful non-WebSocket requests)"
+      wss_notes: "Ignores HTTP 101 Switching Protocols which indicates successful WSS connection establishment"
+      example_match: '192.168.1.100 - - [29/Dec/2025:12:00:00 +0000] "GET /serverpeer/ HTTP/1.1" 401 51'
+
+  ufw_integration:
+    banaction: "ufw"
+    mechanism: |
+      fail2ban inserts dynamic deny rules into UFW firewall using:
+      ufw insert 1 deny from <IP> to any
+
+    rule_format: "ufw deny from <IP> to any"
+    rule_priority: "Position 1 (highest priority, before other rules)"
+    persistence: "Rules persist across reboots (UFW maintains them)"
+
+    compatibility:
+      ssl_renewal_hooks: "Compatible (different rule types: port vs IP)"
+      certbot: "No conflicts (certbot manages port 80, fail2ban manages IP bans)"
+
+  monitoring:
+    status_command: "fail2ban-client status"
+    jail_status: "fail2ban-client status <jail-name>"
+    banned_ips: "fail2ban-client get <jail> banip"
+    unban_ip: "fail2ban-client set <jail> unbanip <IP>"
+    reload: "fail2ban-client reload"
+    logs: "/var/log/fail2ban/fail2ban.log"
+
+relationships:
+  depends_on:
+    - id: "component:ufw-firewall"
+      reason: "fail2ban requires UFW active (banaction = ufw)"
+      criticality: "critical"
+
+    - id: "component:nginx"
+      reason: "Monitors nginx access.log for HTTP/API abuse"
+      criticality: "high"
+
+    - id: "component:couchdb"
+      reason: "Protects CouchDB API (if backend enabled)"
+      criticality: "medium"
+      conditional: "SYNC_BACKEND = couchdb or both"
+
+    - id: "component:serverpeer"
+      reason: "Protects ServerPeer WebSocket (if backend enabled)"
+      criticality: "medium"
+      conditional: "SYNC_BACKEND = serverpeer or both"
+
+  managed_by:
+    - id: "script:fail2ban-setup"
+      actions:
+        - "install fail2ban"
+        - "create custom filters"
+        - "create jails (backend-aware)"
+        - "enable systemd service"
+        - "validate configuration"
+
+  called_by:
+    - id: "script:deploy"
+      phase: "after check_ufw_configured, before deploy_couchdb"
+      blocking: false
+      degraded_mode: "UFW only (static rules)"
+
+  integrates_with:
+    - id: "component:ufw-firewall"
+      integration: "dynamic rule injection"
+      method: "banaction = ufw"
+
+    - id: "component:nginx"
+      integration: "log monitoring"
+      files: ["/var/log/nginx/access.log", "/var/log/nginx/error.log"]
+
+operations:
+  installation:
+    script: "scripts/fail2ban-setup.sh"
+    requires_sudo: true
+    duration: "~2 minutes"
+    idempotent: true
+    dry_run: "sudo bash scripts/fail2ban-setup.sh --dry-run"
+
+  validation:
+    health_check:
+      command: "systemctl is-active fail2ban"
+      expected: "active"
+
+    jail_check:
+      command: "fail2ban-client status | grep 'Jail list'"
+      expected: "List of active jails"
+
+    ufw_integration_check:
+      command: "fail2ban-client get sshd banaction"
+      expected: "ufw"
+
+    filter_syntax_check:
+      command: "fail2ban-regex /dev/null /etc/fail2ban/filter.d/notes-couchdb.conf"
+      expected: "No errors"
+
+  testing:
+    test_suite: "scripts/test-fail2ban.sh"
+    tests:
+      - "Service running"
+      - "Filter syntax validation"
+      - "Filter matching (sample logs)"
+      - "UFW integration verification"
+      - "Jail health check"
+      - "Ban/unban cycle test"
+
+  troubleshooting:
+    view_logs:
+      command: "tail -f /var/log/fail2ban/fail2ban.log"
+      purpose: "Monitor real-time fail2ban activity"
+
+    check_filter:
+      command: "fail2ban-regex /var/log/nginx/access.log /etc/fail2ban/filter.d/notes-couchdb.conf"
+      purpose: "Test filter against actual logs"
+
+    restart_service:
+      command: "systemctl restart fail2ban"
+      purpose: "Reload configuration after changes"
+
+    reload_config:
+      command: "fail2ban-client reload"
+      purpose: "Reload configuration without full restart"
+
+  rollback:
+    stop_service: "systemctl stop fail2ban && systemctl disable fail2ban"
+    remove_jails: "rm -f /etc/fail2ban/jail.local /etc/fail2ban/jail.d/*.local"
+    remove_filters: "rm -f /etc/fail2ban/filter.d/notes-*.conf"
+    clean_ufw: "Remove fail2ban UFW rules manually (sudo ufw status numbered)"
+    purge: "apt-get purge -y fail2ban"
+
+security_considerations:
+  risks:
+    - name: "False Positives"
+      severity: "medium"
+      description: "Legitimate users may be banned due to typos or connectivity issues"
+      mitigation:
+        - "Conservative thresholds (3-5 failures)"
+        - "Whitelist patterns for health checks"
+        - "Easy unban process"
+
+    - name: "Docker Log Access"
+      severity: "high"
+      description: "fail2ban cannot read logs inside Docker containers"
+      mitigation:
+        - "Validate volume mount at setup (detect_nginx_logs)"
+        - "Skip nginx jails gracefully if logs not accessible"
+        - "Show clear instructions for volume mount"
+
+    - name: "UFW Rule Conflicts"
+      severity: "low"
+      description: "Potential race conditions with certbot UFW hooks"
+      mitigation:
+        - "Different rule types (certbot: port, fail2ban: IP)"
+        - "UFW internal locking prevents conflicts"
+        - "Low probability of simultaneous modification"
+
+    - name: "Log Rotation Breaks Monitoring"
+      severity: "medium"
+      description: "fail2ban may lose log file handle after logrotate"
+      mitigation:
+        - "Add fail2ban-client reload to logrotate postrotate"
+        - "Systemd auto-restart on log rotation"
+
+  best_practices:
+    - "Use conservative maxretry values (3-5)"
+    - "Whitelist internal IPs: ignoreip = 127.0.0.1/8, 192.168.0.0/16"
+    - "Monitor banned IPs regularly"
+    - "Test filters before production: fail2ban-regex"
+    - "Document whitelisted IPs for team awareness"
+    - "Set up email notifications for bans (optional)"
+
+examples:
+  manual_ban:
+    description: "Manually ban an IP address"
+    command: "fail2ban-client set notes-couchdb banip 192.168.1.100"
+    use_case: "Block specific attacker immediately"
+
+  manual_unban:
+    description: "Unban a legitimate user"
+    command: "fail2ban-client set notes-couchdb unbanip 192.168.1.100"
+    use_case: "Restore access to false positive"
+
+  check_banned_ips:
+    description: "List all banned IPs for a jail"
+    command: "fail2ban-client status notes-couchdb"
+    output: |
+      Status for the jail: notes-couchdb
+      |- Filter
+      |  |- Currently failed: 0
+      |  |- Total failed:     5
+      |  `- File list:        /var/log/nginx/access.log
+      `- Actions
+         |- Currently banned: 1
+         |- Total banned:     3
+         `- Banned IP list:   192.168.1.100
+
+  whitelist_ip:
+    description: "Add IP to whitelist (ignoreip)"
+    file: "/etc/fail2ban/jail.local"
+    edit: |
+      [DEFAULT]
+      ignoreip = 127.0.0.1/8 ::1 192.168.1.0/24
+    reload: "fail2ban-client reload"
+
+integration_notes:
+  deployment:
+    phase: "After UFW check, before backend deployment"
+    position: "deploy.sh line 646 (setup_fail2ban())"
+    non_blocking: true
+    degraded_mode: "Deployment continues with UFW only if fail2ban fails"
+
+  backend_awareness:
+    mechanism: "Sources /opt/notes/.env to read SYNC_BACKEND"
+    logic: |
+      case "${SYNC_BACKEND}" in
+          both)        create_couchdb_jail && create_serverpeer_jail ;;
+          serverpeer)  create_serverpeer_jail ;;
+          couchdb|*)   create_couchdb_jail ;;
+      esac
+
+    variables:
+      SYNC_BACKEND: "couchdb | serverpeer | both"
+
+  docker_compatibility:
+    nginx_docker:
+      requirement: "Logs must be volume-mounted to host"
+      volume: "/opt/notes/logs/nginx:/var/log/nginx"
+      detection: "detect_nginx_logs() checks for mount"
+      fallback: "Skip nginx jails if logs not accessible"
+
+    nginx_systemd:
+      log_path: "/var/log/nginx/"
+      works: "Automatically (logs on host filesystem)"
+
+performance:
+  resource_usage:
+    cpu: "Minimal (~0.1% steady state)"
+    memory: "~50MB RSS"
+    io: "Log file reads (periodic)"
+
+  scalability:
+    max_jails: "Tested with 10+ jails"
+    max_logs: "Handles millions of log entries"
+    performance_impact: "Negligible on modern systems"
+
+maintenance:
+  updates:
+    frequency: "Follow system package updates"
+    command: "apt-get update && apt-get upgrade fail2ban"
+
+  monitoring:
+    banned_ips_count: "fail2ban-client status | grep 'Currently banned'"
+    failed_attempts: "fail2ban-client status <jail> | grep 'Currently failed'"
+
+  cleanup:
+    old_logs: "Handled by logrotate (/etc/logrotate.d/fail2ban)"
+    retention: "7 days default"
+
+references:
+  official_docs: "https://www.fail2ban.org/wiki/index.php/Main_Page"
+  ufw_backend: "https://github.com/fail2ban/fail2ban/blob/master/config/action.d/ufw.conf"
+  filter_syntax: "https://www.fail2ban.org/wiki/index.php/MANUAL_0_8#Filters"

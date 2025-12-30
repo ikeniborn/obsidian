@@ -1,0 +1,52 @@
+services:
+  serverpeer-personal:
+    build:
+      context: ./serverpeer
+      dockerfile: Dockerfile
+    container_name: ${SERVERPEER_PERSONAL_CONTAINER_NAME:-notes-serverpeer-personal}
+    restart: unless-stopped
+
+    env_file:
+      - /opt/notes/.env
+
+    environment:
+      SLS_SERVER_PEER_APPID: ${SERVERPEER_APPID}
+      SLS_SERVER_PEER_ROOMID: ${SERVERPEER_PERSONAL_ROOMID}
+      SLS_SERVER_PEER_PASSPHRASE: ${SERVERPEER_PERSONAL_PASSPHRASE}
+      SLS_SERVER_PEER_RELAYS: ${SERVERPEER_RELAYS}
+      SLS_SERVER_PEER_NAME: ${SERVERPEER_PERSONAL_NAME:-personal-peer}
+      SLS_SERVER_PEER_AUTOBROADCAST: ${SERVERPEER_AUTOBROADCAST}
+      SLS_SERVER_PEER_AUTOSTART: ${SERVERPEER_AUTOSTART}
+      SLS_SERVER_PEER_VAULT_NAME: ${SERVERPEER_PERSONAL_VAULT_NAME:-personal-vault}
+
+    volumes:
+      - ${SERVERPEER_PERSONAL_VAULT_DIR:-/opt/notes/serverpeer-personal-vault}:/app/vault
+
+    ports:
+      - "127.0.0.1:${SERVERPEER_PERSONAL_PORT:-3001}:3000"
+
+    networks:
+      - notes-network
+
+    # ServerPeer is a P2P client, not an HTTP server
+    # Check if deno process is running instead of HTTP endpoint
+    healthcheck:
+      test: ["CMD", "sh", "-c", "pgrep -f 'deno.*main.ts' > /dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+networks:
+  notes-network:
+    external: ${NETWORK_EXTERNAL:-false}
+    name: ${NETWORK_NAME}
