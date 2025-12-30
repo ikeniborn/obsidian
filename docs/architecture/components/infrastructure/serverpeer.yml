@@ -227,15 +227,22 @@ monitoring:
 troubleshooting:
   p2p_disabled:
     symptom: "Logs show 'P2P_Enabled: false', Obsidian can't find peers"
-    root_cause: "Plugin data.json was not initialized with P2P enabled during deployment"
+    root_cause: "envToSetting mapping lacked P2P_Enabled → SLS_SERVER_PEER_P2P_ENABLED entry"
     diagnosis:
       - "Check logs: docker logs notes-serverpeer-work | grep 'P2P_Enabled'"
-      - "If shows 'P2P_Enabled: false' → P2P is disabled in headless vault"
+      - "If shows 'P2P_Enabled: false' → environment variable not mapped"
+      - "Check env var: docker exec notes-serverpeer-work env | grep P2P_ENABLED"
     solution:
-      - "Run init script: bash scripts/init-serverpeer-vault.sh 1"
-      - "Restart container: docker restart notes-serverpeer-work"
+      - "Ensure SERVERPEER_P2P_ENABLED=true in /opt/notes/.env"
+      - "Ensure SLS_SERVER_PEER_P2P_ENABLED in docker-compose environment"
+      - "Rebuild image: docker compose -f docker-compose.serverpeers.yml build --no-cache"
+      - "Restart containers: docker compose -f docker-compose.serverpeers.yml up -d"
       - "Verify logs show 'P2P_Enabled: true'"
-    prevention: "deploy.sh now automatically runs init-serverpeer-vault.sh"
+    fixed_in_commit: "c6e17b1 (2025-12-30)"
+    fix_details:
+      - "Added sed command in Dockerfile to inject P2P_Enabled mapping into src/types.ts"
+      - "Added SERVERPEER_P2P_ENABLED=true to setup.sh common settings"
+      - "Added SLS_SERVER_PEER_P2P_ENABLED to generate-serverpeer-compose.sh environment"
 
   peers_not_found:
     symptom: "Obsidian reports 'cannot find peers' even though ServerPeer is running"
