@@ -404,62 +404,6 @@ wait_for_serverpeer_healthy() {
     success "All ServerPeer containers checked"
 }
 
-initialize_serverpeer_p2p() {
-    info "Initializing P2P configuration in ServerPeer vaults..."
-
-    local compose_file="$SCRIPT_DIR/docker-compose.serverpeers.yml"
-
-    # Stop containers to modify data.json
-    info "Stopping ServerPeer containers to update P2P configuration..."
-    docker compose -f "$compose_file" stop
-
-    # Wait a bit for containers to stop
-    sleep 2
-
-    # Initialize vault configurations with P2P enabled
-    for ((i=1; i<=VAULT_COUNT; i++)); do
-        local vault_name_var="VAULT_${i}_NAME"
-        local vault_name="${!vault_name_var}"
-
-        info "Enabling P2P for vault: $vault_name (VAULT_$i)"
-
-        if bash "$SCRIPT_DIR/scripts/init-serverpeer-vault.sh" "$i"; then
-            success "P2P enabled for vault $vault_name"
-        else
-            warning "Failed to initialize P2P for VAULT_$i"
-            warning "You may need to run: bash scripts/init-serverpeer-vault.sh $i"
-        fi
-    done
-
-    # Restart containers with P2P enabled
-    info "Restarting ServerPeer containers with P2P enabled..."
-    docker compose -f "$compose_file" start
-
-    # Wait for containers to start
-    sleep 3
-
-    success "P2P initialization completed"
-
-    # Verify P2P is enabled
-    info "Verifying P2P status..."
-    for ((i=1; i<=VAULT_COUNT; i++)); do
-        local container_var="VAULT_${i}_CONTAINER"
-        local vault_name_var="VAULT_${i}_NAME"
-        local container="${!container_var}"
-        local vault_name="${!vault_name_var}"
-
-        # Wait a moment for ServerPeer to log settings
-        sleep 2
-
-        if docker logs "$container" 2>&1 | grep -q "P2P_Enabled: true"; then
-            success "✅ P2P enabled in $vault_name"
-        else
-            warning "⚠️  P2P may not be enabled in $vault_name, check logs:"
-            warning "   docker logs $container | grep P2P_Enabled"
-        fi
-    done
-}
-
 prepull_nostr_relay_images() {
     info "Checking Nostr Relay image..."
     info "Only updated image will be pulled"
@@ -811,7 +755,6 @@ main() {
         wait_for_couchdb_healthy
         wait_for_nostr_relay_healthy
         wait_for_serverpeer_healthy
-        initialize_serverpeer_p2p
         success "Both backends deployed successfully"
     elif [[ "${SYNC_BACKEND}" == "serverpeer" ]]; then
         info "Deploying ServerPeer backend..."
@@ -819,7 +762,6 @@ main() {
         deploy_serverpeer
         wait_for_nostr_relay_healthy
         wait_for_serverpeer_healthy
-        initialize_serverpeer_p2p
     else
         info "Deploying CouchDB backend..."
         deploy_couchdb
