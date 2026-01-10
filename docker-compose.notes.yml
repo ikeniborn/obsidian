@@ -38,8 +38,9 @@ services:
     deploy:
       resources:
         limits:
+          # Priority 5: Optimized from 512M to 384M (current usage ~60MB)
           cpus: '0.5'
-          memory: 512M
+          memory: 384M
         reservations:
           cpus: '0.1'
           memory: 128M
