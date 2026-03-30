@@ -39,13 +39,37 @@ create_ufw_hooks() {
 
     cat <<'EOF' | sudo tee "$PRE_HOOK_FILE" > /dev/null
 #!/bin/bash
+# Open UFW port 80 for certbot renewal
 ufw allow 80/tcp comment 'Certbot renewal (temporary)'
 sleep 2
+
+# Stop nginx container if running (it holds port 80)
+ENV_FILE="/opt/notes/.env"
+if [[ -f "$ENV_FILE" ]]; then
+    source "$ENV_FILE"
+fi
+NGINX_NAME="${NGINX_CONTAINER_NAME:-notes-nginx}"
+if docker ps --format '{{.Names}}' | grep -q "^${NGINX_NAME}$"; then
+    docker stop "$NGINX_NAME"
+    touch /tmp/certbot-nginx-was-running
+fi
 EOF
 
     cat <<'EOF' | sudo tee "$POST_HOOK_FILE" > /dev/null
 #!/bin/bash
+# Close UFW port 80
 ufw delete allow 80/tcp
+
+# Start nginx container back if it was stopped by pre-hook
+ENV_FILE="/opt/notes/.env"
+if [[ -f "$ENV_FILE" ]]; then
+    source "$ENV_FILE"
+fi
+NGINX_NAME="${NGINX_CONTAINER_NAME:-notes-nginx}"
+if [[ -f /tmp/certbot-nginx-was-running ]]; then
+    docker start "$NGINX_NAME"
+    rm -f /tmp/certbot-nginx-was-running
+fi
 EOF
 
     sudo chmod +x "$PRE_HOOK_FILE"
