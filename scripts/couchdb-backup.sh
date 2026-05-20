@@ -457,6 +457,13 @@ if [[ "${S3_UPLOAD_ENABLED}" == "true" ]]; then
 
         log "✅ Upload completed in ${upload_duration} seconds"
         update_progress "Backup uploaded to S3"
+
+        log "Cleaning up S3 objects older than ${RETENTION_DAYS} days..."
+        if python3 "${S3_UPLOAD_SCRIPT}" --cleanup "${S3_PREFIX}" --days "${RETENTION_DAYS}" 2>&1 | tee -a "${LOG_FILE}"; then
+            log "S3 cleanup completed"
+        else
+            log "WARNING: S3 cleanup failed (backup upload was successful)"
+        fi
     else
         log "❌ S3 upload failed"
         log "WARNING: Backup is available locally: ${BACKUP_DIR}/${BACKUP_NAME}"
@@ -475,10 +482,6 @@ if [[ -f "${OLD_BACKUP_NAME}" ]]; then
     rm -f "${OLD_BACKUP_NAME}" || log "WARNING: Failed to remove old local backup"
 fi
 
-# Note: S3 old backup cleanup should be done via S3 lifecycle policies
-# Manual cleanup can be done using AWS CLI or S3 web console
-log "ℹ️  S3 backup retention: Configure lifecycle policy in S3 bucket settings"
-log "   Recommended: Delete objects older than ${RETENTION_DAYS} days"
 
 # Clean up any backups older than retention period
 log "Cleaning up backups older than ${RETENTION_DAYS} days"
