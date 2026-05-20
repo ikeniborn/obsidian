@@ -482,7 +482,6 @@ if [[ -f "${OLD_BACKUP_NAME}" ]]; then
     rm -f "${OLD_BACKUP_NAME}" || log "WARNING: Failed to remove old local backup"
 fi
 
-
 # Clean up any backups older than retention period
 log "Cleaning up backups older than ${RETENTION_DAYS} days"
 find "${BACKUP_DIR}" -name "couchdb-*.tar.gz" -type f -mtime +${RETENTION_DAYS} -delete
