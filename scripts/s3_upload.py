@@ -183,14 +183,26 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: s3_upload.py <file_path> [s3_prefix]")
         print("       s3_upload.py --test")
+        print("       s3_upload.py --cleanup <prefix> [--days N]")
         sys.exit(1)
 
     if sys.argv[1] == "--test":
         success = test_s3_connection()
         sys.exit(0 if success else 1)
 
+    if sys.argv[1] == "--cleanup":
+        if len(sys.argv) < 3:
+            print("Usage: s3_upload.py --cleanup <prefix> [--days N]")
+            sys.exit(1)
+        prefix = sys.argv[2]
+        days = 7
+        if "--days" in sys.argv:
+            idx = sys.argv.index("--days")
+            days = int(sys.argv[idx + 1])
+        success = run_cleanup(prefix, days)
+        sys.exit(0 if success else 1)
+
     file_path = sys.argv[1]
     s3_prefix = sys.argv[2] if len(sys.argv) > 2 else ""
-
     success = upload_to_s3(file_path, s3_prefix)
     sys.exit(0 if success else 1)
