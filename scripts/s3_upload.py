@@ -196,9 +196,16 @@ if __name__ == "__main__":
             sys.exit(1)
         prefix = sys.argv[2]
         days = 7
-        if "--days" in sys.argv:
-            idx = sys.argv.index("--days")
-            days = int(sys.argv[idx + 1])
+        if "--days" in sys.argv[3:]:
+            idx = sys.argv.index("--days", 3)
+            if idx + 1 >= len(sys.argv):
+                print("ERROR: --days requires a value")
+                sys.exit(1)
+            try:
+                days = int(sys.argv[idx + 1])
+            except ValueError:
+                print(f"ERROR: --days must be an integer, got: {sys.argv[idx + 1]!r}")
+                sys.exit(1)
         success = run_cleanup(prefix, days)
         sys.exit(0 if success else 1)
 
