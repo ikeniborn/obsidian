@@ -1,3 +1,39 @@
+---
+review:
+  plan_hash: cb5f5dc809a1f606
+  spec_hash: 7eacce8a903f2c7b
+  last_run: 2026-05-20
+  phases:
+    structure:     { status: passed }
+    coverage:      { status: passed }
+    dependencies:  { status: passed }
+    verifiability: { status: passed }
+    consistency:   { status: passed }
+  section_hashes:
+    Task1: a7f500b8385f0c2f
+    Task2: 10946fc9dbca93a7
+    Task3: b20b166ad0ad5a1f
+    Task4: c427bfaed7fd5d0a
+    Task5: d0f1524f256a42b5
+  findings:
+    - id: F-001
+      phase: coverage
+      severity: INFO
+      section: Task5
+      section_hash: d0f1524f256a42b5
+      text: "Spec §Required S3 Permissions (s3:ListBucket, s3:DeleteObject) not covered by any plan step — no verification that bucket policy allows listing/deletion before running cleanup"
+      verdict: fixed
+      verdict_at: 2026-05-20
+    - id: F-002
+      phase: verifiability
+      severity: WARNING
+      section: Task5
+      section_hash: d0f1524f256a42b5
+      text: "Task 5 Step 6 runs 'git add -A && git commit' but Task 5 makes no repo changes — commit will fail with 'nothing to commit'"
+      verdict: fixed
+      verdict_at: 2026-05-20
+---
+
 # Backup Rotation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -345,38 +381,43 @@ git commit -m "feat(backup): call S3 cleanup after successful upload in couchdb-
 ssh ikenibornsync "systemctl list-timers | grep serverpeer; crontab -l 2>/dev/null | grep serverpeer || echo 'no cron'; systemctl status serverpeer-backup.timer 2>&1 | head -5"
 ```
 
-- [ ] **Step 2: Stop and disable the timer**
+- [ ] **Step 2: Verify S3 cleanup permissions**
+
+Required: bucket must allow `s3:ListBucket` and `s3:DeleteObject` for the IAM user in `.env`.
+
+```bash
+ssh ikenibornsync "cd /opt/notes && source .env && python3 scripts/s3_upload.py --cleanup ${S3_BACKUP_PREFIX:-couchdb-backups/} --days 9999"
+```
+
+Expected: `No objects older than 9999 days in couchdb-backups/`
+
+If you see `Access Denied` — update the bucket IAM policy to add `s3:ListBucket` and `s3:DeleteObject` for the backup user, then rerun.
+
+- [ ] **Step 3: Stop and disable the timer**
 
 ```bash
 ssh ikenibornsync "sudo systemctl stop serverpeer-backup.timer 2>/dev/null || true; sudo systemctl disable serverpeer-backup.timer 2>/dev/null || true"
 ```
 
-- [ ] **Step 3: Remove unit files**
+- [ ] **Step 4: Remove unit files**
 
 ```bash
 ssh ikenibornsync "sudo rm -f /etc/systemd/system/serverpeer-backup.timer /etc/systemd/system/serverpeer-backup.service; sudo systemctl daemon-reload"
 ```
 
-- [ ] **Step 4: Remove cron entries if any**
+- [ ] **Step 5: Remove cron entries if any**
 
 ```bash
 ssh ikenibornsync "crontab -l 2>/dev/null | grep -v 'serverpeer-backup' | crontab - 2>/dev/null || true"
 ```
 
-- [ ] **Step 5: Verify timer is gone**
+- [ ] **Step 6: Verify timer is gone**
 
 ```bash
 ssh ikenibornsync "systemctl list-timers | grep serverpeer || echo 'OK: no serverpeer timer found'"
 ```
 
 Expected: `OK: no serverpeer timer found`
-
-- [ ] **Step 6: Commit final state**
-
-```bash
-git add -A
-git commit -m "chore(backup): disable ServerPeer backup timer on server; wire S3 rotation"
-```
 
 ---
 

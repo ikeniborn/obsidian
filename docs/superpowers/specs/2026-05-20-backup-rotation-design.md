@@ -1,3 +1,22 @@
+---
+review:
+  spec_hash: e15db21899eba893
+  last_run: 2026-05-20
+  phases:
+    structure:    { status: passed }
+    coverage:     { status: passed }
+    clarity:      { status: passed }
+    consistency:  { status: passed }
+  section_hashes:
+    Problem:         01d20e86ddfd9b26
+    Scope:           f8139a5ab0a3d151
+    Design:          5eebfadefcca73b6
+    Retention:       bc213b641017ec81
+    ErrorHandling:   5bbf1d01c4c7385b
+    S3Permissions:   7a971e70213c931b
+  findings: []
+---
+
 # Backup Rotation Design
 
 **Date:** 2026-05-20  
@@ -12,9 +31,9 @@ Additionally, ServerPeer backup (`scripts/serverpeer-backup.sh`) runs on a sched
 ## Scope
 
 1. Add S3 rotation to `scripts/s3_upload.py` (CouchDB backups only)
-2. Remove `scripts/serverpeer-backup.sh` and disable its systemd timer on server
+2. Disable ServerPeer backup schedule on server (systemd timer/cron) — script stays in repo
 
-Out of scope: serverpeer backup is removed entirely, not migrated.
+Out of scope: serverpeer backup script deletion.
 
 ## Design
 
@@ -55,8 +74,7 @@ Cleanup runs only when `S3_UPLOAD_ENABLED=true` (same guard as upload).
 
 ### ServerPeer Backup Removal
 
-**Repository:**
-- Delete `scripts/serverpeer-backup.sh`
+**Repository:** no changes — `scripts/serverpeer-backup.sh` stays.
 
 **Server (`ssh ikenibornsync`):**
 - `systemctl stop serverpeer-backup.timer`
