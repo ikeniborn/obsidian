@@ -93,10 +93,12 @@ def cleanup_old_objects(s3_client, bucket, prefix, days):
     deleted_count = 0
     for i in range(0, len(to_delete), 1000):
         batch = to_delete[i:i + 1000]
-        s3_client.delete_objects(Bucket=bucket, Delete={'Objects': batch})
+        resp = s3_client.delete_objects(Bucket=bucket, Delete={'Objects': batch})
         for obj in batch:
             print(f"Deleted: {obj['Key']}")
         deleted_count += len(batch)
+        for err in resp.get('Errors', []):
+            print(f"WARNING: Failed to delete {err['Key']}: {err['Code']} {err['Message']}")
 
     if deleted_count == 0:
         print(f"No objects older than {days} days in {prefix}")

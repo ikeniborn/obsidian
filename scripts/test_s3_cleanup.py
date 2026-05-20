@@ -60,8 +60,6 @@ class TestCleanupOldObjects(unittest.TestCase):
         # Mock datetime.now to return consistent value (avoids timing drift)
         with patch('s3_upload.datetime') as mock_datetime:
             mock_datetime.now.return_value = now
-            mock_datetime.timezone = timezone
-            mock_datetime.timedelta = timedelta
             count = cleanup_old_objects(client, 'my-bucket', 'couchdb-backups/', 7)
 
         client.delete_objects.assert_not_called()
