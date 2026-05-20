@@ -11,6 +11,7 @@ import sys
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from pathlib import Path
+from datetime import datetime, timezone, timedelta
 
 def load_env_file(env_path="/opt/notes/.env"):
     """Load environment variables from .env file"""
@@ -76,6 +77,65 @@ def upload_to_s3(file_path, s3_prefix=""):
         return False
     except ClientError as e:
         print(f"ERROR: S3 upload failed: {e}")
+        return False
+
+def cleanup_old_objects(s3_client, bucket, prefix, days):
+    """Delete S3 objects under prefix older than days. Returns count deleted."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    to_delete = []
+
+    paginator = s3_client.get_paginator('list_objects_v2')
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for obj in page.get('Contents', []):
+            if obj['LastModified'] < cutoff:
+                to_delete.append({'Key': obj['Key']})
+
+    deleted_count = 0
+    for i in range(0, len(to_delete), 1000):
+        batch = to_delete[i:i + 1000]
+        s3_client.delete_objects(Bucket=bucket, Delete={'Objects': batch})
+        for obj in batch:
+            print(f"Deleted: {obj['Key']}")
+        deleted_count += len(batch)
+
+    if deleted_count == 0:
+        print(f"No objects older than {days} days in {prefix}")
+    else:
+        print(f"Cleanup: {deleted_count} objects deleted from {prefix}")
+
+    return deleted_count
+
+def run_cleanup(prefix, days=7):
+    """Load config, create S3 client, run cleanup. Returns True on success."""
+    env = load_env_file()
+
+    access_key = env.get('S3_ACCESS_KEY_ID') or os.getenv('S3_ACCESS_KEY_ID')
+    secret_key = env.get('S3_SECRET_ACCESS_KEY') or os.getenv('S3_SECRET_ACCESS_KEY')
+    bucket_name = env.get('S3_BUCKET_NAME') or os.getenv('S3_BUCKET_NAME')
+    endpoint_url = env.get('S3_ENDPOINT_URL') or os.getenv('S3_ENDPOINT_URL')
+    region = env.get('S3_REGION', 'ru-central1')
+
+    if not all([access_key, secret_key, bucket_name]):
+        print("ERROR: S3 credentials not configured in .env")
+        return False
+
+    try:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            endpoint_url=endpoint_url,
+            region_name=region
+        )
+    except Exception as e:
+        print(f"ERROR: Failed to create S3 client: {e}")
+        return False
+
+    try:
+        cleanup_old_objects(s3_client, bucket_name, prefix, days)
+        return True
+    except ClientError as e:
+        print(f"ERROR: S3 cleanup failed: {e}")
         return False
 
 def test_s3_connection():
