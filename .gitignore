@@ -285,3 +285,11 @@ unified.conf
 
 # Obsolete patch files (now integrated in Dockerfile)
 serverpeer/fix-p2p-enabled-types.patch
+
+# Graphify - exclude machine-specific and cache files, track outputs
+.graphify/cache/
+.graphify/.graphify_python
+.graphify/.graphify_root
+.graphify/.graphify_chunk_*.json
+.graphify/.graphify_*.json
+!.graphify/.graphify_labels.json

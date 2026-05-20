@@ -1,0 +1,162 @@
+{
+  "scripts/s3_upload.py": {
+    "mtime": 1767012982.6548643,
+    "hash": "eb9afcc3a5b8c7e7e0597fad8c8085f9"
+  },
+  "docker-compose.serverpeer-personal.yml": {
+    "mtime": 1767038831.9105928,
+    "hash": "833b5d17ba969c72cb66683eb2798a6e"
+  },
+  "docker-compose.serverpeer.yml": {
+    "mtime": 1767038821.304648,
+    "hash": "dd78af859245d82cca314a9efc21ec6d"
+  },
+  "CLAUDE.md": {
+    "mtime": 1768080501.1908166,
+    "hash": "0ffafc27300ce5f1e34e76b4a45d1c20"
+  },
+  "docker-compose.nostr-relay.yml": {
+    "mtime": 1767036219.186784,
+    "hash": "be7fccd4755ce80db9e46345a33d06e0"
+  },
+  "docker-compose.notes.yml": {
+    "mtime": 1768080247.8847318,
+    "hash": "4adbe88e2deea6d63935f2549d6ed468"
+  },
+  "README.md": {
+    "mtime": 1767104503.6506991,
+    "hash": "41316f206aafca43ffa916d31e26803f"
+  },
+  "docs/couchdb-optimization-recommendations.md": {
+    "mtime": 1768079753.724147,
+    "hash": "e96762f8e01dcbba937d2314a502f165"
+  },
+  "docs/architecture/metadata.yml": {
+    "mtime": 1767012982.652897,
+    "hash": "3bb662f5c9efc24e37cb22965861cae3"
+  },
+  "docs/architecture/index.yml": {
+    "mtime": 1767041928.8625622,
+    "hash": "0f7a6a1edd3ec72aa9a7d26baaa03bb9"
+  },
+  "docs/architecture/components/application/deployment-system.yml": {
+    "mtime": 1767030215.4773052,
+    "hash": "7b051f0a72258d57cfaa0d4353036a22"
+  },
+  "docs/architecture/components/application/monitoring-system.yml": {
+    "mtime": 1767030215.4773052,
+    "hash": "4753d845b3754d90eea9ebd1a8660564"
+  },
+  "docs/architecture/components/application/backup-system.yml": {
+    "mtime": 1767030215.4725585,
+    "hash": "dad522437eb4b240f8b919b75906b5d6"
+  },
+  "docs/architecture/components/infrastructure/s3-storage.yml": {
+    "mtime": 1767012982.6524072,
+    "hash": "b92754712cdb21217b7f63d6a5f31994"
+  },
+  "docs/architecture/components/infrastructure/ufw-firewall.yml": {
+    "mtime": 1767012982.6524072,
+    "hash": "812c55d004b6dafc466a5cf1e473db1e"
+  },
+  "docs/architecture/components/infrastructure/nostr-relay.yml": {
+    "mtime": 1767090669.021958,
+    "hash": "cde0becc365400e9093f2b2fd0a2152e"
+  },
+  "docs/architecture/components/infrastructure/docker-network.yml": {
+    "mtime": 1767030215.4773052,
+    "hash": "83a1cc5875c5b4e94866271733474dcf"
+  },
+  "docs/architecture/components/infrastructure/certbot.yml": {
+    "mtime": 1767012982.6523228,
+    "hash": "c4cf840cec95fd0c2fe915a0e3bcf0dd"
+  },
+  "docs/architecture/components/infrastructure/serverpeer.yml": {
+    "mtime": 1767092353.398924,
+    "hash": "638dbf4e94789417e142c94b576cad9a"
+  },
+  "docs/architecture/components/infrastructure/nginx.yml": {
+    "mtime": 1767130598.0202959,
+    "hash": "6ad65f8408177916776b7d7b3877cf74"
+  },
+  "docs/architecture/components/infrastructure/couchdb.yml": {
+    "mtime": 1767030215.4773052,
+    "hash": "595a19f81cb96f23324d7b9e20d551bc"
+  },
+  "docs/architecture/components/infrastructure/fail2ban.yml": {
+    "mtime": 1767035837.671827,
+    "hash": "75f8894e362470aa15f4e0cc86842277"
+  },
+  "docs/architecture/patterns/docker-image-prepull.yml": {
+    "mtime": 1767090669.0221848,
+    "hash": "af702f7f256afd8df06f9d94a722c81c"
+  },
+  "docs/architecture/patterns/flexible-network-architecture.yml": {
+    "mtime": 1767012982.652897,
+    "hash": "47a10e652b1d93c0c1740895c1f36b52"
+  },
+  "docs/architecture/data-flows/user-request-flow.yml": {
+    "mtime": 1767030215.4725585,
+    "hash": "340f42271fd32c3e2d4b152c3aadfadc"
+  },
+  "docs/architecture/configurations/env-file.yml": {
+    "mtime": 1767012982.6524072,
+    "hash": "088bd4794e227fadfcac54a8caec25c9"
+  },
+  "docs/architecture/workflows/deployment-flow.yml": {
+    "mtime": 1767035893.8098886,
+    "hash": "54382acf57ce88d3e279ed7d95064c67"
+  },
+  "docs/architecture/network-topology/isolated-mode.yml": {
+    "mtime": 1767030215.4725585,
+    "hash": "7e300aafa0062b6cb2831e3a59d903f7"
+  },
+  "docs/architecture/scripts/deployment/setup.yml": {
+    "mtime": 1767030225.8716397,
+    "hash": "b0e98f8a736046b92274cbcdc6d94b5e"
+  },
+  "docs/architecture/scripts/deployment/install.yml": {
+    "mtime": 1767012982.653476,
+    "hash": "ecd5a20ee3975370659387af805a958c"
+  },
+  "docs/architecture/scripts/deployment/deploy.yml": {
+    "mtime": 1767090669.0223944,
+    "hash": "1650d339468178ff42429c655a777909"
+  },
+  "docs/architecture/scripts/helpers/couchdb-backup.yml": {
+    "mtime": 1767012982.653476,
+    "hash": "5ba6d8c80f068402c905338bee4d0e32"
+  },
+  "docs/architecture/security/firewall-rules.yml": {
+    "mtime": 1767035867.0638628,
+    "hash": "216cc62c8af7d5f900ec097503c25c54"
+  },
+  "docs/architecture/schemas/pattern-schema.yml": {
+    "mtime": 1767012982.6531787,
+    "hash": "7bbbe0b1a36d682b55006ebc8c0068b1"
+  },
+  "docs/architecture/schemas/relationship-types.yml": {
+    "mtime": 1767012982.6531787,
+    "hash": "fc378be0d6562034f29eae4aa30e2976"
+  },
+  "docs/architecture/schemas/script-schema.yml": {
+    "mtime": 1767012982.6531787,
+    "hash": "b50ff297ee79603007ab81ef046fb583"
+  },
+  "docs/architecture/schemas/component-schema.yml": {
+    "mtime": 1767012982.652897,
+    "hash": "66b50d6469fe6433ee40b2133557992a"
+  },
+  "docs/architecture/schemas/workflow-schema.yml": {
+    "mtime": 1767012982.6531787,
+    "hash": "0416923c8dc1fccf03488fea0c422c54"
+  },
+  "docs/prd/obsidian-sync-server.md": {
+    "mtime": 1767042161.5127153,
+    "hash": "6836bd9c090b76709f82a48dec6deea9"
+  },
+  "scripts/requirements.txt": {
+    "mtime": 1767012982.654727,
+    "hash": "d287e760511924112510923e173cc43d"
+  }
+}
