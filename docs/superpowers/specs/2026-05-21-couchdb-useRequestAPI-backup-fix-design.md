@@ -99,17 +99,39 @@ docker exec notes-nginx grep " 500 " /var/log/nginx/access.log 2>/dev/null \
 docker logs notes-couchdb --tail 100 2>&1 | grep -iE "error|500|fail|exception"
 ```
 
+### Confirmed Error
+
+Obsidian LiveSync worker log (2026-05-21):
+```
+Work-e303cab92c8b0cdb: The request may have failed. The reason sent by the server: 500: 500
+```
+
+Server returning actual HTTP 500, not a timeout or network drop.
+
 ### Probable Causes (by likelihood)
 
-1. **CouchDB 500 on endpoint with unknown param** — `_revs_diff` or `_bulk_docs` may reject `useRequestAPI=true`. Diagnosis: check if 500s correlate with specific URL paths in access log.
-2. **nginx upstream connection reset** — `proxy_buffering off` + large payload. Diagnosis: check nginx error log for `upstream prematurely closed connection`.
-3. **CORS rejection** — Origin not in whitelist. Diagnosis: check access log for 500 on OPTIONS requests.
+1. **`Connection: upgrade` on all requests** — nginx template hardcodes `Connection "upgrade"` for every request, not just WebSocket. When `$http_upgrade` is empty (regular HTTP), nginx sends `Upgrade: ` (empty) + `Connection: upgrade`. CouchDB/cowboy may return 500 on malformed upgrade headers.
+
+   Fix: use a map variable so `Connection` is `keep-alive` for regular requests and `upgrade` only for actual WebSocket:
+   ```nginx
+   map $http_upgrade $connection_upgrade {
+       default   keep-alive;
+       websocket upgrade;
+   }
+   # in location block:
+   proxy_set_header Connection $connection_upgrade;
+   ```
+
+2. **CouchDB 500 on endpoint with `?useRequestAPI=true`** — some endpoints may reject unknown params. Diagnosis: check if 500s correlate with specific paths in access log.
+3. **nginx upstream connection reset** — `proxy_buffering off` + large payload. Check nginx error log for `upstream prematurely closed connection`.
+4. **CORS rejection** — Origin not in whitelist → 500 on OPTIONS.
 
 ### Fix Decision Tree
 
-- 500 on `_revs_diff`/`_bulk_docs` with `?useRequestAPI=true` → strip unknown param in nginx before proxying to CouchDB.
-- 500 from nginx upstream → increase `proxy_read_timeout` in nginx template.
-- 500 on OPTIONS → fix CORS origins list in `local.ini`.
+- `Connection: upgrade` mismatch (most likely) → fix nginx template with `$connection_upgrade` map.
+- 500 on specific endpoints with `?useRequestAPI=true` → strip unknown param in nginx.
+- nginx upstream reset → increase `proxy_read_timeout`.
+- 500 on OPTIONS → fix CORS origins in `local.ini`.
 
 ---
 
@@ -118,8 +140,9 @@ docker logs notes-couchdb --tail 100 2>&1 | grep -iE "error|500|fail|exception"
 In scope:
 - Fix credential interpolation bug in `scripts/couchdb-backup.sh` (2 lines)
 - Add pre-flight auth check to `scripts/couchdb-backup.sh`
+- Fix `Connection: upgrade` header in nginx template (`couchdb.conf.template`, `unified.conf.template`) using map variable
 - Verification commands for useRequestAPI=true chain
-- Diagnosis commands for 500 errors; fix based on findings
+- Diagnosis commands for 500 errors; apply remaining fixes based on log findings
 
 Out of scope:
 - Backup format or S3 structure changes
