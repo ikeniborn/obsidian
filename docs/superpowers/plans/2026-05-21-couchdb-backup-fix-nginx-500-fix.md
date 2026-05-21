@@ -1,10 +1,45 @@
+---
+review:
+  plan_hash: 5f38d18a82082e60
+  spec_hash: 8edc037197743b37
+  last_run: 2026-05-21
+  phases:
+    structure:     { status: passed }
+    coverage:      { status: passed }
+    dependencies:  { status: passed }
+    verifiability: { status: passed }
+    consistency:   { status: passed }
+  findings:
+    - id: F-001
+      phase: coverage
+      severity: CRITICAL
+      section: "Task 2"
+      section_hash: c995a8719c876305
+      text: "Plan covers only couchdb.conf.template; spec §Scope line 143 explicitly requires same Connection header fix in unified.conf.template"
+      verdict: fixed
+    - id: F-002
+      phase: verifiability
+      severity: WARNING
+      section: "Task 6, Step 3"
+      section_hash: 0fa0285a8316dd8b
+      text: "Diagnostic docker logs command has no expected output; DoD implicit (scan for errors in output)"
+      verdict: accepted
+    - id: F-003
+      phase: consistency
+      severity: WARNING
+      section: "Architecture"
+      section_hash: 5f38d18a82082e60
+      text: "Architecture line said 'Two independent code fixes' but three files are now modified; fixed in place"
+      verdict: fixed
+---
+
 # CouchDB Backup Fix + nginx 500 Fix Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Fix CouchDB backup credential bug (empty S3 backups), fix nginx `Connection: upgrade` header causing HTTP 500 in Obsidian LiveSync, and apply both fixes to the production server `ikenibornsync`.
 
-**Architecture:** Two independent code fixes in the repo (`scripts/couchdb-backup.sh` and `templates/couchdb.conf.template`), then SSH to `ikenibornsync` to apply changes to `/opt/notes/` (deployment dir) and reload nginx.
+**Architecture:** Three independent code fixes in the repo (`scripts/couchdb-backup.sh`, `templates/couchdb.conf.template`, `templates/unified.conf.template`), then SSH to `ikenibornsync` to apply changes to `/opt/notes/` (deployment dir) and reload nginx.
 
 **Tech Stack:** Bash, nginx, CouchDB 3.x, Docker, SSH (`ikenibornsync`)
 
@@ -16,6 +51,7 @@
 |------|--------|
 | `scripts/couchdb-backup.sh` | Lines 64–65: interpolate `${COUCHDB_USER}:${COUCHDB_PASSWORD}` into URL; add pre-flight auth check after |
 | `templates/couchdb.conf.template` | Add `map` directive; replace `Connection "upgrade"` with `$connection_upgrade` |
+| `templates/unified.conf.template` | Add `map` directive; add `Upgrade`/`Connection $connection_upgrade` to CouchDB location; replace hardcoded `Connection "upgrade"` in Nostr Relay location |
 
 Server deployment dir: `/opt/notes/` mirrors repo structure (`/opt/notes/scripts/`, `/opt/notes/templates/`).
 
@@ -91,12 +127,13 @@ git commit -m "fix(backup): interpolate credentials into CouchDB URL; add pre-fl
 
 **Files:**
 - Modify: `templates/couchdb.conf.template`
+- Modify: `templates/unified.conf.template`
 
-`couchdb.conf.template` currently hardcodes `Connection "upgrade"` for all requests. For non-WebSocket requests (most LiveSync HTTP calls), `$http_upgrade` is empty — nginx sends `Upgrade: ` (empty) + `Connection: upgrade`, which causes CouchDB/cowboy to return HTTP 500.
+Both templates have the same root cause: `Connection "upgrade"` sent on all requests. For non-WebSocket requests `$http_upgrade` is empty — nginx sends `Upgrade: ` (empty) + `Connection: upgrade`, causing CouchDB/cowboy to return HTTP 500.
 
 Fix: `map` variable returns `keep-alive` for regular HTTP, `upgrade` only for actual WebSocket.
 
-- [ ] **Step 1: Add map directive after upstream block**
+- [ ] **Step 1: Add map directive to couchdb.conf.template**
 
 In `templates/couchdb.conf.template`, insert the `map` block between the `upstream` block and the first `server {`. The file currently starts:
 
@@ -126,7 +163,7 @@ map $http_upgrade $connection_upgrade {
 server {
 ```
 
-- [ ] **Step 2: Replace hardcoded Connection header in location block**
+- [ ] **Step 2: Replace hardcoded Connection header in couchdb.conf.template location block**
 
 In the `location ${COUCHDB_LOCATION}` block, find:
 ```nginx
@@ -160,13 +197,73 @@ The full location block should now read:
     }
 ```
 
-- [ ] **Step 3: Verify template**
+- [ ] **Step 3: Apply same map fix to unified.conf.template**
+
+In `templates/unified.conf.template`:
+
+**3a.** Insert `map` block after the `nostr_relay_backend` upstream (before the first `server {`):
+
+Old:
+```nginx
+upstream nostr_relay_backend {
+    server ${NOSTR_RELAY_UPSTREAM}:7000 max_fails=0;
+    keepalive 32;
+}
+
+server {
+```
+
+New:
+```nginx
+upstream nostr_relay_backend {
+    server ${NOSTR_RELAY_UPSTREAM}:7000 max_fails=0;
+    keepalive 32;
+}
+
+map $http_upgrade $connection_upgrade {
+    default   keep-alive;
+    websocket upgrade;
+}
+
+server {
+```
+
+**3b.** In the `location ${COUCHDB_LOCATION}` block, add WebSocket headers after `proxy_http_version 1.1;`:
+
+Old:
+```nginx
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+```
+
+New:
+```nginx
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+```
+
+**3c.** In the `location ${SERVERPEER_LOCATION}` block, replace hardcoded Connection header:
+
+Old:
+```nginx
+        proxy_set_header Connection "upgrade";
+```
+
+New:
+```nginx
+        proxy_set_header Connection $connection_upgrade;
+```
+
+- [ ] **Step 4: Verify both templates**
 
 ```bash
 grep -n "map\|connection_upgrade\|Connection" templates/couchdb.conf.template
+grep -n "map\|connection_upgrade\|Connection" templates/unified.conf.template
 ```
 
-Expected:
+Expected for `couchdb.conf.template`:
 ```
 6:map $http_upgrade $connection_upgrade {
 7:    default   keep-alive;
@@ -175,10 +272,20 @@ Expected:
 55:        proxy_set_header Connection $connection_upgrade;
 ```
 
-- [ ] **Step 4: Commit**
+Expected for `unified.conf.template`:
+```
+<N>:map $http_upgrade $connection_upgrade {
+<N>:    default   keep-alive;
+<N>:    websocket upgrade;
+<N>:}
+<N>:        proxy_set_header Connection $connection_upgrade;
+<N>:        proxy_set_header Connection $connection_upgrade;
+```
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add templates/couchdb.conf.template
+git add templates/couchdb.conf.template templates/unified.conf.template
 git commit -m "fix(nginx): use map variable for Connection header — prevent 500 on non-WebSocket requests"
 ```
 
@@ -215,6 +322,7 @@ Run this from your LOCAL machine (not inside ssh):
 ```bash
 scp scripts/couchdb-backup.sh ikenibornsync:/opt/notes/scripts/couchdb-backup.sh
 scp templates/couchdb.conf.template ikenibornsync:/opt/notes/templates/couchdb.conf.template
+scp templates/unified.conf.template ikenibornsync:/opt/notes/templates/unified.conf.template
 ```
 
 - [ ] **Step 4: On server — verify backup script has real credentials**
@@ -409,7 +517,8 @@ docker logs notes-couchdb --tail 50 2>&1 | grep -iE "error|500|exception" | tail
 ## Verification Checklist
 
 - [ ] `grep "COUCHDB_URL" /opt/notes/scripts/couchdb-backup.sh` → `${COUCHDB_USER}:${COUCHDB_PASSWORD}`, not `[CREDENTIALS]`
-- [ ] Active nginx conf: `grep "Connection" notes.conf` → `$connection_upgrade`, not `"upgrade"`
+- [ ] Active nginx conf: `grep "Connection" notes.conf` → `$connection_upgrade`, not `"upgrade"` (both couchdb and unified templates)
+- [ ] `grep "map\|connection_upgrade" templates/unified.conf.template` → map block present, both location blocks use `$connection_upgrade`
 - [ ] Direct CouchDB curl `?useRequestAPI=true` → HTTP 200
 - [ ] nginx chain curl `?useRequestAPI=true` + Origin header → HTTP 200 + CORS header
 - [ ] Manual backup run → no `unauthorized`, file > 1KB, S3 upload successful
