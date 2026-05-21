@@ -41,7 +41,7 @@ fi
 # Configuration (with .env fallback to defaults)
 BACKUP_DIR="${NOTES_BACKUP_DIR:-/opt/notes/backups}"
 LOG_FILE="${NOTES_LOG_DIR:-/opt/notes/logs}/backup.log"
-RETENTION_DAYS=7
+RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
 DATE_FORMAT="+%Y%m%d"
 BACKUP_NAME="couchdb-$(date -u ${DATE_FORMAT}).tar.gz"
 OLD_BACKUP_NAME="couchdb-$(date -d "${RETENTION_DAYS} days ago" ${DATE_FORMAT}).tar.gz"
