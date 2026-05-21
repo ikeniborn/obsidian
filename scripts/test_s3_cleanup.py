@@ -89,6 +89,22 @@ class TestCleanupOldObjects(unittest.TestCase):
         self.assertEqual(len(calls[0].kwargs['Delete']['Objects']), 1000)
         self.assertEqual(len(calls[1].kwargs['Delete']['Objects']), 500)
 
+    def test_partial_delete_errors_not_counted(self):
+        now = datetime.now(timezone.utc)
+        key_ok = 'couchdb-backups/old-ok.tar.gz'
+        key_err = 'couchdb-backups/old-err.tar.gz'
+        client = self._make_client([
+            {'Key': key_ok, 'LastModified': now - timedelta(days=10)},
+            {'Key': key_err, 'LastModified': now - timedelta(days=10)},
+        ])
+        client.delete_objects.return_value = {
+            'Errors': [{'Key': key_err, 'Code': '403', 'Message': 'Forbidden'}]
+        }
+
+        count = cleanup_old_objects(client, 'my-bucket', 'couchdb-backups/', 7)
+
+        self.assertEqual(count, 1)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
