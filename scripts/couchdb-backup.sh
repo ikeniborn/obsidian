@@ -63,6 +63,10 @@ COUCHDB_USER="${COUCHDB_USER:-admin}"
 COUCHDB_PASSWORD="${COUCHDB_PASSWORD:?ERROR: COUCHDB_PASSWORD not set in .env}"
 COUCHDB_URL="http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@localhost:5984"
 COUCHDB_HOST_URL="http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@localhost:5984"
+# Verify credentials before attempting backup
+if ! curl -sf "${COUCHDB_HOST_URL}/_up" >/dev/null 2>&1; then
+    error_exit "CouchDB auth check failed -- verify COUCHDB_USER/COUCHDB_PASSWORD in .env"
+fi
 
 # S3 configuration (from .env)
 S3_ACCESS_KEY_ID="${S3_ACCESS_KEY_ID:-}"
