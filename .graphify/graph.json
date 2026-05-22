@@ -1,191 +1,109 @@
 {
   "directed": false,
   "multigraph": false,
-  "graph": {
-    "hyperedges": [
-      {
-        "id": "p2p_signaling_stack",
-        "label": "P2P Signaling and Sync Stack",
-        "nodes": [
-          "component_nostr_relay",
-          "component_serverpeer",
-          "compose_nostr_relay_service",
-          "compose_serverpeer_service"
-        ],
-        "relation": "implement",
-        "confidence": "INFERRED",
-        "confidence_score": 0.95,
-        "source_file": "docs/architecture/components/infrastructure/serverpeer.yml"
-      },
-      {
-        "id": "backup_pipeline",
-        "label": "Backup Pipeline: CouchDB \u2192 S3",
-        "nodes": [
-          "component_backup_system",
-          "s3_upload_script",
-          "component_s3_storage"
-        ],
-        "relation": "participate_in",
-        "confidence": "EXTRACTED",
-        "confidence_score": 1.0,
-        "source_file": "docs/architecture/components/application/backup-system.yml"
-      },
-      {
-        "id": "ssl_renewal_coordination",
-        "label": "SSL Renewal Coordination: UFW + Certbot + Nginx",
-        "nodes": [
-          "component_ufw_firewall",
-          "component_certbot",
-          "component_nginx"
-        ],
-        "relation": "participate_in",
-        "confidence": "EXTRACTED",
-        "confidence_score": 1.0,
-        "source_file": "docs/architecture/components/infrastructure/certbot.yml"
-      },
-      {
-        "id": "deployment_pipeline_sequence",
-        "label": "Three-Script Deployment Pipeline (install \u2192 setup \u2192 deploy)",
-        "nodes": [
-          "script_install",
-          "script_setup",
-          "script_deploy"
-        ],
-        "relation": "implement",
-        "confidence": "EXTRACTED",
-        "confidence_score": 1.0,
-        "source_file": "docs/architecture/workflows/deployment-flow.yml"
-      },
-      {
-        "id": "layered_security_model",
-        "label": "Layered Security Model (UFW static + fail2ban dynamic + CouchDB auth)",
-        "nodes": [
-          "security_firewall_rules",
-          "fail2ban_component",
-          "couchdb_require_valid_user"
-        ],
-        "relation": "participate_in",
-        "confidence": "INFERRED",
-        "confidence_score": 0.85,
-        "source_file": "docs/architecture/security/firewall-rules.yml"
-      },
-      {
-        "id": "network_request_path",
-        "label": "Inbound Request Path (UFW \u2192 Nginx \u2192 CouchDB)",
-        "nodes": [
-          "security_firewall_rules",
-          "dataflow_user_request",
-          "couchdb_component"
-        ],
-        "relation": "participate_in",
-        "confidence": "EXTRACTED",
-        "confidence_score": 1.0,
-        "source_file": "docs/architecture/data-flows/user-request-flow.yml"
-      }
-    ]
-  },
+  "graph": {},
   "nodes": [
     {
       "label": "s3_upload.py",
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L1",
-      "id": "s3_upload_py",
-      "community": 4,
-      "norm_label": "s3_upload.py"
+      "community": 2,
+      "norm_label": "s3_upload.py",
+      "id": "s3_upload_py"
     },
     {
       "label": "load_env_file()",
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "L15",
-      "id": "scripts_s3_upload_load_env_file",
-      "community": 4,
-      "norm_label": "load_env_file()"
+      "source_location": "L16",
+      "community": 2,
+      "norm_label": "load_env_file()",
+      "id": "scripts_s3_upload_load_env_file"
     },
     {
       "label": "upload_to_s3()",
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "L27",
-      "id": "scripts_s3_upload_upload_to_s3",
-      "community": 4,
-      "norm_label": "upload_to_s3()"
+      "source_location": "L28",
+      "community": 2,
+      "norm_label": "upload_to_s3()",
+      "id": "scripts_s3_upload_upload_to_s3"
     },
     {
       "label": "test_s3_connection()",
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "L81",
-      "id": "scripts_s3_upload_test_s3_connection",
-      "community": 4,
-      "norm_label": "test_s3_connection()"
+      "source_location": "L145",
+      "community": 2,
+      "norm_label": "test_s3_connection()",
+      "id": "scripts_s3_upload_test_s3_connection"
     },
     {
       "label": "Load environment variables from .env file",
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L16",
-      "id": "scripts_s3_upload_rationale_16",
-      "community": 4,
-      "norm_label": "load environment variables from .env file"
+      "community": 2,
+      "norm_label": "load environment variables from .env file",
+      "id": "scripts_s3_upload_rationale_16"
     },
     {
       "label": "Upload file to S3-compatible storage",
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L28",
-      "id": "scripts_s3_upload_rationale_28",
-      "community": 4,
-      "norm_label": "upload file to s3-compatible storage"
+      "community": 2,
+      "norm_label": "upload file to s3-compatible storage",
+      "id": "scripts_s3_upload_rationale_28"
     },
     {
       "label": "Test S3 connection without uploading",
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L82",
-      "id": "scripts_s3_upload_rationale_82",
-      "community": 4,
-      "norm_label": "test s3 connection without uploading"
+      "community": 2,
+      "norm_label": "test s3 connection without uploading",
+      "id": "scripts_s3_upload_rationale_82"
     },
     {
-      "label": "upload_to_s3",
+      "label": "upload_to_s3()",
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "line 27",
+      "source_location": "line 28",
       "source_url": null,
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "s3_upload_upload_to_s3",
       "community": 1,
-      "norm_label": "upload_to_s3"
+      "norm_label": "upload_to_s3()",
+      "id": "s3_upload_upload_to_s3"
     },
     {
-      "label": "load_env_file",
+      "label": "load_env_file()",
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "line 15",
+      "source_location": "line 16",
       "source_url": null,
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "s3_upload_load_env_file",
       "community": 1,
-      "norm_label": "load_env_file"
+      "norm_label": "load_env_file()",
+      "id": "s3_upload_load_env_file"
     },
     {
-      "label": "test_s3_connection",
+      "label": "test_s3_connection()",
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "line 81",
+      "source_location": "line 145",
       "source_url": null,
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "s3_upload_test_s3_connection",
       "community": 1,
-      "norm_label": "test_s3_connection"
+      "norm_label": "test_s3_connection()",
+      "id": "s3_upload_test_s3_connection"
     },
     {
       "label": "S3 Upload Script",
@@ -196,9 +114,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "s3_upload_script",
-      "community": 1,
-      "norm_label": "s3 upload script"
+      "community": 0,
+      "norm_label": "s3 upload script",
+      "id": "s3_upload_script"
     },
     {
       "label": "ServerPeer Docker Compose Service",
@@ -209,9 +127,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "compose_serverpeer_service",
-      "community": 3,
-      "norm_label": "serverpeer docker compose service"
+      "community": 6,
+      "norm_label": "serverpeer docker compose service",
+      "id": "compose_serverpeer_service"
     },
     {
       "label": "ServerPeer Personal Docker Compose Service",
@@ -222,9 +140,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "compose_serverpeer_personal_service",
-      "community": 3,
-      "norm_label": "serverpeer personal docker compose service"
+      "community": 6,
+      "norm_label": "serverpeer personal docker compose service",
+      "id": "compose_serverpeer_personal_service"
     },
     {
       "label": "Nostr Relay Docker Compose Service",
@@ -235,9 +153,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "compose_nostr_relay_service",
-      "community": 3,
-      "norm_label": "nostr relay docker compose service"
+      "community": 6,
+      "norm_label": "nostr relay docker compose service",
+      "id": "compose_nostr_relay_service"
     },
     {
       "label": "CouchDB Docker Compose Service",
@@ -248,9 +166,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "compose_couchdb_service",
-      "community": 3,
-      "norm_label": "couchdb docker compose service"
+      "community": 6,
+      "norm_label": "couchdb docker compose service",
+      "id": "compose_couchdb_service"
     },
     {
       "label": "Architecture Knowledge Graph Index",
@@ -261,9 +179,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "arch_index",
-      "community": 1,
-      "norm_label": "architecture knowledge graph index"
+      "community": 0,
+      "norm_label": "architecture knowledge graph index",
+      "id": "arch_index"
     },
     {
       "label": "Architecture Documentation Metadata",
@@ -274,9 +192,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "arch_metadata",
-      "community": 1,
-      "norm_label": "architecture documentation metadata"
+      "community": 0,
+      "norm_label": "architecture documentation metadata",
+      "id": "arch_metadata"
     },
     {
       "label": "Deployment Orchestration System",
@@ -287,9 +205,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_deployment_system",
-      "community": 1,
-      "norm_label": "deployment orchestration system"
+      "community": 0,
+      "norm_label": "deployment orchestration system",
+      "id": "component_deployment_system"
     },
     {
       "label": "Monitoring & Health Check System",
@@ -300,9 +218,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_monitoring_system",
-      "community": 1,
-      "norm_label": "monitoring & health check system"
+      "community": 0,
+      "norm_label": "monitoring & health check system",
+      "id": "component_monitoring_system"
     },
     {
       "label": "Backup Orchestration System",
@@ -313,9 +231,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_backup_system",
-      "community": 1,
-      "norm_label": "backup orchestration system"
+      "community": 0,
+      "norm_label": "backup orchestration system",
+      "id": "component_backup_system"
     },
     {
       "label": "S3-Compatible Backup Storage",
@@ -326,9 +244,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_s3_storage",
-      "community": 1,
-      "norm_label": "s3-compatible backup storage"
+      "community": 0,
+      "norm_label": "s3-compatible backup storage",
+      "id": "component_s3_storage"
     },
     {
       "label": "UFW Firewall",
@@ -339,9 +257,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_ufw_firewall",
-      "community": 1,
-      "norm_label": "ufw firewall"
+      "community": 0,
+      "norm_label": "ufw firewall",
+      "id": "component_ufw_firewall"
     },
     {
       "label": "Nostr Relay WebSocket Server",
@@ -352,9 +270,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_nostr_relay",
-      "community": 3,
-      "norm_label": "nostr relay websocket server"
+      "community": 0,
+      "norm_label": "nostr relay websocket server",
+      "id": "component_nostr_relay"
     },
     {
       "label": "Docker Network",
@@ -365,9 +283,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_docker_network",
-      "community": 3,
-      "norm_label": "docker network"
+      "community": 0,
+      "norm_label": "docker network",
+      "id": "component_docker_network"
     },
     {
       "label": "Certbot (Let's Encrypt SSL)",
@@ -378,9 +296,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_certbot",
-      "community": 1,
-      "norm_label": "certbot (let's encrypt ssl)"
+      "community": 0,
+      "norm_label": "certbot (let's encrypt ssl)",
+      "id": "component_certbot"
     },
     {
       "label": "ServerPeer P2P Client",
@@ -391,9 +309,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_serverpeer",
-      "community": 3,
-      "norm_label": "serverpeer p2p client"
+      "community": 0,
+      "norm_label": "serverpeer p2p client",
+      "id": "component_serverpeer"
     },
     {
       "label": "Nginx Reverse Proxy",
@@ -404,9 +322,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "component_nginx",
-      "community": 1,
-      "norm_label": "nginx reverse proxy"
+      "community": 0,
+      "norm_label": "nginx reverse proxy",
+      "id": "component_nginx"
     },
     {
       "label": "CouchDB Optimization Recommendations",
@@ -417,9 +335,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "couchdb_optimization_doc",
-      "community": 6,
-      "norm_label": "couchdb optimization recommendations"
+      "community": 0,
+      "norm_label": "couchdb optimization recommendations",
+      "id": "couchdb_optimization_doc"
     },
     {
       "label": "CLAUDE.md Developer Documentation",
@@ -430,9 +348,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "claude_md_doc",
-      "community": 6,
-      "norm_label": "claude.md developer documentation"
+      "community": 0,
+      "norm_label": "claude.md developer documentation",
+      "id": "claude_md_doc"
     },
     {
       "label": "README User Guide",
@@ -443,9 +361,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "readme_doc",
-      "community": 6,
-      "norm_label": "readme user guide"
+      "community": 0,
+      "norm_label": "readme user guide",
+      "id": "readme_doc"
     },
     {
       "label": "Flexible Network Architecture Pattern",
@@ -457,9 +375,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Three network modes (shared/isolated/custom) allow integration with existing Docker services or standalone deployment, avoiding single-mode constraint. Subnet auto-allocation (172.24-31.0.0/16) prevents conflicts.",
-      "id": "pattern_flexible_network",
-      "community": 2,
-      "norm_label": "flexible network architecture pattern"
+      "community": 4,
+      "norm_label": "flexible network architecture pattern",
+      "id": "pattern_flexible_network"
     },
     {
       "label": "Certbot UFW Hook Pattern",
@@ -471,9 +389,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Port 80 is kept closed by default and opened only transiently via certbot pre/post renewal hooks. This minimizes attack surface while enabling Let's Encrypt HTTP-01 validation.",
-      "id": "pattern_certbot_ufw_hooks",
-      "community": 1,
-      "norm_label": "certbot ufw hook pattern"
+      "community": 0,
+      "norm_label": "certbot ufw hook pattern",
+      "id": "pattern_certbot_ufw_hooks"
     },
     {
       "label": "Localhost-Only Backend Port Binding",
@@ -485,9 +403,9 @@
       "author": null,
       "contributor": null,
       "rationale": "CouchDB (5984) and ServerPeer (3000) bind to 127.0.0.1 only. All external access is routed through nginx reverse proxy. This eliminates direct external exposure of backend services.",
-      "id": "pattern_localhost_only_binding",
-      "community": 3,
-      "norm_label": "localhost-only backend port binding"
+      "community": 6,
+      "norm_label": "localhost-only backend port binding",
+      "id": "pattern_localhost_only_binding"
     },
     {
       "label": "Nostr Room ID Vault Isolation Pattern",
@@ -499,9 +417,9 @@
       "author": null,
       "contributor": null,
       "rationale": "A single shared Nostr Relay routes signaling messages by Room ID subscription, giving vault isolation without deploying separate relay instances per vault. Actual file data never passes through the relay.",
-      "id": "pattern_nostr_room_id_isolation",
-      "community": 3,
-      "norm_label": "nostr room id vault isolation pattern"
+      "community": 0,
+      "norm_label": "nostr room id vault isolation pattern",
+      "id": "pattern_nostr_room_id_isolation"
     },
     {
       "label": "Nginx WebSocket Support for CouchDB Changes Feed",
@@ -513,9 +431,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Official CouchDB nginx documentation lacks WebSocket upgrade support, breaking real-time _changes feed sync. The project adds Upgrade/Connection headers and HTTP/1.1 to fix this, exceeding official recommendations.",
-      "id": "pattern_nginx_websocket_support",
-      "community": 1,
-      "norm_label": "nginx websocket support for couchdb changes feed"
+      "community": 0,
+      "norm_label": "nginx websocket support for couchdb changes feed",
+      "id": "pattern_nginx_websocket_support"
     },
     {
       "label": "Docker Image ID Comparison for Update Detection",
@@ -527,9 +445,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Image ID (Config.Digest) is used rather than manifest digest to detect needed updates, because manifest digests differ for multi-arch images while Image ID matches Docker's own pull-needed determination logic.",
-      "id": "pattern_image_id_comparison",
-      "community": 7,
-      "norm_label": "docker image id comparison for update detection"
+      "community": 10,
+      "norm_label": "docker image id comparison for update detection",
+      "id": "pattern_image_id_comparison"
     },
     {
       "label": "Pre-pull Workaround for BuildKit Proxy Limitation",
@@ -541,9 +459,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Docker daemon proxy settings do not propagate to BuildKit's separate buildkitd daemon. Pre-pulling base images via docker pull (which respects daemon proxy) before docker build ensures images are available from cache without requiring BuildKit proxy configuration.",
-      "id": "pattern_prepull_buildkit_workaround",
-      "community": 8,
-      "norm_label": "pre-pull workaround for buildkit proxy limitation"
+      "community": 11,
+      "norm_label": "pre-pull workaround for buildkit proxy limitation",
+      "id": "pattern_prepull_buildkit_workaround"
     },
     {
       "label": "/opt/notes/.env Configuration File",
@@ -554,9 +472,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "notes_env_file",
-      "community": 3,
-      "norm_label": "/opt/notes/.env configuration file"
+      "community": 6,
+      "norm_label": "/opt/notes/.env configuration file",
+      "id": "notes_env_file"
     },
     {
       "label": "CouchDB Database Component",
@@ -567,9 +485,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "couchdb_component",
-      "community": 0,
-      "norm_label": "couchdb database component"
+      "community": 8,
+      "norm_label": "couchdb database component",
+      "id": "couchdb_component"
     },
     {
       "label": "CouchDB Single-Node Mode",
@@ -581,9 +499,9 @@
       "author": null,
       "contributor": null,
       "rationale": "single_node=true simplifies deployment and eliminates cluster coordination overhead for a self-hosted single-server use case",
-      "id": "couchdb_single_node_mode",
-      "community": 0,
-      "norm_label": "couchdb single-node mode"
+      "community": 8,
+      "norm_label": "couchdb single-node mode",
+      "id": "couchdb_single_node_mode"
     },
     {
       "label": "CouchDB require_valid_user Security Enforcement",
@@ -595,9 +513,9 @@
       "author": null,
       "contributor": null,
       "rationale": "require_valid_user=true ensures all HTTP endpoints require authentication, preventing unauthenticated access to the database",
-      "id": "couchdb_require_valid_user",
-      "community": 0,
-      "norm_label": "couchdb require_valid_user security enforcement"
+      "community": 8,
+      "norm_label": "couchdb require_valid_user security enforcement",
+      "id": "couchdb_require_valid_user"
     },
     {
       "label": "fail2ban Intrusion Prevention Component",
@@ -608,9 +526,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "fail2ban_component",
-      "community": 0,
-      "norm_label": "fail2ban intrusion prevention component"
+      "community": 9,
+      "norm_label": "fail2ban intrusion prevention component",
+      "id": "fail2ban_component"
     },
     {
       "label": "fail2ban UFW Dynamic Rule Injection",
@@ -622,9 +540,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Using UFW as banaction lets fail2ban insert deny rules at position 1 (highest priority) without replacing static UFW rules, maintaining compatibility with certbot hooks",
-      "id": "fail2ban_ufw_integration",
-      "community": 0,
-      "norm_label": "fail2ban ufw dynamic rule injection"
+      "community": 9,
+      "norm_label": "fail2ban ufw dynamic rule injection",
+      "id": "fail2ban_ufw_integration"
     },
     {
       "label": "fail2ban Backend-Aware Jail Configuration",
@@ -636,9 +554,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Jails are conditionally created based on SYNC_BACKEND to avoid monitoring unavailable services and prevent false alarms",
-      "id": "fail2ban_backend_aware_jails",
-      "community": 0,
-      "norm_label": "fail2ban backend-aware jail configuration"
+      "community": 9,
+      "norm_label": "fail2ban backend-aware jail configuration",
+      "id": "fail2ban_backend_aware_jails"
     },
     {
       "label": "Docker Image Prepull Pattern",
@@ -649,9 +567,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "pattern_docker_image_prepull",
-      "community": 2,
-      "norm_label": "docker image prepull pattern"
+      "community": 4,
+      "norm_label": "docker image prepull pattern",
+      "id": "pattern_docker_image_prepull"
     },
     {
       "label": "Image ID vs Manifest Digest Comparison Strategy",
@@ -663,9 +581,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Using Config.Digest (Image ID) instead of manifest digest for update detection because manifest LIST digest differs from platform-specific digest for multi-arch images, causing false positives",
-      "id": "prepull_image_id_comparison",
-      "community": 2,
-      "norm_label": "image id vs manifest digest comparison strategy"
+      "community": 4,
+      "norm_label": "image id vs manifest digest comparison strategy",
+      "id": "prepull_image_id_comparison"
     },
     {
       "label": "Shared Network Mode Variant",
@@ -677,9 +595,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Shared mode enables integration with existing nginx/services on the same Docker network without requiring a dedicated subnet",
-      "id": "flexible_network_shared_mode",
-      "community": 2,
-      "norm_label": "shared network mode variant"
+      "community": 4,
+      "norm_label": "shared network mode variant",
+      "id": "flexible_network_shared_mode"
     },
     {
       "label": "Isolated Network Mode Variant",
@@ -691,9 +609,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Isolated mode creates a dedicated obsidian_network for maximum security, preventing lateral movement from other containers",
-      "id": "flexible_network_isolated_mode",
-      "community": 2,
-      "norm_label": "isolated network mode variant"
+      "community": 4,
+      "norm_label": "isolated network mode variant",
+      "id": "flexible_network_isolated_mode"
     },
     {
       "label": "User Request Data Flow",
@@ -704,9 +622,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "dataflow_user_request",
-      "community": 5,
-      "norm_label": "user request data flow"
+      "community": 7,
+      "norm_label": "user request data flow",
+      "id": "dataflow_user_request"
     },
     {
       "label": "Environment Configuration File /opt/notes/.env",
@@ -717,9 +635,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "config_env_file",
-      "community": 2,
-      "norm_label": "environment configuration file /opt/notes/.env"
+      "community": 4,
+      "norm_label": "environment configuration file /opt/notes/.env",
+      "id": "config_env_file"
     },
     {
       "label": "env-file chmod 600 Security Design",
@@ -731,9 +649,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Restricting .env to owner read/write prevents credential leakage from other system users or compromised processes",
-      "id": "env_file_chmod600",
-      "community": 2,
-      "norm_label": "env-file chmod 600 security design"
+      "community": 4,
+      "norm_label": "env-file chmod 600 security design",
+      "id": "env_file_chmod600"
     },
     {
       "label": "Full Production Deployment Workflow",
@@ -744,9 +662,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "workflow_deployment",
-      "community": 0,
-      "norm_label": "full production deployment workflow"
+      "community": 5,
+      "norm_label": "full production deployment workflow",
+      "id": "workflow_deployment"
     },
     {
       "label": "Isolated Network Mode Topology",
@@ -757,9 +675,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "topology_isolated_mode",
-      "community": 2,
-      "norm_label": "isolated network mode topology"
+      "community": 4,
+      "norm_label": "isolated network mode topology",
+      "id": "topology_isolated_mode"
     },
     {
       "label": "setup.sh Interactive Configuration Script",
@@ -770,9 +688,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "script_setup",
-      "community": 0,
-      "norm_label": "setup.sh interactive configuration script"
+      "community": 5,
+      "norm_label": "setup.sh interactive configuration script",
+      "id": "script_setup"
     },
     {
       "label": "Backend-Aware S3 Backup Prefix Configuration",
@@ -784,9 +702,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Dual mode uses separate S3 prefixes (COUCHDB_S3_BACKUP_PREFIX and SERVERPEER_S3_BACKUP_PREFIX) to prevent file conflicts when both backends upload to the same S3 bucket",
-      "id": "setup_backend_aware_s3_prefix",
-      "community": 0,
-      "norm_label": "backend-aware s3 backup prefix configuration"
+      "community": 5,
+      "norm_label": "backend-aware s3 backup prefix configuration",
+      "id": "setup_backend_aware_s3_prefix"
     },
     {
       "label": "Conditional .env Variable Generation per Backend",
@@ -798,9 +716,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Backend-specific variables are only written to .env when their backend is selected to avoid unbound variable errors in scripts that source .env",
-      "id": "setup_conditional_env_generation",
-      "community": 0,
-      "norm_label": "conditional .env variable generation per backend"
+      "community": 5,
+      "norm_label": "conditional .env variable generation per backend",
+      "id": "setup_conditional_env_generation"
     },
     {
       "label": "install.sh Dependency Installation Script",
@@ -811,9 +729,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "script_install",
-      "community": 0,
-      "norm_label": "install.sh dependency installation script"
+      "community": 5,
+      "norm_label": "install.sh dependency installation script",
+      "id": "script_install"
     },
     {
       "label": "PEP 668 Compliant Python Dependency Installation",
@@ -825,9 +743,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Using apt-get install python3-boto3 instead of pip3 respects PEP 668 (externally-managed-environment) on Ubuntu 23.04+ which blocks pip from modifying system Python packages",
-      "id": "install_pep668_compliance",
-      "community": 0,
-      "norm_label": "pep 668 compliant python dependency installation"
+      "community": 5,
+      "norm_label": "pep 668 compliant python dependency installation",
+      "id": "install_pep668_compliance"
     },
     {
       "label": "deploy.sh Production Deployment Script",
@@ -838,9 +756,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "script_deploy",
-      "community": 2,
-      "norm_label": "deploy.sh production deployment script"
+      "community": 4,
+      "norm_label": "deploy.sh production deployment script",
+      "id": "script_deploy"
     },
     {
       "label": "couchdb-backup.sh Backup Script",
@@ -851,9 +769,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "script_couchdb_backup",
-      "community": 0,
-      "norm_label": "couchdb-backup.sh backup script"
+      "community": 8,
+      "norm_label": "couchdb-backup.sh backup script",
+      "id": "script_couchdb_backup"
     },
     {
       "label": "UFW Firewall Rules Security Configuration",
@@ -864,9 +782,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "security_firewall_rules",
-      "community": 5,
-      "norm_label": "ufw firewall rules security configuration"
+      "community": 7,
+      "norm_label": "ufw firewall rules security configuration",
+      "id": "security_firewall_rules"
     },
     {
       "label": "Deny-by-Default Firewall Policy",
@@ -878,9 +796,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Deny-by-default minimizes attack surface; only ports 22 (SSH) and 443 (HTTPS) are permanently open, with port 80 opened only transiently during certbot renewal",
-      "id": "firewall_deny_by_default",
-      "community": 5,
-      "norm_label": "deny-by-default firewall policy"
+      "community": 7,
+      "norm_label": "deny-by-default firewall policy",
+      "id": "firewall_deny_by_default"
     },
     {
       "label": "Pattern Schema Template",
@@ -891,9 +809,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "schema_pattern",
-      "community": 2,
-      "norm_label": "pattern schema template"
+      "community": 4,
+      "norm_label": "pattern schema template",
+      "id": "schema_pattern"
     },
     {
       "label": "Relationship Types Schema",
@@ -904,9 +822,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "schema_relationship_types",
-      "community": 9,
-      "norm_label": "relationship types schema"
+      "community": 12,
+      "norm_label": "relationship types schema",
+      "id": "schema_relationship_types"
     },
     {
       "label": "Script Schema Template",
@@ -917,9 +835,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "schema_script",
-      "community": 2,
-      "norm_label": "script schema template"
+      "community": 4,
+      "norm_label": "script schema template",
+      "id": "schema_script"
     },
     {
       "label": "Component Schema Template",
@@ -930,9 +848,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "schema_component",
-      "community": 0,
-      "norm_label": "component schema template"
+      "community": 8,
+      "norm_label": "component schema template",
+      "id": "schema_component"
     },
     {
       "label": "Workflow Schema Template",
@@ -943,9 +861,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "schema_workflow",
-      "community": 0,
-      "norm_label": "workflow schema template"
+      "community": 5,
+      "norm_label": "workflow schema template",
+      "id": "schema_workflow"
     },
     {
       "label": "Obsidian Sync Server PRD",
@@ -956,9 +874,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "prd_obsidian_sync_server",
-      "community": 5,
-      "norm_label": "obsidian sync server prd"
+      "community": 7,
+      "norm_label": "obsidian sync server prd",
+      "id": "prd_obsidian_sync_server"
     },
     {
       "label": "Dual Backend Support Concept (CouchDB + ServerPeer)",
@@ -970,9 +888,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Supporting both CouchDB (client-server) and ServerPeer (P2P/WebRTC) backends enables users to choose their sync topology based on requirements: reliability vs. P2P privacy",
-      "id": "prd_dual_backend_support",
-      "community": 5,
-      "norm_label": "dual backend support concept (couchdb + serverpeer)"
+      "community": 7,
+      "norm_label": "dual backend support concept (couchdb + serverpeer)",
+      "id": "prd_dual_backend_support"
     },
     {
       "label": "Graceful Degradation (P2P works offline)",
@@ -984,9 +902,9 @@
       "author": null,
       "contributor": null,
       "rationale": "P2P sync via WebRTC continues functioning even when ServerPeer is offline because clients connect directly; ServerPeer is only an always-on buffer",
-      "id": "prd_graceful_degradation",
-      "community": 5,
-      "norm_label": "graceful degradation (p2p works offline)"
+      "community": 7,
+      "norm_label": "graceful degradation (p2p works offline)",
+      "id": "prd_graceful_degradation"
     },
     {
       "label": "Python Requirements (boto3)",
@@ -997,9 +915,331 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "requirements_txt",
-      "community": 0,
-      "norm_label": "python requirements (boto3)"
+      "community": 8,
+      "norm_label": "python requirements (boto3)",
+      "id": "requirements_txt"
+    },
+    {
+      "label": "cleanup_old_objects()",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L82",
+      "id": "scripts_s3_upload_cleanup_old_objects",
+      "community": 3,
+      "norm_label": "cleanup_old_objects()"
+    },
+    {
+      "label": "run_cleanup()",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L112",
+      "id": "scripts_s3_upload_run_cleanup",
+      "community": 2,
+      "norm_label": "run_cleanup()"
+    },
+    {
+      "label": "Load environment variables from .env file",
+      "file_type": "rationale",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L17",
+      "id": "scripts_s3_upload_rationale_17",
+      "community": 2,
+      "norm_label": "load environment variables from .env file"
+    },
+    {
+      "label": "Upload file to S3-compatible storage",
+      "file_type": "rationale",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L29",
+      "id": "scripts_s3_upload_rationale_29",
+      "community": 2,
+      "norm_label": "upload file to s3-compatible storage"
+    },
+    {
+      "label": "Delete S3 objects under prefix older than days. Returns count deleted.",
+      "file_type": "rationale",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L83",
+      "id": "scripts_s3_upload_rationale_83",
+      "community": 3,
+      "norm_label": "delete s3 objects under prefix older than days. returns count deleted."
+    },
+    {
+      "label": "Load config, create S3 client, run cleanup. Returns True on success.",
+      "file_type": "rationale",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L113",
+      "id": "scripts_s3_upload_rationale_113",
+      "community": 2,
+      "norm_label": "load config, create s3 client, run cleanup. returns true on success."
+    },
+    {
+      "label": "Test S3 connection without uploading",
+      "file_type": "rationale",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L146",
+      "id": "scripts_s3_upload_rationale_146",
+      "community": 2,
+      "norm_label": "test s3 connection without uploading"
+    },
+    {
+      "label": "test_s3_cleanup.py",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L1",
+      "id": "test_s3_cleanup_py",
+      "community": 3,
+      "norm_label": "test_s3_cleanup.py"
+    },
+    {
+      "label": "TestCleanupOldObjects",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L13",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "community": 3,
+      "norm_label": "testcleanupoldobjects"
+    },
+    {
+      "label": "._make_client()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L15",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "community": 3,
+      "norm_label": "._make_client()"
+    },
+    {
+      "label": ".test_deletes_objects_older_than_days()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L24",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days",
+      "community": 3,
+      "norm_label": ".test_deletes_objects_older_than_days()"
+    },
+    {
+      "label": ".test_keeps_objects_within_retention()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L41",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention",
+      "community": 3,
+      "norm_label": ".test_keeps_objects_within_retention()"
+    },
+    {
+      "label": ".test_boundary_object_at_exactly_retention_is_kept()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L53",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept",
+      "community": 3,
+      "norm_label": ".test_boundary_object_at_exactly_retention_is_kept()"
+    },
+    {
+      "label": ".test_empty_prefix_returns_zero()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L68",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero",
+      "community": 3,
+      "norm_label": ".test_empty_prefix_returns_zero()"
+    },
+    {
+      "label": ".test_batches_large_deletions()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L76",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions",
+      "community": 3,
+      "norm_label": ".test_batches_large_deletions()"
+    },
+    {
+      "label": ".test_partial_delete_errors_not_counted()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L92",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted",
+      "community": 3,
+      "norm_label": ".test_partial_delete_errors_not_counted()"
+    },
+    {
+      "label": "Return mock S3 client. Pass None to simulate empty prefix (no Contents key).",
+      "file_type": "rationale",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L16",
+      "id": "scripts_test_s3_cleanup_rationale_16",
+      "community": 3,
+      "norm_label": "return mock s3 client. pass none to simulate empty prefix (no contents key)."
+    },
+    {
+      "label": "cleanup_old_objects()",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 82",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "s3_upload_cleanup_old_objects",
+      "community": 1,
+      "norm_label": "cleanup_old_objects()"
+    },
+    {
+      "label": "run_cleanup()",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 112",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "s3_upload_run_cleanup",
+      "community": 1,
+      "norm_label": "run_cleanup()"
+    },
+    {
+      "label": "s3_upload.py CLI entrypoint",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 184",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "s3_upload_cli",
+      "community": 1,
+      "norm_label": "s3_upload.py cli entrypoint"
+    },
+    {
+      "label": "TestCleanupOldObjects",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "line 13",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "test_s3_cleanup_testcleanupold",
+      "community": 1,
+      "norm_label": "testcleanupoldobjects"
+    },
+    {
+      "label": "Backup Rotation Design Spec",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-20",
+      "author": null,
+      "contributor": null,
+      "id": "spec_backup_rotation",
+      "community": 1,
+      "norm_label": "backup rotation design spec"
+    },
+    {
+      "label": "CouchDB useRequestAPI Verification + Backup Fix Design",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-05-21-couchdb-useRequestAPI-backup-fix-design.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null,
+      "id": "spec_couchdb_backup_fix",
+      "community": 1,
+      "norm_label": "couchdb userequestapi verification + backup fix design"
+    },
+    {
+      "label": "Backup Rotation Implementation Plan",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-05-20-backup-rotation.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-20",
+      "author": null,
+      "contributor": null,
+      "id": "plan_backup_rotation",
+      "community": 1,
+      "norm_label": "backup rotation implementation plan"
+    },
+    {
+      "label": "CouchDB Backup Fix + nginx 500 Fix Implementation Plan",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-05-21-couchdb-backup-fix-nginx-500-fix.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null,
+      "id": "plan_couchdb_backup_nginx_fix",
+      "community": 1,
+      "norm_label": "couchdb backup fix + nginx 500 fix implementation plan"
+    },
+    {
+      "label": "S3 cleanup failure should not fail the backup run \u2014 upload success is more critical than rotation",
+      "file_type": "rationale",
+      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
+      "source_location": "\u00a7ErrorHandling",
+      "source_url": null,
+      "captured_at": "2026-05-20",
+      "author": null,
+      "contributor": null,
+      "id": "rationale_s3_cleanup_non_failing",
+      "community": 1,
+      "norm_label": "s3 cleanup failure should not fail the backup run \u2014 upload success is more critical than rotation"
+    },
+    {
+      "label": "map variable for Connection header prevents HTTP 500: hardcoded 'upgrade' on non-WebSocket requests sends malformed headers to CouchDB/cowboy",
+      "file_type": "rationale",
+      "source_file": "docs/superpowers/specs/2026-05-21-couchdb-useRequestAPI-backup-fix-design.md",
+      "source_location": "\u00a7Probable Causes",
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null,
+      "id": "rationale_connection_upgrade_map",
+      "community": 1,
+      "norm_label": "map variable for connection header prevents http 500: hardcoded 'upgrade' on non-websocket requests sends malformed headers to couchdb/cowboy"
+    },
+    {
+      "label": "Pre-flight auth check in couchdb-backup.sh prevents silently uploading corrupt 401-error JSON to S3 \u2014 fail-fast on credential mismatch",
+      "file_type": "rationale",
+      "source_file": "docs/superpowers/specs/2026-05-21-couchdb-useRequestAPI-backup-fix-design.md",
+      "source_location": "\u00a7Issue 1 Fix",
+      "source_url": null,
+      "captured_at": "2026-05-21",
+      "author": null,
+      "contributor": null,
+      "id": "rationale_preflight_auth_check",
+      "community": 1,
+      "norm_label": "pre-flight auth check in couchdb-backup.sh prevents silently uploading corrupt 401-error json to s3 \u2014 fail-fast on credential mismatch"
+    },
+    {
+      "label": "S3 rotation added to s3_upload.py (not couchdb-backup.sh) to keep cleanup reusable across backends and testable in isolation",
+      "file_type": "rationale",
+      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
+      "source_location": "\u00a7Design",
+      "source_url": null,
+      "captured_at": "2026-05-20",
+      "author": null,
+      "contributor": null,
+      "id": "rationale_s3_rotation_design",
+      "community": 1,
+      "norm_label": "s3 rotation added to s3_upload.py (not couchdb-backup.sh) to keep cleanup reusable across backends and testable in isolation"
+    },
+    {
+      "label": "S3 delete_objects API max 1000 keys per request \u2014 batching required for large prefix cleanups",
+      "file_type": "rationale",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 94",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "rationale_batch_1000_delete",
+      "community": 1,
+      "norm_label": "s3 delete_objects api max 1000 keys per request \u2014 batching required for large prefix cleanups"
     }
   ],
   "links": [
@@ -1007,30 +1247,50 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "L15",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "s3_upload_py",
+      "target": "scripts_s3_upload_load_env_file"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "s3_upload_py",
+      "target": "scripts_s3_upload_upload_to_s3"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L145",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "s3_upload_py",
+      "target": "scripts_s3_upload_test_s3_connection"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L82",
       "weight": 1.0,
       "source": "s3_upload_py",
-      "target": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_cleanup_old_objects",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "L27",
+      "source_location": "L112",
       "weight": 1.0,
       "source": "s3_upload_py",
-      "target": "scripts_s3_upload_upload_to_s3",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L81",
-      "weight": 1.0,
-      "source": "s3_upload_py",
-      "target": "scripts_s3_upload_test_s3_connection",
+      "target": "scripts_s3_upload_run_cleanup",
       "confidence_score": 1.0
     },
     {
@@ -1038,22 +1298,22 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0,
-      "source": "scripts_s3_upload_upload_to_s3",
-      "target": "scripts_s3_upload_load_env_file",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_upload_to_s3"
     },
     {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/s3_upload.py",
-      "source_location": "L83",
+      "source_location": "L147",
       "weight": 1.0,
-      "source": "scripts_s3_upload_test_s3_connection",
-      "target": "scripts_s3_upload_load_env_file",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_test_s3_connection"
     },
     {
       "relation": "rationale_for",
@@ -1061,8 +1321,29 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L16",
       "weight": 1.0,
-      "source": "scripts_s3_upload_rationale_16",
-      "target": "scripts_s3_upload_load_env_file",
+      "confidence_score": 1.0,
+      "source": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_rationale_16"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L114",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_run_cleanup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_rationale_17",
       "confidence_score": 1.0
     },
     {
@@ -1071,8 +1352,18 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L28",
       "weight": 1.0,
-      "source": "scripts_s3_upload_rationale_28",
-      "target": "scripts_s3_upload_upload_to_s3",
+      "confidence_score": 1.0,
+      "source": "scripts_s3_upload_upload_to_s3",
+      "target": "scripts_s3_upload_rationale_28"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_upload_to_s3",
+      "target": "scripts_s3_upload_rationale_29",
       "confidence_score": 1.0
     },
     {
@@ -1081,8 +1372,18 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L82",
       "weight": 1.0,
-      "source": "scripts_s3_upload_rationale_82",
-      "target": "scripts_s3_upload_test_s3_connection",
+      "confidence_score": 1.0,
+      "source": "scripts_s3_upload_test_s3_connection",
+      "target": "scripts_s3_upload_rationale_82"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L146",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_test_s3_connection",
+      "target": "scripts_s3_upload_rationale_146",
       "confidence_score": 1.0
     },
     {
@@ -1090,7 +1391,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/s3_upload.py",
-      "source_location": "line 31",
+      "source_location": "line 32",
       "weight": 1.0,
       "source": "s3_upload_upload_to_s3",
       "target": "s3_upload_load_env_file"
@@ -1102,18 +1403,48 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "line 133",
       "weight": 1.0,
-      "source": "s3_upload_script",
-      "target": "s3_upload_upload_to_s3"
+      "source": "s3_upload_upload_to_s3",
+      "target": "s3_upload_script"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/s3_upload.py",
-      "source_location": "line 83",
+      "source_location": "line 216",
       "weight": 1.0,
-      "source": "s3_upload_test_s3_connection",
-      "target": "s3_upload_load_env_file"
+      "source": "s3_upload_upload_to_s3",
+      "target": "s3_upload_cli"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "scripts/s3_upload.py",
+      "source_location": null,
+      "weight": 0.75,
+      "source": "s3_upload_upload_to_s3",
+      "target": "s3_upload_run_cleanup"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 147",
+      "weight": 1.0,
+      "source": "s3_upload_load_env_file",
+      "target": "s3_upload_test_s3_connection"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 114",
+      "weight": 1.0,
+      "source": "s3_upload_load_env_file",
+      "target": "s3_upload_run_cleanup"
     },
     {
       "relation": "calls",
@@ -1122,8 +1453,18 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "line 127",
       "weight": 1.0,
-      "source": "s3_upload_script",
-      "target": "s3_upload_test_s3_connection"
+      "source": "s3_upload_test_s3_connection",
+      "target": "s3_upload_script"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 192",
+      "weight": 1.0,
+      "source": "s3_upload_test_s3_connection",
+      "target": "s3_upload_cli"
     },
     {
       "relation": "references",
@@ -1132,8 +1473,8 @@
       "source_file": "docs/architecture/components/application/backup-system.yml",
       "source_location": "files.scripts section",
       "weight": 1.0,
-      "source": "component_backup_system",
-      "target": "s3_upload_script"
+      "source": "s3_upload_script",
+      "target": "component_backup_system"
     },
     {
       "relation": "implements",
@@ -1162,8 +1503,8 @@
       "source_file": "docs/architecture/components/infrastructure/serverpeer.yml",
       "source_location": "technical_details.deployment_mode",
       "weight": 1.0,
-      "source": "component_serverpeer",
-      "target": "compose_serverpeer_service"
+      "source": "compose_serverpeer_service",
+      "target": "component_serverpeer"
     },
     {
       "relation": "rationale_for",
@@ -1172,8 +1513,8 @@
       "source_file": "CLAUDE.md",
       "source_location": "Security Considerations",
       "weight": 1.0,
-      "source": "pattern_localhost_only_binding",
-      "target": "compose_serverpeer_service"
+      "source": "compose_serverpeer_service",
+      "target": "pattern_localhost_only_binding"
     },
     {
       "relation": "semantically_similar_to",
@@ -1212,8 +1553,8 @@
       "source_file": "docs/architecture/components/infrastructure/nostr-relay.yml",
       "source_location": "technical_details.deployment_mode",
       "weight": 1.0,
-      "source": "component_nostr_relay",
-      "target": "compose_nostr_relay_service"
+      "source": "compose_nostr_relay_service",
+      "target": "component_nostr_relay"
     },
     {
       "relation": "references",
@@ -1232,8 +1573,8 @@
       "source_file": "CLAUDE.md",
       "source_location": "Security Considerations",
       "weight": 1.0,
-      "source": "pattern_localhost_only_binding",
-      "target": "compose_couchdb_service"
+      "source": "compose_couchdb_service",
+      "target": "pattern_localhost_only_binding"
     },
     {
       "relation": "references",
@@ -1342,8 +1683,8 @@
       "source_file": "docs/architecture/metadata.yml",
       "source_location": null,
       "weight": 1.0,
-      "source": "arch_metadata",
-      "target": "arch_index"
+      "source": "arch_index",
+      "target": "arch_metadata"
     },
     {
       "relation": "references",
@@ -1352,8 +1693,8 @@
       "source_file": "CLAUDE.md",
       "source_location": "Architecture Documentation section",
       "weight": 1.0,
-      "source": "claude_md_doc",
-      "target": "arch_index"
+      "source": "arch_index",
+      "target": "claude_md_doc"
     },
     {
       "relation": "references",
@@ -1412,8 +1753,8 @@
       "source_file": "docs/architecture/components/application/backup-system.yml",
       "source_location": null,
       "weight": 0.65,
-      "source": "component_backup_system",
-      "target": "component_monitoring_system"
+      "source": "component_monitoring_system",
+      "target": "component_backup_system"
     },
     {
       "relation": "references",
@@ -1432,8 +1773,8 @@
       "source_file": "docs/architecture/components/infrastructure/certbot.yml",
       "source_location": "relationships.depends_on",
       "weight": 1.0,
-      "source": "component_certbot",
-      "target": "component_ufw_firewall"
+      "source": "component_ufw_firewall",
+      "target": "component_certbot"
     },
     {
       "relation": "rationale_for",
@@ -1442,8 +1783,8 @@
       "source_file": "docs/architecture/components/infrastructure/ufw-firewall.yml",
       "source_location": "hooks section",
       "weight": 1.0,
-      "source": "pattern_certbot_ufw_hooks",
-      "target": "component_ufw_firewall"
+      "source": "component_ufw_firewall",
+      "target": "pattern_certbot_ufw_hooks"
     },
     {
       "relation": "references",
@@ -1462,8 +1803,8 @@
       "source_file": "docs/architecture/components/infrastructure/serverpeer.yml",
       "source_location": "relationships.depends_on",
       "weight": 1.0,
-      "source": "component_serverpeer",
-      "target": "component_nostr_relay"
+      "source": "component_nostr_relay",
+      "target": "component_serverpeer"
     },
     {
       "relation": "conceptually_related_to",
@@ -1482,8 +1823,8 @@
       "source_file": "docs/architecture/components/infrastructure/nginx.yml",
       "source_location": "relationships.depends_on",
       "weight": 1.0,
-      "source": "component_nginx",
-      "target": "component_docker_network"
+      "source": "component_docker_network",
+      "target": "component_nginx"
     },
     {
       "relation": "references",
@@ -1492,8 +1833,8 @@
       "source_file": "docs/architecture/components/infrastructure/serverpeer.yml",
       "source_location": "relationships.depends_on",
       "weight": 1.0,
-      "source": "component_serverpeer",
-      "target": "component_docker_network"
+      "source": "component_docker_network",
+      "target": "component_serverpeer"
     },
     {
       "relation": "rationale_for",
@@ -1502,8 +1843,8 @@
       "source_file": "docs/architecture/index.yml",
       "source_location": "patterns section",
       "weight": 1.0,
-      "source": "pattern_flexible_network",
-      "target": "component_docker_network"
+      "source": "component_docker_network",
+      "target": "pattern_flexible_network"
     },
     {
       "relation": "references",
@@ -1512,8 +1853,8 @@
       "source_file": "docs/architecture/components/infrastructure/nginx.yml",
       "source_location": "relationships.depends_on",
       "weight": 1.0,
-      "source": "component_nginx",
-      "target": "component_certbot"
+      "source": "component_certbot",
+      "target": "component_nginx"
     },
     {
       "relation": "rationale_for",
@@ -1522,8 +1863,8 @@
       "source_file": "docs/architecture/components/infrastructure/ufw-firewall.yml",
       "source_location": "hooks section",
       "weight": 1.0,
-      "source": "pattern_certbot_ufw_hooks",
-      "target": "component_certbot"
+      "source": "component_certbot",
+      "target": "pattern_certbot_ufw_hooks"
     },
     {
       "relation": "rationale_for",
@@ -1532,8 +1873,8 @@
       "source_file": "docs/architecture/components/infrastructure/serverpeer.yml",
       "source_location": "security.vault_isolation",
       "weight": 1.0,
-      "source": "pattern_nostr_room_id_isolation",
-      "target": "component_serverpeer"
+      "source": "component_serverpeer",
+      "target": "pattern_nostr_room_id_isolation"
     },
     {
       "relation": "rationale_for",
@@ -1542,8 +1883,8 @@
       "source_file": "docs/architecture/components/infrastructure/nginx.yml",
       "source_location": "official_docs_comparison",
       "weight": 1.0,
-      "source": "pattern_nginx_websocket_support",
-      "target": "component_nginx"
+      "source": "component_nginx",
+      "target": "pattern_nginx_websocket_support"
     },
     {
       "relation": "references",
@@ -1552,8 +1893,8 @@
       "source_file": "CLAUDE.md",
       "source_location": "local.ini section",
       "weight": 1.0,
-      "source": "claude_md_doc",
-      "target": "couchdb_optimization_doc"
+      "source": "couchdb_optimization_doc",
+      "target": "claude_md_doc"
     },
     {
       "relation": "semantically_similar_to",
@@ -1562,8 +1903,8 @@
       "source_file": "README.md",
       "source_location": null,
       "weight": 0.75,
-      "source": "readme_doc",
-      "target": "claude_md_doc"
+      "source": "claude_md_doc",
+      "target": "readme_doc"
     },
     {
       "relation": "implements",
@@ -1572,8 +1913,8 @@
       "source_file": "docs/architecture/scripts/deployment/setup.yml",
       "source_location": "relationships.depends_on_patterns[pattern:flexible-network]",
       "weight": 1.0,
-      "source": "script_setup",
-      "target": "pattern_flexible_network"
+      "source": "pattern_flexible_network",
+      "target": "script_setup"
     },
     {
       "relation": "references",
@@ -1602,8 +1943,8 @@
       "source_file": "docs/architecture/patterns/flexible-network-architecture.yml",
       "source_location": "variants[1]",
       "weight": 1.0,
-      "source": "flexible_network_isolated_mode",
-      "target": "pattern_flexible_network"
+      "source": "pattern_flexible_network",
+      "target": "flexible_network_isolated_mode"
     },
     {
       "relation": "rationale_for",
@@ -1612,8 +1953,8 @@
       "source_file": "docs/architecture/patterns/flexible-network-architecture.yml",
       "source_location": "variants[0]",
       "weight": 1.0,
-      "source": "flexible_network_shared_mode",
-      "target": "pattern_flexible_network"
+      "source": "pattern_flexible_network",
+      "target": "flexible_network_shared_mode"
     },
     {
       "relation": "implements",
@@ -1622,8 +1963,8 @@
       "source_file": "docs/architecture/network-topology/isolated-mode.yml",
       "source_location": "references.implemented_by",
       "weight": 1.0,
-      "source": "topology_isolated_mode",
-      "target": "pattern_flexible_network"
+      "source": "pattern_flexible_network",
+      "target": "topology_isolated_mode"
     },
     {
       "relation": "references",
@@ -1632,8 +1973,8 @@
       "source_file": "docs/prd/obsidian-sync-server.md",
       "source_location": "Architecture.Docker.Network Architecture",
       "weight": 1.0,
-      "source": "prd_obsidian_sync_server",
-      "target": "pattern_flexible_network"
+      "source": "pattern_flexible_network",
+      "target": "prd_obsidian_sync_server"
     },
     {
       "relation": "references",
@@ -1642,8 +1983,8 @@
       "source_file": "docs/architecture/schemas/pattern-schema.yml",
       "source_location": "template definition",
       "weight": 0.75,
-      "source": "schema_pattern",
-      "target": "pattern_flexible_network"
+      "source": "pattern_flexible_network",
+      "target": "schema_pattern"
     },
     {
       "relation": "references",
@@ -1652,8 +1993,8 @@
       "source_file": "docs/architecture/configurations/env-file.yml",
       "source_location": "used_by[component:couchdb]",
       "weight": 1.0,
-      "source": "config_env_file",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "config_env_file"
     },
     {
       "relation": "references",
@@ -1662,8 +2003,8 @@
       "source_file": "docs/architecture/scripts/deployment/deploy.yml",
       "source_location": "relationships.configures_components[component:couchdb]",
       "weight": 1.0,
-      "source": "script_deploy",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "script_deploy"
     },
     {
       "relation": "references",
@@ -1672,8 +2013,8 @@
       "source_file": "docs/architecture/scripts/helpers/couchdb-backup.yml",
       "source_location": "relationships.configures_components[component:backup-system]",
       "weight": 1.0,
-      "source": "script_couchdb_backup",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "script_couchdb_backup"
     },
     {
       "relation": "references",
@@ -1682,8 +2023,8 @@
       "source_file": "docs/prd/obsidian-sync-server.md",
       "source_location": "Architecture.\u041a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u044b \u0441\u0438\u0441\u0442\u0435\u043c\u044b.CouchDB",
       "weight": 1.0,
-      "source": "prd_obsidian_sync_server",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "prd_obsidian_sync_server"
     },
     {
       "relation": "rationale_for",
@@ -1692,8 +2033,8 @@
       "source_file": "docs/architecture/components/infrastructure/couchdb.yml",
       "source_location": "configuration.local_ini.settings.couchdb.single_node",
       "weight": 1.0,
-      "source": "couchdb_single_node_mode",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "couchdb_single_node_mode"
     },
     {
       "relation": "rationale_for",
@@ -1702,8 +2043,8 @@
       "source_file": "docs/architecture/components/infrastructure/couchdb.yml",
       "source_location": "security.access_control",
       "weight": 1.0,
-      "source": "couchdb_require_valid_user",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "couchdb_require_valid_user"
     },
     {
       "relation": "references",
@@ -1712,8 +2053,8 @@
       "source_file": "docs/architecture/components/infrastructure/fail2ban.yml",
       "source_location": "relationships.depends_on[component:couchdb]",
       "weight": 1.0,
-      "source": "fail2ban_component",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "fail2ban_component"
     },
     {
       "relation": "references",
@@ -1722,8 +2063,8 @@
       "source_file": "docs/architecture/data-flows/user-request-flow.yml",
       "source_location": "references.components[component:couchdb]",
       "weight": 1.0,
-      "source": "dataflow_user_request",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "dataflow_user_request"
     },
     {
       "relation": "references",
@@ -1732,8 +2073,8 @@
       "source_file": "docs/architecture/workflows/deployment-flow.yml",
       "source_location": "references.affects_components[component:couchdb]",
       "weight": 1.0,
-      "source": "workflow_deployment",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "workflow_deployment"
     },
     {
       "relation": "references",
@@ -1742,8 +2083,8 @@
       "source_file": "docs/architecture/scripts/deployment/setup.yml",
       "source_location": "relationships.configures_components[component:couchdb]",
       "weight": 1.0,
-      "source": "script_setup",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "script_setup"
     },
     {
       "relation": "references",
@@ -1752,8 +2093,8 @@
       "source_file": "docs/architecture/schemas/component-schema.yml",
       "source_location": "template definition",
       "weight": 0.75,
-      "source": "schema_component",
-      "target": "couchdb_component"
+      "source": "couchdb_component",
+      "target": "schema_component"
     },
     {
       "relation": "semantically_similar_to",
@@ -1782,8 +2123,8 @@
       "source_file": "docs/architecture/components/infrastructure/fail2ban.yml",
       "source_location": "technical_details.ufw_integration",
       "weight": 1.0,
-      "source": "fail2ban_ufw_integration",
-      "target": "fail2ban_component"
+      "source": "fail2ban_component",
+      "target": "fail2ban_ufw_integration"
     },
     {
       "relation": "rationale_for",
@@ -1792,8 +2133,8 @@
       "source_file": "docs/architecture/components/infrastructure/fail2ban.yml",
       "source_location": "integration_notes.backend_awareness",
       "weight": 1.0,
-      "source": "fail2ban_backend_aware_jails",
-      "target": "fail2ban_component"
+      "source": "fail2ban_component",
+      "target": "fail2ban_backend_aware_jails"
     },
     {
       "relation": "references",
@@ -1802,8 +2143,8 @@
       "source_file": "docs/architecture/workflows/deployment-flow.yml",
       "source_location": "references.affects_components[component:fail2ban]",
       "weight": 1.0,
-      "source": "workflow_deployment",
-      "target": "fail2ban_component"
+      "source": "fail2ban_component",
+      "target": "workflow_deployment"
     },
     {
       "relation": "semantically_similar_to",
@@ -1812,8 +2153,8 @@
       "source_file": "docs/architecture/scripts/deployment/setup.yml",
       "source_location": "key_functions.create_env_file.notes",
       "weight": 0.75,
-      "source": "setup_conditional_env_generation",
-      "target": "fail2ban_backend_aware_jails"
+      "source": "fail2ban_backend_aware_jails",
+      "target": "setup_conditional_env_generation"
     },
     {
       "relation": "implements",
@@ -1822,8 +2163,8 @@
       "source_file": "docs/architecture/scripts/deployment/deploy.yml",
       "source_location": "relationships.depends_on_patterns[pattern:docker-image-prepull]",
       "weight": 1.0,
-      "source": "script_deploy",
-      "target": "pattern_docker_image_prepull"
+      "source": "pattern_docker_image_prepull",
+      "target": "script_deploy"
     },
     {
       "relation": "rationale_for",
@@ -1832,8 +2173,8 @@
       "source_file": "docs/architecture/patterns/docker-image-prepull.yml",
       "source_location": "technical_details.manifest_digest_vs_image_id",
       "weight": 1.0,
-      "source": "prepull_image_id_comparison",
-      "target": "pattern_docker_image_prepull"
+      "source": "pattern_docker_image_prepull",
+      "target": "prepull_image_id_comparison"
     },
     {
       "relation": "references",
@@ -1842,8 +2183,8 @@
       "source_file": "docs/architecture/schemas/pattern-schema.yml",
       "source_location": "template definition",
       "weight": 0.75,
-      "source": "schema_pattern",
-      "target": "pattern_docker_image_prepull"
+      "source": "pattern_docker_image_prepull",
+      "target": "schema_pattern"
     },
     {
       "relation": "semantically_similar_to",
@@ -1852,8 +2193,8 @@
       "source_file": "docs/architecture/network-topology/isolated-mode.yml",
       "source_location": "description.summary",
       "weight": 0.95,
-      "source": "topology_isolated_mode",
-      "target": "flexible_network_isolated_mode"
+      "source": "flexible_network_isolated_mode",
+      "target": "topology_isolated_mode"
     },
     {
       "relation": "references",
@@ -1872,8 +2213,8 @@
       "source_file": "docs/architecture/scripts/deployment/setup.yml",
       "source_location": "relationships.modifies_files[/opt/notes/.env]",
       "weight": 1.0,
-      "source": "script_setup",
-      "target": "config_env_file"
+      "source": "config_env_file",
+      "target": "script_setup"
     },
     {
       "relation": "references",
@@ -1882,8 +2223,8 @@
       "source_file": "docs/architecture/scripts/deployment/deploy.yml",
       "source_location": "execution.environment_variables[NOTES_DOMAIN source=/opt/notes/.env]",
       "weight": 1.0,
-      "source": "script_deploy",
-      "target": "config_env_file"
+      "source": "config_env_file",
+      "target": "script_deploy"
     },
     {
       "relation": "rationale_for",
@@ -1892,8 +2233,8 @@
       "source_file": "docs/architecture/configurations/env-file.yml",
       "source_location": "security.permissions",
       "weight": 1.0,
-      "source": "env_file_chmod600",
-      "target": "config_env_file"
+      "source": "config_env_file",
+      "target": "env_file_chmod600"
     },
     {
       "relation": "references",
@@ -1932,8 +2273,8 @@
       "source_file": "docs/architecture/schemas/workflow-schema.yml",
       "source_location": "template definition",
       "weight": 0.75,
-      "source": "schema_workflow",
-      "target": "workflow_deployment"
+      "source": "workflow_deployment",
+      "target": "schema_workflow"
     },
     {
       "relation": "rationale_for",
@@ -1942,8 +2283,8 @@
       "source_file": "docs/architecture/scripts/deployment/setup.yml",
       "source_location": "key_functions.prompt_s3_credentials.notes",
       "weight": 1.0,
-      "source": "setup_backend_aware_s3_prefix",
-      "target": "script_setup"
+      "source": "script_setup",
+      "target": "setup_backend_aware_s3_prefix"
     },
     {
       "relation": "rationale_for",
@@ -1952,8 +2293,8 @@
       "source_file": "docs/architecture/scripts/deployment/setup.yml",
       "source_location": "key_functions.create_env_file.notes",
       "weight": 1.0,
-      "source": "setup_conditional_env_generation",
-      "target": "script_setup"
+      "source": "script_setup",
+      "target": "setup_conditional_env_generation"
     },
     {
       "relation": "references",
@@ -1962,8 +2303,8 @@
       "source_file": "docs/architecture/scripts/deployment/install.yml",
       "source_location": "execution.prerequisites[install.sh must have been run]",
       "weight": 0.95,
-      "source": "script_install",
-      "target": "script_setup"
+      "source": "script_setup",
+      "target": "script_install"
     },
     {
       "relation": "rationale_for",
@@ -1972,8 +2313,8 @@
       "source_file": "docs/architecture/scripts/deployment/install.yml",
       "source_location": "key_functions.install_python_deps.notes",
       "weight": 1.0,
-      "source": "install_pep668_compliance",
-      "target": "script_install"
+      "source": "script_install",
+      "target": "install_pep668_compliance"
     },
     {
       "relation": "conceptually_related_to",
@@ -1992,8 +2333,8 @@
       "source_file": "docs/architecture/schemas/script-schema.yml",
       "source_location": "template definition",
       "weight": 0.75,
-      "source": "schema_script",
-      "target": "script_deploy"
+      "source": "script_deploy",
+      "target": "schema_script"
     },
     {
       "relation": "references",
@@ -2002,8 +2343,8 @@
       "source_file": "scripts/requirements.txt",
       "source_location": "line 1: boto3>=1.26.0",
       "weight": 0.85,
-      "source": "requirements_txt",
-      "target": "script_couchdb_backup"
+      "source": "script_couchdb_backup",
+      "target": "requirements_txt"
     },
     {
       "relation": "rationale_for",
@@ -2012,8 +2353,8 @@
       "source_file": "docs/architecture/security/firewall-rules.yml",
       "source_location": "description.summary",
       "weight": 1.0,
-      "source": "firewall_deny_by_default",
-      "target": "security_firewall_rules"
+      "source": "security_firewall_rules",
+      "target": "firewall_deny_by_default"
     },
     {
       "relation": "references",
@@ -2022,8 +2363,8 @@
       "source_file": "docs/prd/obsidian-sync-server.md",
       "source_location": "Security Requirements.Network Security (UFW)",
       "weight": 1.0,
-      "source": "prd_obsidian_sync_server",
-      "target": "security_firewall_rules"
+      "source": "security_firewall_rules",
+      "target": "prd_obsidian_sync_server"
     },
     {
       "relation": "rationale_for",
@@ -2032,8 +2373,8 @@
       "source_file": "docs/prd/obsidian-sync-server.md",
       "source_location": "Executive Summary.\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f",
       "weight": 1.0,
-      "source": "prd_dual_backend_support",
-      "target": "prd_obsidian_sync_server"
+      "source": "prd_obsidian_sync_server",
+      "target": "prd_dual_backend_support"
     },
     {
       "relation": "rationale_for",
@@ -2042,90 +2383,423 @@
       "source_file": "docs/prd/obsidian-sync-server.md",
       "source_location": "Executive Summary.\u041d\u0430\u0434\u0435\u0436\u043d\u043e\u0441\u0442\u044c",
       "weight": 1.0,
-      "source": "prd_graceful_degradation",
-      "target": "prd_obsidian_sync_server"
-    }
-  ],
-  "hyperedges": [
+      "source": "prd_obsidian_sync_server",
+      "target": "prd_graceful_degradation"
+    },
     {
-      "id": "p2p_signaling_stack",
-      "label": "P2P Signaling and Sync Stack",
-      "nodes": [
-        "component_nostr_relay",
-        "component_serverpeer",
-        "compose_nostr_relay_service",
-        "compose_serverpeer_service"
-      ],
-      "relation": "implement",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L139",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_s3_upload_run_cleanup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_s3_upload_rationale_83",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "test_s3_cleanup.py",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "test_s3_cleanup.py",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "test_s3_cleanup.py",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "test_s3_cleanup.py",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "test_s3_cleanup.py",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "test_s3_cleanup.py",
+      "source_location": "L104",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_run_cleanup",
+      "target": "scripts_s3_upload_rationale_113",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "test_s3_cleanup_py",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L43",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L82",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_rationale_16",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 139",
+      "weight": 1.0,
+      "source": "s3_upload_cleanup_old_objects",
+      "target": "s3_upload_run_cleanup"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "line 10",
+      "weight": 1.0,
+      "source": "s3_upload_cleanup_old_objects",
+      "target": "test_s3_cleanup_testcleanupold"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
+      "source_location": "\u00a7Design",
+      "weight": 1.0,
+      "source": "s3_upload_cleanup_old_objects",
+      "target": "spec_backup_rotation"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-05-20-backup-rotation.md",
+      "source_location": "Task 2",
+      "weight": 1.0,
+      "source": "s3_upload_cleanup_old_objects",
+      "target": "plan_backup_rotation"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
+      "source_location": "\u00a7ErrorHandling",
+      "weight": 1.0,
+      "source": "s3_upload_cleanup_old_objects",
+      "target": "rationale_s3_cleanup_non_failing"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
+      "source_location": "\u00a7Design",
+      "weight": 1.0,
+      "source": "s3_upload_cleanup_old_objects",
+      "target": "rationale_s3_rotation_design"
+    },
+    {
+      "relation": "rationale_for",
       "confidence": "INFERRED",
       "confidence_score": 0.95,
-      "source_file": "docs/architecture/components/infrastructure/serverpeer.yml"
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 94",
+      "weight": 0.95,
+      "source": "s3_upload_cleanup_old_objects",
+      "target": "rationale_batch_1000_delete"
     },
     {
-      "id": "backup_pipeline",
-      "label": "Backup Pipeline: CouchDB \u2192 S3",
-      "nodes": [
-        "component_backup_system",
-        "s3_upload_script",
-        "component_s3_storage"
-      ],
-      "relation": "participate_in",
+      "relation": "calls",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "docs/architecture/components/application/backup-system.yml"
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "line 211",
+      "weight": 1.0,
+      "source": "s3_upload_run_cleanup",
+      "target": "s3_upload_cli"
     },
     {
-      "id": "ssl_renewal_coordination",
-      "label": "SSL Renewal Coordination: UFW + Certbot + Nginx",
-      "nodes": [
-        "component_ufw_firewall",
-        "component_certbot",
-        "component_nginx"
-      ],
-      "relation": "participate_in",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/architecture/components/infrastructure/certbot.yml"
-    },
-    {
-      "id": "deployment_pipeline_sequence",
-      "label": "Three-Script Deployment Pipeline (install \u2192 setup \u2192 deploy)",
-      "nodes": [
-        "script_install",
-        "script_setup",
-        "script_deploy"
-      ],
-      "relation": "implement",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/architecture/workflows/deployment-flow.yml"
-    },
-    {
-      "id": "layered_security_model",
-      "label": "Layered Security Model (UFW static + fail2ban dynamic + CouchDB auth)",
-      "nodes": [
-        "security_firewall_rules",
-        "fail2ban_component",
-        "couchdb_require_valid_user"
-      ],
-      "relation": "participate_in",
+      "relation": "references",
       "confidence": "INFERRED",
       "confidence_score": 0.85,
-      "source_file": "docs/architecture/security/firewall-rules.yml"
+      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
+      "source_location": "\u00a7Design \u2014 CLI extension",
+      "weight": 0.85,
+      "source": "s3_upload_run_cleanup",
+      "target": "spec_backup_rotation"
     },
     {
-      "id": "network_request_path",
-      "label": "Inbound Request Path (UFW \u2192 Nginx \u2192 CouchDB)",
-      "nodes": [
-        "security_firewall_rules",
-        "dataflow_user_request",
-        "couchdb_component"
-      ],
-      "relation": "participate_in",
+      "relation": "references",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "docs/architecture/data-flows/user-request-flow.yml"
+      "source_file": "docs/superpowers/plans/2026-05-20-backup-rotation.md",
+      "source_location": "Task 1",
+      "weight": 1.0,
+      "source": "test_s3_cleanup_testcleanupold",
+      "target": "plan_backup_rotation"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-05-20-backup-rotation.md",
+      "source_location": "frontmatter spec_hash",
+      "weight": 1.0,
+      "source": "spec_backup_rotation",
+      "target": "plan_backup_rotation"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/superpowers/specs/2026-05-21-couchdb-useRequestAPI-backup-fix-design.md",
+      "source_location": "\u00a7Issue 1",
+      "weight": 0.85,
+      "source": "spec_backup_rotation",
+      "target": "spec_couchdb_backup_fix"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-05-21-couchdb-backup-fix-nginx-500-fix.md",
+      "source_location": "frontmatter spec_hash",
+      "weight": 1.0,
+      "source": "spec_couchdb_backup_fix",
+      "target": "plan_couchdb_backup_nginx_fix"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "docs/superpowers/plans/2026-05-21-couchdb-backup-fix-nginx-500-fix.md",
+      "source_location": "\u00a7Task 5",
+      "weight": 0.75,
+      "source": "plan_backup_rotation",
+      "target": "plan_couchdb_backup_nginx_fix"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/specs/2026-05-21-couchdb-useRequestAPI-backup-fix-design.md",
+      "source_location": "\u00a7Issue 3 Probable Causes",
+      "weight": 1.0,
+      "source": "plan_couchdb_backup_nginx_fix",
+      "target": "rationale_connection_upgrade_map"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/specs/2026-05-21-couchdb-useRequestAPI-backup-fix-design.md",
+      "source_location": "\u00a7Issue 1 Fix",
+      "weight": 1.0,
+      "source": "plan_couchdb_backup_nginx_fix",
+      "target": "rationale_preflight_auth_check"
     }
   ],
-  "built_at_commit": "2fa4f60fa46b5e13db989a6be73a8234a2377170"
+  "hyperedges": [],
+  "built_at_commit": "02e51ed2ea69cf2125bf0daa2c9e4eb719394cfe"
 }

@@ -1,7 +1,11 @@
 {
   "scripts/s3_upload.py": {
-    "mtime": 1767012982.6548643,
-    "hash": "eb9afcc3a5b8c7e7e0597fad8c8085f9"
+    "mtime": 1779336936.0123177,
+    "hash": "1a0ae858e670d6386bc1ddc9e2f2f503"
+  },
+  "scripts/test_s3_cleanup.py": {
+    "mtime": 1779336950.3771288,
+    "hash": "a60eba247fdb888de8f986a8f02b0839"
   },
   "docker-compose.serverpeer-personal.yml": {
     "mtime": 1767038831.9105928,
@@ -150,6 +154,22 @@
   "docs/architecture/schemas/workflow-schema.yml": {
     "mtime": 1767012982.6531787,
     "hash": "0416923c8dc1fccf03488fea0c422c54"
+  },
+  "docs/superpowers/specs/2026-05-20-backup-rotation-design.md": {
+    "mtime": 1779309349.0910199,
+    "hash": "766e522d8614a31c39cb614bf148d73f"
+  },
+  "docs/superpowers/specs/2026-05-21-couchdb-useRequestAPI-backup-fix-design.md": {
+    "mtime": 1779364612.8243558,
+    "hash": "e6f023a67e0c7a98c0d03a0cb73d4ec2"
+  },
+  "docs/superpowers/plans/2026-05-21-couchdb-backup-fix-nginx-500-fix.md": {
+    "mtime": 1779367235.973127,
+    "hash": "709734cb311fa55d83fa3b9f6a4364de"
+  },
+  "docs/superpowers/plans/2026-05-20-backup-rotation.md": {
+    "mtime": 1779310109.05471,
+    "hash": "8a35f3b8efa0bf3890929d4230f299f3"
   },
   "docs/prd/obsidian-sync-server.md": {
     "mtime": 1767042161.5127153,

@@ -488,7 +488,7 @@ fi
 
 # Clean up any backups older than retention period
 log "Cleaning up backups older than ${RETENTION_DAYS} days"
-find "${BACKUP_DIR}" -name "couchdb-*.tar.gz" -type f -mtime +${RETENTION_DAYS} -delete
+find "${BACKUP_DIR}" -name "couchdb-*.tar.gz" -type f -mtime +$((RETENTION_DAYS-1)) -delete
 
 update_progress "Cleanup completed - Backup process finished"
 
