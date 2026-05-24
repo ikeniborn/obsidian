@@ -1253,6 +1253,23 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+    # Remove legacy unit files created by older setup.sh versions (e.g. couchdb.* → couchdb-backup.*)
+    local legacy_name=""
+    case "${service_name}" in
+        couchdb-backup) legacy_name="couchdb" ;;
+        serverpeer-backup) legacy_name="serverpeer" ;;
+    esac
+    if [[ -n "${legacy_name}" ]]; then
+        if systemctl is-active --quiet "${legacy_name}.timer" 2>/dev/null; then
+            sudo systemctl stop "${legacy_name}.timer" 2>/dev/null || true
+        fi
+        if systemctl is-enabled --quiet "${legacy_name}.timer" 2>/dev/null; then
+            sudo systemctl disable "${legacy_name}.timer" 2>/dev/null || true
+        fi
+        sudo rm -f "/etc/systemd/system/${legacy_name}.timer" \
+                   "/etc/systemd/system/${legacy_name}.service" 2>/dev/null || true
+    fi
+
     # Reload and enable
     sudo systemctl daemon-reload
     sudo systemctl enable ${service_name}.timer

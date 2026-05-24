@@ -247,7 +247,7 @@ log "Creating backup: ${BACKUP_NAME}"
 log "Using CouchDB replication API for safe backup"
 
 # Create temporary directory for backup
-TEMP_BACKUP_DIR="${BACKUP_DIR}/temp_$(date +%s)"
+TEMP_BACKUP_DIR="${BACKUP_DIR}/temp_$(date +%s)_$$"
 mkdir -p "${TEMP_BACKUP_DIR}"
 
 # Function to check if container is running
