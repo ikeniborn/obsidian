@@ -1,0 +1,2 @@
+- [[backup]] — Backup pipeline: disk guards, timeout logic, S3 upload, size expectations
+- [[couchdb]] — CouchDB 3.x compaction (smoosh), data size model, fragmentation monitoring

@@ -1,14 +1,43 @@
 {
   "directed": false,
   "multigraph": false,
-  "graph": {},
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "couchdb_performance_settings",
+        "label": "CouchDB Performance Optimization Group",
+        "nodes": [
+          "local_ini_write_optimization",
+          "local_ini_smoosh_compaction",
+          "local_ini_query_server"
+        ],
+        "relation": "form",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85,
+        "source_file": "local.ini"
+      },
+      {
+        "id": "couchdb_backup_safety_checks",
+        "label": "Backup Safety & Health Check Group",
+        "nodes": [
+          "couchdb_backup_check_disk_space",
+          "couchdb_backup_check_container_health",
+          "couchdb_backup_calculate_timeout"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 0.95,
+        "source_file": "scripts/couchdb-backup.sh"
+      }
+    ]
+  },
   "nodes": [
     {
       "label": "s3_upload.py",
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L1",
-      "community": 2,
+      "community": 3,
       "norm_label": "s3_upload.py",
       "id": "s3_upload_py"
     },
@@ -17,7 +46,7 @@
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L16",
-      "community": 2,
+      "community": 3,
       "norm_label": "load_env_file()",
       "id": "scripts_s3_upload_load_env_file"
     },
@@ -26,7 +55,7 @@
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L28",
-      "community": 2,
+      "community": 3,
       "norm_label": "upload_to_s3()",
       "id": "scripts_s3_upload_upload_to_s3"
     },
@@ -35,7 +64,7 @@
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L145",
-      "community": 2,
+      "community": 3,
       "norm_label": "test_s3_connection()",
       "id": "scripts_s3_upload_test_s3_connection"
     },
@@ -44,7 +73,7 @@
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L16",
-      "community": 2,
+      "community": 3,
       "norm_label": "load environment variables from .env file",
       "id": "scripts_s3_upload_rationale_16"
     },
@@ -53,7 +82,7 @@
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L28",
-      "community": 2,
+      "community": 3,
       "norm_label": "upload file to s3-compatible storage",
       "id": "scripts_s3_upload_rationale_28"
     },
@@ -62,7 +91,7 @@
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L82",
-      "community": 2,
+      "community": 3,
       "norm_label": "test s3 connection without uploading",
       "id": "scripts_s3_upload_rationale_82"
     },
@@ -127,7 +156,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 7,
       "norm_label": "serverpeer docker compose service",
       "id": "compose_serverpeer_service"
     },
@@ -140,7 +169,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 7,
       "norm_label": "serverpeer personal docker compose service",
       "id": "compose_serverpeer_personal_service"
     },
@@ -153,7 +182,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 7,
       "norm_label": "nostr relay docker compose service",
       "id": "compose_nostr_relay_service"
     },
@@ -166,7 +195,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 7,
       "norm_label": "couchdb docker compose service",
       "id": "compose_couchdb_service"
     },
@@ -375,7 +404,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Three network modes (shared/isolated/custom) allow integration with existing Docker services or standalone deployment, avoiding single-mode constraint. Subnet auto-allocation (172.24-31.0.0/16) prevents conflicts.",
-      "community": 4,
+      "community": 5,
       "norm_label": "flexible network architecture pattern",
       "id": "pattern_flexible_network"
     },
@@ -403,7 +432,7 @@
       "author": null,
       "contributor": null,
       "rationale": "CouchDB (5984) and ServerPeer (3000) bind to 127.0.0.1 only. All external access is routed through nginx reverse proxy. This eliminates direct external exposure of backend services.",
-      "community": 6,
+      "community": 7,
       "norm_label": "localhost-only backend port binding",
       "id": "pattern_localhost_only_binding"
     },
@@ -445,7 +474,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Image ID (Config.Digest) is used rather than manifest digest to detect needed updates, because manifest digests differ for multi-arch images while Image ID matches Docker's own pull-needed determination logic.",
-      "community": 10,
+      "community": 11,
       "norm_label": "docker image id comparison for update detection",
       "id": "pattern_image_id_comparison"
     },
@@ -459,7 +488,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Docker daemon proxy settings do not propagate to BuildKit's separate buildkitd daemon. Pre-pulling base images via docker pull (which respects daemon proxy) before docker build ensures images are available from cache without requiring BuildKit proxy configuration.",
-      "community": 11,
+      "community": 12,
       "norm_label": "pre-pull workaround for buildkit proxy limitation",
       "id": "pattern_prepull_buildkit_workaround"
     },
@@ -472,7 +501,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 7,
       "norm_label": "/opt/notes/.env configuration file",
       "id": "notes_env_file"
     },
@@ -485,7 +514,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 9,
       "norm_label": "couchdb database component",
       "id": "couchdb_component"
     },
@@ -499,7 +528,7 @@
       "author": null,
       "contributor": null,
       "rationale": "single_node=true simplifies deployment and eliminates cluster coordination overhead for a self-hosted single-server use case",
-      "community": 8,
+      "community": 9,
       "norm_label": "couchdb single-node mode",
       "id": "couchdb_single_node_mode"
     },
@@ -513,7 +542,7 @@
       "author": null,
       "contributor": null,
       "rationale": "require_valid_user=true ensures all HTTP endpoints require authentication, preventing unauthenticated access to the database",
-      "community": 8,
+      "community": 9,
       "norm_label": "couchdb require_valid_user security enforcement",
       "id": "couchdb_require_valid_user"
     },
@@ -526,7 +555,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 10,
       "norm_label": "fail2ban intrusion prevention component",
       "id": "fail2ban_component"
     },
@@ -540,7 +569,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Using UFW as banaction lets fail2ban insert deny rules at position 1 (highest priority) without replacing static UFW rules, maintaining compatibility with certbot hooks",
-      "community": 9,
+      "community": 10,
       "norm_label": "fail2ban ufw dynamic rule injection",
       "id": "fail2ban_ufw_integration"
     },
@@ -554,7 +583,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Jails are conditionally created based on SYNC_BACKEND to avoid monitoring unavailable services and prevent false alarms",
-      "community": 9,
+      "community": 10,
       "norm_label": "fail2ban backend-aware jail configuration",
       "id": "fail2ban_backend_aware_jails"
     },
@@ -567,7 +596,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 5,
       "norm_label": "docker image prepull pattern",
       "id": "pattern_docker_image_prepull"
     },
@@ -581,7 +610,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Using Config.Digest (Image ID) instead of manifest digest for update detection because manifest LIST digest differs from platform-specific digest for multi-arch images, causing false positives",
-      "community": 4,
+      "community": 5,
       "norm_label": "image id vs manifest digest comparison strategy",
       "id": "prepull_image_id_comparison"
     },
@@ -595,7 +624,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Shared mode enables integration with existing nginx/services on the same Docker network without requiring a dedicated subnet",
-      "community": 4,
+      "community": 5,
       "norm_label": "shared network mode variant",
       "id": "flexible_network_shared_mode"
     },
@@ -609,7 +638,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Isolated mode creates a dedicated obsidian_network for maximum security, preventing lateral movement from other containers",
-      "community": 4,
+      "community": 5,
       "norm_label": "isolated network mode variant",
       "id": "flexible_network_isolated_mode"
     },
@@ -622,7 +651,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 8,
       "norm_label": "user request data flow",
       "id": "dataflow_user_request"
     },
@@ -635,7 +664,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 5,
       "norm_label": "environment configuration file /opt/notes/.env",
       "id": "config_env_file"
     },
@@ -649,7 +678,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Restricting .env to owner read/write prevents credential leakage from other system users or compromised processes",
-      "community": 4,
+      "community": 5,
       "norm_label": "env-file chmod 600 security design",
       "id": "env_file_chmod600"
     },
@@ -662,7 +691,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 6,
       "norm_label": "full production deployment workflow",
       "id": "workflow_deployment"
     },
@@ -675,7 +704,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 5,
       "norm_label": "isolated network mode topology",
       "id": "topology_isolated_mode"
     },
@@ -688,7 +717,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 6,
       "norm_label": "setup.sh interactive configuration script",
       "id": "script_setup"
     },
@@ -702,7 +731,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Dual mode uses separate S3 prefixes (COUCHDB_S3_BACKUP_PREFIX and SERVERPEER_S3_BACKUP_PREFIX) to prevent file conflicts when both backends upload to the same S3 bucket",
-      "community": 5,
+      "community": 6,
       "norm_label": "backend-aware s3 backup prefix configuration",
       "id": "setup_backend_aware_s3_prefix"
     },
@@ -716,7 +745,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Backend-specific variables are only written to .env when their backend is selected to avoid unbound variable errors in scripts that source .env",
-      "community": 5,
+      "community": 6,
       "norm_label": "conditional .env variable generation per backend",
       "id": "setup_conditional_env_generation"
     },
@@ -729,7 +758,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 6,
       "norm_label": "install.sh dependency installation script",
       "id": "script_install"
     },
@@ -743,7 +772,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Using apt-get install python3-boto3 instead of pip3 respects PEP 668 (externally-managed-environment) on Ubuntu 23.04+ which blocks pip from modifying system Python packages",
-      "community": 5,
+      "community": 6,
       "norm_label": "pep 668 compliant python dependency installation",
       "id": "install_pep668_compliance"
     },
@@ -756,7 +785,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 5,
       "norm_label": "deploy.sh production deployment script",
       "id": "script_deploy"
     },
@@ -769,7 +798,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 9,
       "norm_label": "couchdb-backup.sh backup script",
       "id": "script_couchdb_backup"
     },
@@ -782,7 +811,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 8,
       "norm_label": "ufw firewall rules security configuration",
       "id": "security_firewall_rules"
     },
@@ -796,7 +825,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Deny-by-default minimizes attack surface; only ports 22 (SSH) and 443 (HTTPS) are permanently open, with port 80 opened only transiently during certbot renewal",
-      "community": 7,
+      "community": 8,
       "norm_label": "deny-by-default firewall policy",
       "id": "firewall_deny_by_default"
     },
@@ -809,7 +838,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 5,
       "norm_label": "pattern schema template",
       "id": "schema_pattern"
     },
@@ -822,7 +851,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 12,
+      "community": 13,
       "norm_label": "relationship types schema",
       "id": "schema_relationship_types"
     },
@@ -835,7 +864,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 5,
       "norm_label": "script schema template",
       "id": "schema_script"
     },
@@ -848,7 +877,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 9,
       "norm_label": "component schema template",
       "id": "schema_component"
     },
@@ -861,7 +890,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 6,
       "norm_label": "workflow schema template",
       "id": "schema_workflow"
     },
@@ -874,7 +903,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 8,
       "norm_label": "obsidian sync server prd",
       "id": "prd_obsidian_sync_server"
     },
@@ -888,7 +917,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Supporting both CouchDB (client-server) and ServerPeer (P2P/WebRTC) backends enables users to choose their sync topology based on requirements: reliability vs. P2P privacy",
-      "community": 7,
+      "community": 8,
       "norm_label": "dual backend support concept (couchdb + serverpeer)",
       "id": "prd_dual_backend_support"
     },
@@ -902,7 +931,7 @@
       "author": null,
       "contributor": null,
       "rationale": "P2P sync via WebRTC continues functioning even when ServerPeer is offline because clients connect directly; ServerPeer is only an always-on buffer",
-      "community": 7,
+      "community": 8,
       "norm_label": "graceful degradation (p2p works offline)",
       "id": "prd_graceful_degradation"
     },
@@ -915,7 +944,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 6,
       "norm_label": "python requirements (boto3)",
       "id": "requirements_txt"
     },
@@ -924,153 +953,153 @@
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L82",
-      "id": "scripts_s3_upload_cleanup_old_objects",
-      "community": 3,
-      "norm_label": "cleanup_old_objects()"
+      "community": 4,
+      "norm_label": "cleanup_old_objects()",
+      "id": "scripts_s3_upload_cleanup_old_objects"
     },
     {
       "label": "run_cleanup()",
       "file_type": "code",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L112",
-      "id": "scripts_s3_upload_run_cleanup",
-      "community": 2,
-      "norm_label": "run_cleanup()"
+      "community": 3,
+      "norm_label": "run_cleanup()",
+      "id": "scripts_s3_upload_run_cleanup"
     },
     {
       "label": "Load environment variables from .env file",
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L17",
-      "id": "scripts_s3_upload_rationale_17",
-      "community": 2,
-      "norm_label": "load environment variables from .env file"
+      "community": 3,
+      "norm_label": "load environment variables from .env file",
+      "id": "scripts_s3_upload_rationale_17"
     },
     {
       "label": "Upload file to S3-compatible storage",
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L29",
-      "id": "scripts_s3_upload_rationale_29",
-      "community": 2,
-      "norm_label": "upload file to s3-compatible storage"
+      "community": 3,
+      "norm_label": "upload file to s3-compatible storage",
+      "id": "scripts_s3_upload_rationale_29"
     },
     {
       "label": "Delete S3 objects under prefix older than days. Returns count deleted.",
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L83",
-      "id": "scripts_s3_upload_rationale_83",
-      "community": 3,
-      "norm_label": "delete s3 objects under prefix older than days. returns count deleted."
+      "community": 4,
+      "norm_label": "delete s3 objects under prefix older than days. returns count deleted.",
+      "id": "scripts_s3_upload_rationale_83"
     },
     {
       "label": "Load config, create S3 client, run cleanup. Returns True on success.",
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L113",
-      "id": "scripts_s3_upload_rationale_113",
-      "community": 2,
-      "norm_label": "load config, create s3 client, run cleanup. returns true on success."
+      "community": 3,
+      "norm_label": "load config, create s3 client, run cleanup. returns true on success.",
+      "id": "scripts_s3_upload_rationale_113"
     },
     {
       "label": "Test S3 connection without uploading",
       "file_type": "rationale",
       "source_file": "scripts/s3_upload.py",
       "source_location": "L146",
-      "id": "scripts_s3_upload_rationale_146",
-      "community": 2,
-      "norm_label": "test s3 connection without uploading"
+      "community": 3,
+      "norm_label": "test s3 connection without uploading",
+      "id": "scripts_s3_upload_rationale_146"
     },
     {
       "label": "test_s3_cleanup.py",
       "file_type": "code",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L1",
-      "id": "test_s3_cleanup_py",
-      "community": 3,
-      "norm_label": "test_s3_cleanup.py"
+      "community": 4,
+      "norm_label": "test_s3_cleanup.py",
+      "id": "test_s3_cleanup_py"
     },
     {
       "label": "TestCleanupOldObjects",
       "file_type": "code",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L13",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "community": 3,
-      "norm_label": "testcleanupoldobjects"
+      "community": 4,
+      "norm_label": "testcleanupoldobjects",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects"
     },
     {
       "label": "._make_client()",
       "file_type": "code",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L15",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "community": 3,
-      "norm_label": "._make_client()"
+      "community": 4,
+      "norm_label": "._make_client()",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client"
     },
     {
       "label": ".test_deletes_objects_older_than_days()",
       "file_type": "code",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L24",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days",
-      "community": 3,
-      "norm_label": ".test_deletes_objects_older_than_days()"
+      "community": 4,
+      "norm_label": ".test_deletes_objects_older_than_days()",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days"
     },
     {
       "label": ".test_keeps_objects_within_retention()",
       "file_type": "code",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L41",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention",
-      "community": 3,
-      "norm_label": ".test_keeps_objects_within_retention()"
+      "community": 4,
+      "norm_label": ".test_keeps_objects_within_retention()",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention"
     },
     {
       "label": ".test_boundary_object_at_exactly_retention_is_kept()",
       "file_type": "code",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L53",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept",
-      "community": 3,
-      "norm_label": ".test_boundary_object_at_exactly_retention_is_kept()"
+      "community": 4,
+      "norm_label": ".test_boundary_object_at_exactly_retention_is_kept()",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept"
     },
     {
       "label": ".test_empty_prefix_returns_zero()",
       "file_type": "code",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L68",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero",
-      "community": 3,
-      "norm_label": ".test_empty_prefix_returns_zero()"
+      "community": 4,
+      "norm_label": ".test_empty_prefix_returns_zero()",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero"
     },
     {
       "label": ".test_batches_large_deletions()",
       "file_type": "code",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L76",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions",
-      "community": 3,
-      "norm_label": ".test_batches_large_deletions()"
+      "community": 4,
+      "norm_label": ".test_batches_large_deletions()",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions"
     },
     {
       "label": ".test_partial_delete_errors_not_counted()",
       "file_type": "code",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L92",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted",
-      "community": 3,
-      "norm_label": ".test_partial_delete_errors_not_counted()"
+      "community": 4,
+      "norm_label": ".test_partial_delete_errors_not_counted()",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted"
     },
     {
       "label": "Return mock S3 client. Pass None to simulate empty prefix (no Contents key).",
       "file_type": "rationale",
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L16",
-      "id": "scripts_test_s3_cleanup_rationale_16",
-      "community": 3,
-      "norm_label": "return mock s3 client. pass none to simulate empty prefix (no contents key)."
+      "community": 4,
+      "norm_label": "return mock s3 client. pass none to simulate empty prefix (no contents key).",
+      "id": "scripts_test_s3_cleanup_rationale_16"
     },
     {
       "label": "cleanup_old_objects()",
@@ -1081,9 +1110,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "s3_upload_cleanup_old_objects",
       "community": 1,
-      "norm_label": "cleanup_old_objects()"
+      "norm_label": "cleanup_old_objects()",
+      "id": "s3_upload_cleanup_old_objects"
     },
     {
       "label": "run_cleanup()",
@@ -1094,9 +1123,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "s3_upload_run_cleanup",
       "community": 1,
-      "norm_label": "run_cleanup()"
+      "norm_label": "run_cleanup()",
+      "id": "s3_upload_run_cleanup"
     },
     {
       "label": "s3_upload.py CLI entrypoint",
@@ -1107,9 +1136,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "s3_upload_cli",
       "community": 1,
-      "norm_label": "s3_upload.py cli entrypoint"
+      "norm_label": "s3_upload.py cli entrypoint",
+      "id": "s3_upload_cli"
     },
     {
       "label": "TestCleanupOldObjects",
@@ -1120,9 +1149,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "test_s3_cleanup_testcleanupold",
       "community": 1,
-      "norm_label": "testcleanupoldobjects"
+      "norm_label": "testcleanupoldobjects",
+      "id": "test_s3_cleanup_testcleanupold"
     },
     {
       "label": "Backup Rotation Design Spec",
@@ -1133,9 +1162,9 @@
       "captured_at": "2026-05-20",
       "author": null,
       "contributor": null,
-      "id": "spec_backup_rotation",
       "community": 1,
-      "norm_label": "backup rotation design spec"
+      "norm_label": "backup rotation design spec",
+      "id": "spec_backup_rotation"
     },
     {
       "label": "CouchDB useRequestAPI Verification + Backup Fix Design",
@@ -1146,9 +1175,9 @@
       "captured_at": "2026-05-21",
       "author": null,
       "contributor": null,
-      "id": "spec_couchdb_backup_fix",
       "community": 1,
-      "norm_label": "couchdb userequestapi verification + backup fix design"
+      "norm_label": "couchdb userequestapi verification + backup fix design",
+      "id": "spec_couchdb_backup_fix"
     },
     {
       "label": "Backup Rotation Implementation Plan",
@@ -1159,9 +1188,9 @@
       "captured_at": "2026-05-20",
       "author": null,
       "contributor": null,
-      "id": "plan_backup_rotation",
       "community": 1,
-      "norm_label": "backup rotation implementation plan"
+      "norm_label": "backup rotation implementation plan",
+      "id": "plan_backup_rotation"
     },
     {
       "label": "CouchDB Backup Fix + nginx 500 Fix Implementation Plan",
@@ -1172,9 +1201,9 @@
       "captured_at": "2026-05-21",
       "author": null,
       "contributor": null,
-      "id": "plan_couchdb_backup_nginx_fix",
       "community": 1,
-      "norm_label": "couchdb backup fix + nginx 500 fix implementation plan"
+      "norm_label": "couchdb backup fix + nginx 500 fix implementation plan",
+      "id": "plan_couchdb_backup_nginx_fix"
     },
     {
       "label": "S3 cleanup failure should not fail the backup run \u2014 upload success is more critical than rotation",
@@ -1185,9 +1214,9 @@
       "captured_at": "2026-05-20",
       "author": null,
       "contributor": null,
-      "id": "rationale_s3_cleanup_non_failing",
       "community": 1,
-      "norm_label": "s3 cleanup failure should not fail the backup run \u2014 upload success is more critical than rotation"
+      "norm_label": "s3 cleanup failure should not fail the backup run \u2014 upload success is more critical than rotation",
+      "id": "rationale_s3_cleanup_non_failing"
     },
     {
       "label": "map variable for Connection header prevents HTTP 500: hardcoded 'upgrade' on non-WebSocket requests sends malformed headers to CouchDB/cowboy",
@@ -1198,9 +1227,9 @@
       "captured_at": "2026-05-21",
       "author": null,
       "contributor": null,
-      "id": "rationale_connection_upgrade_map",
       "community": 1,
-      "norm_label": "map variable for connection header prevents http 500: hardcoded 'upgrade' on non-websocket requests sends malformed headers to couchdb/cowboy"
+      "norm_label": "map variable for connection header prevents http 500: hardcoded 'upgrade' on non-websocket requests sends malformed headers to couchdb/cowboy",
+      "id": "rationale_connection_upgrade_map"
     },
     {
       "label": "Pre-flight auth check in couchdb-backup.sh prevents silently uploading corrupt 401-error JSON to S3 \u2014 fail-fast on credential mismatch",
@@ -1211,9 +1240,9 @@
       "captured_at": "2026-05-21",
       "author": null,
       "contributor": null,
-      "id": "rationale_preflight_auth_check",
       "community": 1,
-      "norm_label": "pre-flight auth check in couchdb-backup.sh prevents silently uploading corrupt 401-error json to s3 \u2014 fail-fast on credential mismatch"
+      "norm_label": "pre-flight auth check in couchdb-backup.sh prevents silently uploading corrupt 401-error json to s3 \u2014 fail-fast on credential mismatch",
+      "id": "rationale_preflight_auth_check"
     },
     {
       "label": "S3 rotation added to s3_upload.py (not couchdb-backup.sh) to keep cleanup reusable across backends and testable in isolation",
@@ -1224,9 +1253,9 @@
       "captured_at": "2026-05-20",
       "author": null,
       "contributor": null,
-      "id": "rationale_s3_rotation_design",
       "community": 1,
-      "norm_label": "s3 rotation added to s3_upload.py (not couchdb-backup.sh) to keep cleanup reusable across backends and testable in isolation"
+      "norm_label": "s3 rotation added to s3_upload.py (not couchdb-backup.sh) to keep cleanup reusable across backends and testable in isolation",
+      "id": "rationale_s3_rotation_design"
     },
     {
       "label": "S3 delete_objects API max 1000 keys per request \u2014 batching required for large prefix cleanups",
@@ -1237,9 +1266,219 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "rationale_batch_1000_delete",
       "community": 1,
-      "norm_label": "s3 delete_objects api max 1000 keys per request \u2014 batching required for large prefix cleanups"
+      "norm_label": "s3 delete_objects api max 1000 keys per request \u2014 batching required for large prefix cleanups",
+      "id": "rationale_batch_1000_delete"
+    },
+    {
+      "label": "CouchDB Core Settings",
+      "file_type": "document",
+      "source_file": "local.ini",
+      "source_location": "[couchdb]",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "single_node=true for standalone deployment; max_document_size=50MB to support Obsidian attachments",
+      "id": "local_ini_couchdb_core",
+      "community": 2,
+      "norm_label": "couchdb core settings"
+    },
+    {
+      "label": "Write Performance Optimization",
+      "file_type": "rationale",
+      "source_file": "local.ini",
+      "source_location": "[couchdb] delayed_commits, file_compression",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "delayed_commits=true batches writes in 1s window (3-5x faster bulk writes); file_compression=snappy for fast compression with 20-30% space savings",
+      "id": "local_ini_write_optimization",
+      "community": 2,
+      "norm_label": "write performance optimization"
+    },
+    {
+      "label": "Smoosh Automatic Compaction",
+      "file_type": "document",
+      "source_file": "local.ini",
+      "source_location": "[smoosh]",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "CouchDB 3.x uses smoosh daemon (replaces deprecated compaction_daemon); ratio_dbs triggers at 1.25 ratio (~20% fragmentation); slack_dbs triggers at 200MB wasted space",
+      "id": "local_ini_smoosh_compaction",
+      "community": 2,
+      "norm_label": "smoosh automatic compaction"
+    },
+    {
+      "label": "HTTP Security Settings",
+      "file_type": "document",
+      "source_file": "local.ini",
+      "source_location": "[chttpd]",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "require_valid_user=true enforces authentication; max_http_request_size=100MB (2x document size) prevents DoS; max_connections=200 limits resource exhaustion",
+      "id": "local_ini_chttpd_security",
+      "community": 2,
+      "norm_label": "http security settings"
+    },
+    {
+      "label": "CORS Configuration for Obsidian",
+      "file_type": "document",
+      "source_file": "local.ini",
+      "source_location": "[cors]",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Origins restricted to app://obsidian.md, capacitor://localhost, http://localhost \u2014 only Obsidian app origins allowed",
+      "id": "local_ini_cors_config",
+      "community": 2,
+      "norm_label": "cors configuration for obsidian"
+    },
+    {
+      "label": "Query Server Configuration",
+      "file_type": "document",
+      "source_file": "local.ini",
+      "source_location": "[query_server_config]",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "os_process_timeout=10000ms for complex views; os_process_soft_limit=50 concurrent processes",
+      "id": "local_ini_query_server",
+      "community": 14,
+      "norm_label": "query server configuration"
+    },
+    {
+      "label": "CouchDB Backup Script",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Backs up all CouchDB databases to tar.gz, uploads to S3-compatible storage. Designed with resource limits to avoid impacting production CouchDB.",
+      "id": "couchdb_backup_main",
+      "community": 2,
+      "norm_label": "couchdb backup script"
+    },
+    {
+      "label": "calculate_timeout()",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 111",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Adaptive timeout per database based on active data size (BASE_TIMEOUT + MB * 2s). Reports fragmentation: warns if >30% fragmentation.",
+      "id": "couchdb_backup_calculate_timeout",
+      "community": 2,
+      "norm_label": "calculate_timeout()"
+    },
+    {
+      "label": "check_container_health()",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 287",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Three-method container health check: docker ps name match, docker inspect state, HTTP API connectivity. Retries after 10s sleep on failure.",
+      "id": "couchdb_backup_check_container_health",
+      "community": 2,
+      "norm_label": "check_container_health()"
+    },
+    {
+      "label": "check_disk_space()",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 218",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Aborts if <2GB free or >90% disk usage; warns at >80%. Prevents backup from filling disk.",
+      "id": "couchdb_backup_check_disk_space",
+      "community": 2,
+      "norm_label": "check_disk_space()"
+    },
+    {
+      "label": "S3 Upload Step",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 483",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Uses s3_upload.py with COUCHDB_S3_BACKUP_PREFIX fallback chain: COUCHDB_S3_BACKUP_PREFIX > S3_BACKUP_PREFIX > couchdb-backups/",
+      "id": "couchdb_backup_s3_upload",
+      "community": 2,
+      "norm_label": "s3 upload step"
+    },
+    {
+      "label": "Local Backup Retention",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 516-524",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Deletes backup from exactly RETENTION_DAYS ago by name, then runs find -mtime +((RETENTION_DAYS-1)) for any missed files. BACKUP_RETENTION_DAYS env var configurable (default: 7).",
+      "id": "couchdb_backup_retention",
+      "community": 2,
+      "norm_label": "local backup retention"
+    },
+    {
+      "label": "Environment Loading with Fallback",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 22-39",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Primary: /opt/notes/.env; fallback to /opt/budget/.env for backward compatibility. Uses set -a / set +a to export all sourced variables.",
+      "id": "couchdb_backup_env_loading",
+      "community": 2,
+      "norm_label": "environment loading with fallback"
+    },
+    {
+      "label": "Resource Limits Configuration",
+      "file_type": "rationale",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 91-98",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "nice -n 19 (lowest CPU priority), ionice -c 3 (idle I/O), CPU_LIMIT=50%, MEMORY_LIMIT=512MB. Batch size 10 dbs before health recheck.",
+      "id": "couchdb_backup_resource_limits",
+      "community": 2,
+      "norm_label": "resource limits configuration"
+    },
+    {
+      "label": "Dual API Access Strategy",
+      "file_type": "rationale",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 323-338",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Prefers direct host API (curl localhost:5984) over docker exec for efficiency. Falls back to docker exec when host API unreachable.",
+      "id": "couchdb_backup_dual_api_access",
+      "community": 2,
+      "norm_label": "dual api access strategy"
     }
   ],
   "links": [
@@ -1279,9 +1518,9 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L82",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "s3_upload_py",
-      "target": "scripts_s3_upload_cleanup_old_objects",
-      "confidence_score": 1.0
+      "target": "scripts_s3_upload_cleanup_old_objects"
     },
     {
       "relation": "contains",
@@ -1289,9 +1528,9 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L112",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "s3_upload_py",
-      "target": "scripts_s3_upload_run_cleanup",
-      "confidence_score": 1.0
+      "target": "scripts_s3_upload_run_cleanup"
     },
     {
       "relation": "calls",
@@ -1332,9 +1571,9 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L114",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_s3_upload_load_env_file",
-      "target": "scripts_s3_upload_run_cleanup",
-      "confidence_score": 1.0
+      "target": "scripts_s3_upload_run_cleanup"
     },
     {
       "relation": "rationale_for",
@@ -1342,9 +1581,9 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_s3_upload_load_env_file",
-      "target": "scripts_s3_upload_rationale_17",
-      "confidence_score": 1.0
+      "target": "scripts_s3_upload_rationale_17"
     },
     {
       "relation": "rationale_for",
@@ -1362,9 +1601,9 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L29",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_s3_upload_upload_to_s3",
-      "target": "scripts_s3_upload_rationale_29",
-      "confidence_score": 1.0
+      "target": "scripts_s3_upload_rationale_29"
     },
     {
       "relation": "rationale_for",
@@ -1382,9 +1621,9 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L146",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_s3_upload_test_s3_connection",
-      "target": "scripts_s3_upload_rationale_146",
-      "confidence_score": 1.0
+      "target": "scripts_s3_upload_rationale_146"
     },
     {
       "relation": "calls",
@@ -2393,9 +2632,9 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L139",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_s3_upload_run_cleanup",
-      "confidence_score": 1.0
+      "target": "scripts_s3_upload_run_cleanup"
     },
     {
       "relation": "rationale_for",
@@ -2403,9 +2642,9 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_s3_upload_rationale_83",
-      "confidence_score": 1.0
+      "target": "scripts_s3_upload_rationale_83"
     },
     {
       "relation": "calls",
@@ -2479,9 +2718,9 @@
       "source_file": "scripts/s3_upload.py",
       "source_location": "L113",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_s3_upload_run_cleanup",
-      "target": "scripts_s3_upload_rationale_113",
-      "confidence_score": 1.0
+      "target": "scripts_s3_upload_rationale_113"
     },
     {
       "relation": "contains",
@@ -2489,9 +2728,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "test_s3_cleanup_py",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects"
     },
     {
       "relation": "method",
@@ -2499,9 +2738,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client"
     },
     {
       "relation": "method",
@@ -2509,9 +2748,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days"
     },
     {
       "relation": "method",
@@ -2519,9 +2758,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L41",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention"
     },
     {
       "relation": "method",
@@ -2529,9 +2768,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L53",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept"
     },
     {
       "relation": "method",
@@ -2539,9 +2778,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L68",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero"
     },
     {
       "relation": "method",
@@ -2549,9 +2788,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L76",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions"
     },
     {
       "relation": "method",
@@ -2559,9 +2798,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L92",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted"
     },
     {
       "relation": "calls",
@@ -2570,9 +2809,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L28",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days"
     },
     {
       "relation": "calls",
@@ -2581,9 +2820,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention"
     },
     {
       "relation": "calls",
@@ -2592,9 +2831,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept"
     },
     {
       "relation": "calls",
@@ -2603,9 +2842,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L69",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero"
     },
     {
       "relation": "calls",
@@ -2614,9 +2853,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L82",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions"
     },
     {
       "relation": "calls",
@@ -2625,9 +2864,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L96",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted"
     },
     {
       "relation": "rationale_for",
@@ -2635,9 +2874,9 @@
       "source_file": "scripts/test_s3_cleanup.py",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_rationale_16",
-      "confidence_score": 1.0
+      "target": "scripts_test_s3_cleanup_rationale_16"
     },
     {
       "relation": "calls",
@@ -2798,8 +3037,195 @@
       "weight": 1.0,
       "source": "plan_couchdb_backup_nginx_fix",
       "target": "rationale_preflight_auth_check"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 126-127",
+      "weight": 0.75,
+      "source": "local_ini_couchdb_core",
+      "target": "couchdb_backup_calculate_timeout"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "local.ini",
+      "source_location": "[couchdb]",
+      "weight": 1.0,
+      "source": "local_ini_couchdb_core",
+      "target": "local_ini_write_optimization"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "local.ini",
+      "source_location": "[smoosh]",
+      "weight": 1.0,
+      "source": "local_ini_couchdb_core",
+      "target": "local_ini_smoosh_compaction"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "local.ini",
+      "source_location": "[chttpd]",
+      "weight": 0.85,
+      "source": "local_ini_couchdb_core",
+      "target": "local_ini_chttpd_security"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 63-65",
+      "weight": 0.85,
+      "source": "local_ini_couchdb_core",
+      "target": "couchdb_backup_main"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 141",
+      "weight": 0.85,
+      "source": "local_ini_smoosh_compaction",
+      "target": "couchdb_backup_calculate_timeout"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "local.ini",
+      "source_location": "[cors]",
+      "weight": 0.75,
+      "source": "local_ini_chttpd_security",
+      "target": "local_ini_cors_config"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 361",
+      "weight": 1.0,
+      "source": "couchdb_backup_main",
+      "target": "couchdb_backup_calculate_timeout"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 320",
+      "weight": 1.0,
+      "source": "couchdb_backup_main",
+      "target": "couchdb_backup_check_container_health"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 239",
+      "weight": 1.0,
+      "source": "couchdb_backup_main",
+      "target": "couchdb_backup_check_disk_space"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 491",
+      "weight": 1.0,
+      "source": "couchdb_backup_main",
+      "target": "couchdb_backup_s3_upload"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 22",
+      "weight": 1.0,
+      "source": "couchdb_backup_main",
+      "target": "couchdb_backup_env_loading"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 517",
+      "weight": 1.0,
+      "source": "couchdb_backup_main",
+      "target": "couchdb_backup_retention"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 91-98",
+      "weight": 1.0,
+      "source": "couchdb_backup_main",
+      "target": "couchdb_backup_resource_limits"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 323-338",
+      "weight": 1.0,
+      "source": "couchdb_backup_main",
+      "target": "couchdb_backup_dual_api_access"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "line 499",
+      "weight": 1.0,
+      "source": "couchdb_backup_s3_upload",
+      "target": "couchdb_backup_retention"
     }
   ],
-  "hyperedges": [],
-  "built_at_commit": "02e51ed2ea69cf2125bf0daa2c9e4eb719394cfe"
+  "hyperedges": [
+    {
+      "id": "couchdb_performance_settings",
+      "label": "CouchDB Performance Optimization Group",
+      "nodes": [
+        "local_ini_write_optimization",
+        "local_ini_smoosh_compaction",
+        "local_ini_query_server"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "local.ini"
+    },
+    {
+      "id": "couchdb_backup_safety_checks",
+      "label": "Backup Safety & Health Check Group",
+      "nodes": [
+        "couchdb_backup_check_disk_space",
+        "couchdb_backup_check_container_health",
+        "couchdb_backup_calculate_timeout"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95,
+      "source_file": "scripts/couchdb-backup.sh"
+    }
+  ],
+  "built_at_commit": "ebc96093f835f5226aaf33e727950051e10fbed0"
 }

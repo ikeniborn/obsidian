@@ -107,42 +107,51 @@ TOTAL_STEPS=9
 CURRENT_STEP=0
 PROGRESS_WIDTH=50
 
-# Function to calculate timeout based on database size
+# Function to calculate timeout based on database size and report fragmentation
 calculate_timeout() {
     local db_name="$1"
-    local use_host_api="$2"  # Pass as parameter instead of relying on global variable
+    local use_host_api="$2"
     local db_info
-    local db_size_mb
     local timeout
-    
-    # Get database info to determine size
+
     if [[ "${use_host_api}" == "true" ]]; then
         db_info=$(curl -s --connect-timeout 10 "${COUCHDB_HOST_URL}/${db_name}" 2>/dev/null)
     else
         db_info=$(docker exec "${COUCHDB_CONTAINER}" curl -s "${COUCHDB_URL}/${db_name}" 2>/dev/null)
     fi
-    
+
     if [[ -n "$db_info" ]]; then
-        # Extract file size in bytes and convert to MB
-        db_size_bytes=$(echo "$db_info" | grep -o '"file":[0-9]*' | cut -d':' -f2)
-        if [[ -n "$db_size_bytes" && "$db_size_bytes" -gt 0 ]]; then
-            db_size_mb=$((db_size_bytes / 1024 / 1024))
-            timeout=$((BASE_TIMEOUT + db_size_mb * TIMEOUT_PER_MB))
-            
-            # Cap at maximum timeout
+        # Use active size (actual data) for timeout — not file size (includes dead revisions)
+        local active_bytes file_bytes
+        active_bytes=$(echo "$db_info" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('sizes',{}).get('active', d.get('data_size', 0)))" 2>/dev/null)
+        file_bytes=$(echo "$db_info" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('sizes',{}).get('file', d.get('disk_size', 0)))" 2>/dev/null)
+
+        if [[ -n "$active_bytes" && "$active_bytes" -gt 0 ]]; then
+            local active_mb=$((active_bytes / 1024 / 1024))
+            timeout=$((BASE_TIMEOUT + active_mb * TIMEOUT_PER_MB))
             if [[ $timeout -gt $MAX_TIMEOUT ]]; then
                 timeout=$MAX_TIMEOUT
             fi
-            
-            # Log to stderr to avoid interfering with return value
-            echo "Database ${db_name}: ${db_size_mb}MB, timeout: ${timeout}s" >&2
+
+            # Report fragmentation
+            if [[ -n "$file_bytes" && "$file_bytes" -gt 0 ]]; then
+                local frag_pct=$(( (file_bytes - active_bytes) * 100 / file_bytes ))
+                local file_mb=$((file_bytes / 1024 / 1024))
+                if [[ $frag_pct -gt 30 ]]; then
+                    echo "WARNING: DB ${db_name}: ${frag_pct}% fragmentation (${active_mb}MB active / ${file_mb}MB on disk) — run manual compaction" >&2
+                else
+                    echo "DB ${db_name}: ${active_mb}MB active, ${frag_pct}% fragmentation, timeout: ${timeout}s" >&2
+                fi
+            else
+                echo "DB ${db_name}: ${active_mb}MB, timeout: ${timeout}s" >&2
+            fi
             echo $timeout
         else
-            echo "Database ${db_name}: size not found, using base timeout ${BASE_TIMEOUT}s" >&2
+            echo "DB ${db_name}: size unknown, using base timeout ${BASE_TIMEOUT}s" >&2
             echo $BASE_TIMEOUT
         fi
     else
-        echo "Database ${db_name}: info not available, using base timeout ${BASE_TIMEOUT}s" >&2
+        echo "DB ${db_name}: info unavailable, using base timeout ${BASE_TIMEOUT}s" >&2
         echo $BASE_TIMEOUT
     fi
 }
@@ -204,6 +213,30 @@ fi
 if ! command -v python3 >/dev/null 2>&1; then
     error_exit "python3 is not installed (required for S3 upload)"
 fi
+
+# Check disk space before starting backup
+check_disk_space() {
+    local dir="$1"
+    local free_kb
+    free_kb=$(df -k "$dir" | awk 'NR==2 {print $4}')
+    local free_gb=$((free_kb / 1024 / 1024))
+    local used_pct
+    used_pct=$(df -k "$dir" | awk 'NR==2 {print $5}' | tr -d '%')
+
+    log "Disk space: ${free_gb}GB free (${used_pct}% used) on $(df -k "$dir" | awk 'NR==2 {print $1}')"
+
+    if [[ $free_kb -lt 2097152 ]]; then  # < 2GB
+        error_exit "Insufficient disk space: only ${free_gb}GB free (need at least 2GB)"
+    fi
+    if [[ $used_pct -gt 90 ]]; then
+        error_exit "Disk usage critical: ${used_pct}% used — aborting backup to prevent disk full"
+    fi
+    if [[ $used_pct -gt 80 ]]; then
+        log "WARNING: Disk usage high: ${used_pct}% used"
+    fi
+}
+
+check_disk_space "${BACKUP_DIR}"
 
 # Проверка что S3 credentials заданы
 if [[ -z "$S3_ACCESS_KEY_ID" ]] || [[ -z "$S3_SECRET_ACCESS_KEY" ]]; then
