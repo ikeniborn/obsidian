@@ -130,11 +130,11 @@ docker compose -f docker-compose.notes.yml restart
 bash /opt/notes/scripts/couchdb-backup.sh
 ```
 
-*ServerPeer:*
+*ServerPeer:* **(LEGACY — frozen project, production runs CouchDB)**
 ```bash
 docker logs notes-serverpeer
 docker compose -f docker-compose.serverpeer.yml restart
-bash /opt/notes/scripts/serverpeer-backup.sh  # NO CouchDB dependency
+bash /opt/notes/scripts/serverpeer-backup.sh  # LEGACY/FROZEN: old local-tar.gz design, NOT migrated to direct streaming
 ```
 
 ## Deployment Workflow
@@ -159,12 +159,11 @@ curl http://localhost:5984/_up
 
 **Testing:**
 ```bash
-# Run all tests (SSL, backup, deployment validation)
+# Run all tests (SSL, deployment validation)
 bash scripts/run-all-tests.sh
 
 # Test specific components
 bash scripts/test-ssl-renewal.sh
-bash scripts/test-backup.sh
 ```
 
 **Backup:**
@@ -752,7 +751,6 @@ ServerPeer-only WebSocket proxy:
 ### Test Scripts
 - `run-all-tests.sh` - runs all validation tests
 - `test-ssl-renewal.sh` - dry run of certbot renewal
-- `test-backup.sh` - validates backup process
 - `check-ssl-expiration.sh` - checks certificate expiration
 
 ### Manual Testing
@@ -949,7 +947,7 @@ obsidian/
 ├── deploy.sh                   # Production deployment
 ├── scripts/
 │   ├── couchdb-backup.sh       # CouchDB backup script
-│   ├── serverpeer-backup.sh    # ServerPeer backup script
+│   ├── serverpeer-backup.sh    # ServerPeer backup script (LEGACY/FROZEN)
 │   ├── nginx-setup.sh          # Nginx detection & integration
 │   ├── ssl-setup.sh            # Let's Encrypt SSL
 │   ├── ufw-setup.sh            # Firewall configuration (includes TURN ports)
@@ -957,7 +955,6 @@ obsidian/
 │   ├── generate-serverpeer-compose.sh # Generate multi-vault ServerPeer compose
 │   ├── check-ssl-expiration.sh # SSL monitoring
 │   ├── test-ssl-renewal.sh     # SSL renewal testing
-│   ├── test-backup.sh          # Backup validation
 │   ├── run-all-tests.sh        # Test suite
 │   └── s3_upload.py            # S3 upload utility
 ├── serverpeer/

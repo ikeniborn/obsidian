@@ -30,7 +30,9 @@ JOURNAL_MAX_SIZE="${CLEANUP_JOURNAL_MAX_SIZE:-200M}"
 NGINX_LOG_DIR="${NOTES_LOG_DIR:-/opt/notes/logs}/nginx"
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] CLEANUP: $1" | tee -a "${LOG_FILE}"
+    # File-only: the systemd/cron runner already captures stdout into the same
+    # log file, so teeing to stdout here would duplicate every line.
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] CLEANUP: $1" >> "${LOG_FILE}"
 }
 
 disk_free_gb() {

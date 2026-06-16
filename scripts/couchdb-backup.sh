@@ -207,7 +207,9 @@ update_progress() {
 
 # Logging function
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "${LOG_FILE}"
+    # File-only: the systemd/cron runner already captures stdout into the same
+    # log file, so teeing to stdout here would duplicate every line.
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "${LOG_FILE}"
 }
 
 # Error handling
@@ -411,7 +413,7 @@ else
                 log "ERROR: Database ${db} stream failed (curl=${PIPE_RESULT[0]} gzip=${PIPE_RESULT[1]} upload=${PIPE_RESULT[2]})"
             fi
             # Remove any partial/incomplete object left in S3
-            python3 "${S3_UPLOAD_SCRIPT}" --delete "${db_key}" 2>&1 | tee -a "${LOG_FILE}" || true
+            python3 "${S3_UPLOAD_SCRIPT}" --delete "${db_key}" >> "${LOG_FILE}" 2>&1 || true
             ((FAILED_DBS++))
             log "Continuing with other databases..."
         fi
@@ -461,7 +463,7 @@ else
     # one is missing a database — leaving no valid copy at all.
     if [[ "${FAILED_DBS}" -eq 0 ]]; then
         log "Cleaning up S3 objects older than ${RETENTION_DAYS} days..."
-        if python3 "${S3_UPLOAD_SCRIPT}" --cleanup "${S3_PREFIX}" --days "${RETENTION_DAYS}" 2>&1 | tee -a "${LOG_FILE}"; then
+        if python3 "${S3_UPLOAD_SCRIPT}" --cleanup "${S3_PREFIX}" --days "${RETENTION_DAYS}" >> "${LOG_FILE}" 2>&1; then
             log "S3 cleanup completed"
         else
             log "WARNING: S3 cleanup failed (backup upload was successful)"

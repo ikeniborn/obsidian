@@ -2,13 +2,20 @@
 set -uo pipefail
 
 # =============================================================================
-# ServerPeer Vault Backup Script
+# ServerPeer Vault Backup Script  [LEGACY — FROZEN, NOT MAINTAINED]
 # =============================================================================
 # Backs up headless vault directory and uploads to S3
 #
 # NO DEPENDENCY ON COUCHDB - works with file-based storage
 #
 # Uses: SHARED s3_upload.py (backend-agnostic)
+#
+# STATUS: LEGACY / FROZEN. ServerPeer is a frozen project; production runs
+# CouchDB. This script still uses the old "stage local tar.gz then upload"
+# design — it was NOT migrated to the per-DB direct-streaming model used by
+# couchdb-backup.sh (see lat.md/backup.md). It can fill the disk on a large
+# vault under the limited-disk constraint. Do not extend; if ServerPeer is
+# revived, port it to the streaming approach first.
 # =============================================================================
 
 ENV_FILE="/opt/notes/.env"
@@ -47,7 +54,9 @@ S3_BACKUP_PREFIX="${SERVERPEER_S3_BACKUP_PREFIX:-${S3_BACKUP_PREFIX:-serverpeer-
 S3_UPLOAD_SCRIPT="/opt/notes/scripts/s3_upload.py"
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "${LOG_FILE}"
+    # File-only: the systemd/cron runner already captures stdout into the same
+    # log file, so teeing to stdout here would duplicate every line.
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "${LOG_FILE}"
 }
 
 error_exit() {
@@ -99,7 +108,7 @@ if [[ "${S3_UPLOAD_ENABLED}" == "true" ]]; then
     log "Uploading to S3..."
     log "S3 prefix: ${S3_BACKUP_PREFIX}"
 
-    if python3 "${S3_UPLOAD_SCRIPT}" "${BACKUP_DIR}/${BACKUP_NAME}" "${S3_BACKUP_PREFIX}" 2>&1 | tee -a "${LOG_FILE}"; then
+    if python3 "${S3_UPLOAD_SCRIPT}" "${BACKUP_DIR}/${BACKUP_NAME}" "${S3_BACKUP_PREFIX}" >> "${LOG_FILE}" 2>&1; then
         log "S3 upload: SUCCESS"
         log "Location: s3://${S3_BUCKET_NAME}/${S3_BACKUP_PREFIX}${BACKUP_NAME}"
     else

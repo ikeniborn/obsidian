@@ -182,7 +182,7 @@ troubleshooting:
     run_backup: "bash /opt/notes/scripts/couchdb-backup.sh"
     view_logs: "tail -f /opt/notes/logs/backup.log"
     list_backups: "ls -lh /opt/notes/backups/"
-    restore_test: "bash /opt/notes/scripts/test-backup.sh"
+    cleanup_disk: "bash /opt/notes/scripts/cleanup-system.sh"
 
 references:
   documentation:

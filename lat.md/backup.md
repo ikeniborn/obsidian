@@ -47,7 +47,7 @@ The old hard-abort (`<2GB` / `>90%`) prevented backups exactly when most needed 
 
 `scripts/cleanup-system.sh` reclaims OS-level disk: `journalctl --vacuum-size=200M`, `apt-get clean`, truncate `/var/log/{btmp,wtmp,fail2ban.log}` and project nginx logs.
 
-Called at the end of `couchdb-backup.sh` AND scheduled standalone via `notes-cleanup.timer` (daily 03:30, after the 03:00 backup). The standalone timer is the safety net — it reclaims space even if a backup run dies early.
+Called at the end of `couchdb-backup.sh` AND scheduled standalone (daily 03:30, after the 03:00 backup). `setup.sh` wires the standalone schedule in **both** scheduler paths: systemd path → `notes-cleanup.timer`/`notes-cleanup.service` (`setup_cleanup_systemd_timer()`, `OnCalendar=03:30`); cron path → `30 3 * * *` cleanup line in `setup_backup_cron()`. The standalone schedule is the safety net — it reclaims space even if a backup run dies early (the ENOSPC failure mode where the inline tail-call never runs).
 
 ## Fragmentation Warning
 
@@ -62,6 +62,10 @@ Base64-heavy content (binary files stored as chunks) compresses poorly with gzip
 Root cause of the original HTTP 500s: the disk hit 100% full. CouchDB `couch_btree:write_node` failed with `{error,enospc}`, every write returned 500, and Obsidian LiveSync `POST /{db}/_bulk_docs` broke (reads still 200).
 
 The disk filled from accumulated local backups + the old temp-export design staging ~17GB of uncompressed JSON. Fix: per-DB streaming to S3 (zero local footprint) + `cleanup-system.sh` + warn-only disk guard.
+
+## ServerPeer Backup — legacy, frozen
+
+`scripts/serverpeer-backup.sh` is **legacy and frozen**. ServerPeer is a frozen project; production runs CouchDB. The script still uses the old "stage a local `tar.gz`, then upload" design and was deliberately NOT migrated to the per-DB direct-streaming model — so it can fill the disk on a large vault and violates the limited-disk constraint. It is left in the repo for reference only; per `docs/superpowers/specs/2026-05-20-backup-rotation-design.md` its schedule is disabled on the server. Do not extend it — if ServerPeer is revived, port it to streaming first.
 
 ## Systemd Timer Deduplication
 

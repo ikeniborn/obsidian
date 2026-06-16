@@ -1140,10 +1140,10 @@ setup_backup_cron() {
     echo ""
 
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        # Remove old backup cron jobs (both couchdb and serverpeer)
-        if crontab -l 2>/dev/null | grep -qE "couchdb-backup.sh|serverpeer-backup.sh"; then
-            info "Removing old backup cron jobs..."
-            crontab -l 2>/dev/null | grep -vE "couchdb-backup.sh|serverpeer-backup.sh" | crontab -
+        # Remove old backup + cleanup cron jobs (both couchdb and serverpeer)
+        if crontab -l 2>/dev/null | grep -qE "couchdb-backup.sh|serverpeer-backup.sh|cleanup-system.sh"; then
+            info "Removing old backup/cleanup cron jobs..."
+            crontab -l 2>/dev/null | grep -vE "couchdb-backup.sh|serverpeer-backup.sh|cleanup-system.sh" | crontab -
         fi
 
         # Add cron jobs based on backend
@@ -1164,6 +1164,12 @@ setup_backup_cron() {
             (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
             success "Backup cron job created (CouchDB, daily at 3:00 AM)"
         fi
+
+        # Standalone OS-level disk cleanup at 03:30, after the 03:00 backup.
+        # Independent safety net: reclaims space even if a backup run dies early.
+        CLEANUP_CRON="30 3 * * * /bin/bash /opt/notes/scripts/cleanup-system.sh >> /opt/notes/logs/backup.log 2>&1"
+        (crontab -l 2>/dev/null; echo "$CLEANUP_CRON") | crontab -
+        success "Cleanup cron job created (daily at 3:30 AM)"
 
         touch /opt/notes/logs/backup.log
         chmod 644 /opt/notes/logs/backup.log
@@ -1205,6 +1211,7 @@ setup_systemd_timer() {
             info "Creating systemd timers for both backends..."
             setup_systemd_timer_for_backend "couchdb" "/opt/notes/scripts/couchdb-backup.sh" "CouchDB Backup to S3"
             setup_systemd_timer_for_backend "serverpeer" "/opt/notes/scripts/serverpeer-backup.sh" "ServerPeer Backup to S3"
+            setup_cleanup_systemd_timer
             success "Systemd timers configured for both backends (daily at 3:00 AM)"
             info "Check status: systemctl status couchdb-backup.timer serverpeer-backup.timer"
             return 0
@@ -1215,8 +1222,46 @@ setup_systemd_timer() {
     esac
 
     setup_systemd_timer_for_backend "$service_name" "$backup_script" "$service_description"
+    setup_cleanup_systemd_timer
     success "Systemd timer configured (daily at 3:00 AM)"
     info "Check status: systemctl status ${service_name}.timer"
+}
+
+# Standalone OS-level disk cleanup timer (journal/apt/logs). Runs at 03:30,
+# after the 03:00 backup. Independent of the backup so it reclaims space even
+# if a backup run dies early (the ENOSPC safety net). Backend-agnostic.
+setup_cleanup_systemd_timer() {
+    info "Setting up systemd timer for disk cleanup..."
+
+    sudo tee /etc/systemd/system/notes-cleanup.service > /dev/null << EOF
+[Unit]
+Description=Notes System Disk Cleanup
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/notes
+ExecStart=/bin/bash /opt/notes/scripts/cleanup-system.sh
+StandardOutput=append:/opt/notes/logs/backup.log
+StandardError=append:/opt/notes/logs/backup.log
+User=root
+EOF
+
+    sudo tee /etc/systemd/system/notes-cleanup.timer > /dev/null << EOF
+[Unit]
+Description=Daily Notes System Disk Cleanup Timer
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now notes-cleanup.timer
+    info "Created and started notes-cleanup.timer (daily at 3:30 AM)"
 }
 
 setup_systemd_timer_for_backend() {
@@ -1429,11 +1474,13 @@ main() {
         echo "  🕐 Backup Schedule:"
         echo "     Type:       Systemd timer"
         echo "     Schedule:   Daily at 3:00 AM"
+        echo "     Cleanup:    Daily at 3:30 AM (notes-cleanup.timer)"
         echo ""
     else
         echo "  🕐 Backup Schedule:"
         echo "     Type:       Cron"
         echo "     Schedule:   Daily at 3:00 AM"
+        echo "     Cleanup:    Daily at 3:30 AM (cleanup-system.sh)"
         echo ""
     fi
 
