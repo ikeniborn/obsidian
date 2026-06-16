@@ -79,6 +79,84 @@ def upload_to_s3(file_path, s3_prefix=""):
         print(f"ERROR: S3 upload failed: {e}")
         return False
 
+def upload_stream_to_s3(s3_key):
+    """Stream stdin to S3 (no local file). Used for backups too large to
+    stage on disk — the archive is piped (tar|gzip) straight to object storage."""
+    env = load_env_file()
+
+    access_key = env.get('S3_ACCESS_KEY_ID') or os.getenv('S3_ACCESS_KEY_ID')
+    secret_key = env.get('S3_SECRET_ACCESS_KEY') or os.getenv('S3_SECRET_ACCESS_KEY')
+    bucket_name = env.get('S3_BUCKET_NAME') or os.getenv('S3_BUCKET_NAME')
+    endpoint_url = env.get('S3_ENDPOINT_URL') or os.getenv('S3_ENDPOINT_URL')
+    region = env.get('S3_REGION', 'ru-central1')
+
+    if not all([access_key, secret_key, bucket_name]):
+        print("ERROR: S3 credentials not configured in .env")
+        return False
+
+    try:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            endpoint_url=endpoint_url,
+            region_name=region
+        )
+    except Exception as e:
+        print(f"ERROR: Failed to create S3 client: {e}")
+        return False
+
+    try:
+        print(f"Streaming stdin to s3://{bucket_name}/{s3_key}...")
+        # upload_fileobj does multipart automatically for non-seekable streams
+        s3_client.upload_fileobj(
+            sys.stdin.buffer,
+            bucket_name,
+            s3_key,
+            ExtraArgs={'StorageClass': 'STANDARD'}
+        )
+        print(f"✅ Stream upload successful: s3://{bucket_name}/{s3_key}")
+        return True
+    except NoCredentialsError:
+        print("ERROR: Invalid S3 credentials")
+        return False
+    except ClientError as e:
+        print(f"ERROR: S3 stream upload failed: {e}")
+        return False
+    except Exception as e:
+        print(f"ERROR: S3 stream upload failed: {e}")
+        return False
+
+def delete_object(s3_key):
+    """Delete a single S3 object (used to clean up a partial object after a
+    failed streaming upload)."""
+    env = load_env_file()
+
+    access_key = env.get('S3_ACCESS_KEY_ID') or os.getenv('S3_ACCESS_KEY_ID')
+    secret_key = env.get('S3_SECRET_ACCESS_KEY') or os.getenv('S3_SECRET_ACCESS_KEY')
+    bucket_name = env.get('S3_BUCKET_NAME') or os.getenv('S3_BUCKET_NAME')
+    endpoint_url = env.get('S3_ENDPOINT_URL') or os.getenv('S3_ENDPOINT_URL')
+    region = env.get('S3_REGION', 'ru-central1')
+
+    if not all([access_key, secret_key, bucket_name]):
+        print("ERROR: S3 credentials not configured in .env")
+        return False
+
+    try:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            endpoint_url=endpoint_url,
+            region_name=region
+        )
+        s3_client.delete_object(Bucket=bucket_name, Key=s3_key)
+        print(f"Deleted partial object: s3://{bucket_name}/{s3_key}")
+        return True
+    except Exception as e:
+        print(f"WARNING: Failed to delete {s3_key}: {e}")
+        return False
+
 def cleanup_old_objects(s3_client, bucket, prefix, days):
     """Delete S3 objects under prefix older than days. Returns count deleted."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
@@ -184,12 +262,28 @@ def test_s3_connection():
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: s3_upload.py <file_path> [s3_prefix]")
+        print("       s3_upload.py --stdin <s3_key>")
+        print("       s3_upload.py --delete <s3_key>")
         print("       s3_upload.py --test")
         print("       s3_upload.py --cleanup <prefix> [--days N]")
         sys.exit(1)
 
     if sys.argv[1] == "--test":
         success = test_s3_connection()
+        sys.exit(0 if success else 1)
+
+    if sys.argv[1] == "--stdin":
+        if len(sys.argv) < 3:
+            print("Usage: s3_upload.py --stdin <s3_key>")
+            sys.exit(1)
+        success = upload_stream_to_s3(sys.argv[2])
+        sys.exit(0 if success else 1)
+
+    if sys.argv[1] == "--delete":
+        if len(sys.argv) < 3:
+            print("Usage: s3_upload.py --delete <s3_key>")
+            sys.exit(1)
+        success = delete_object(sys.argv[2])
         sys.exit(0 if success else 1)
 
     if sys.argv[1] == "--cleanup":

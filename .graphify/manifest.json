@@ -1,10 +1,10 @@
 {
   "scripts/s3_upload.py": {
-    "mtime": 1779336936.0123177,
+    "mtime": 1781591816.1972694,
     "hash": "1a0ae858e670d6386bc1ddc9e2f2f503"
   },
   "scripts/test_s3_cleanup.py": {
-    "mtime": 1779336950.3771288,
+    "mtime": 1781591816.1982694,
     "hash": "a60eba247fdb888de8f986a8f02b0839"
   },
   "docker-compose.serverpeer-personal.yml": {
@@ -178,5 +178,21 @@
   "scripts/requirements.txt": {
     "mtime": 1767012982.654727,
     "hash": "d287e760511924112510923e173cc43d"
+  },
+  "scripts/couchdb-backup.sh": {
+    "mtime": 1781591820.6014118,
+    "hash": "6cda5d1e4fce826b11ebc39ff83da8a2"
+  },
+  "scripts/monitor-couchdb.sh": {
+    "mtime": 1781591816.1972694,
+    "hash": "e54df394e2be34ac136d5ec1da5ce7c2"
+  },
+  "scripts/ssl-setup.sh": {
+    "mtime": 1781591816.1982694,
+    "hash": "398beff1225f70db2eb01d4e5b4b93fb"
+  },
+  "setup.sh": {
+    "mtime": 1781591820.603412,
+    "hash": "6ee8450e0954f9f87090c79a97b88502"
   }
 }

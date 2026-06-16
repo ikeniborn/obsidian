@@ -43,6 +43,10 @@ BACKUP_DIR="${NOTES_BACKUP_DIR:-/opt/notes/backups}"
 LOG_FILE="${NOTES_LOG_DIR:-/opt/notes/logs}/backup.log"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
 DATE_FORMAT="+%Y%m%d"
+# Per-DB streaming layout: each database is a separate object under a dated
+# "set" folder, e.g. couchdb-backups/couchdb-20260616/work.json.gz
+BACKUP_SET="couchdb-$(date -u ${DATE_FORMAT})"
+# Legacy single-archive names kept only for stray local cleanup globs
 BACKUP_NAME="couchdb-$(date -u ${DATE_FORMAT}).tar.gz"
 OLD_BACKUP_NAME="couchdb-$(date -d "${RETENTION_DAYS} days ago" ${DATE_FORMAT}).tar.gz"
 
@@ -88,6 +92,12 @@ fi
 
 S3_PREFIX="${S3_BACKUP_PREFIX}"
 
+# Standalone system cleanup script (journal/apt/logs)
+CLEANUP_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/cleanup-system.sh"
+
+# Tracks whether the local archive was removed after a successful S3 upload
+LOCAL_BACKUP_REMOVED=false
+
 # Resource limits
 CPU_LIMIT="0.5"  # 50% of one CPU
 MEMORY_LIMIT="512m"  # 512MB RAM
@@ -99,7 +109,9 @@ BACKUP_BATCH_SIZE="10"  # Number of databases to backup before checking containe
 
 # Timeout settings
 BASE_TIMEOUT=60       # Base timeout for small databases (seconds)
-MAX_TIMEOUT=1800      # Maximum timeout for very large databases (30 minutes)
+# Streaming upload of a multi-GB DB to S3 is bandwidth-bound and holds curl
+# open for the whole upload; 1800s was too low for ~9GB over a slow link.
+MAX_TIMEOUT=7200      # Maximum timeout for very large databases (2 hours)
 TIMEOUT_PER_MB=2      # Additional seconds per MB of database size
 
 # Progress tracking variables
@@ -225,13 +237,14 @@ check_disk_space() {
 
     log "Disk space: ${free_gb}GB free (${used_pct}% used) on $(df -k "$dir" | awk 'NR==2 {print $1}')"
 
-    if [[ $free_kb -lt 2097152 ]]; then  # < 2GB
-        error_exit "Insufficient disk space: only ${free_gb}GB free (need at least 2GB)"
-    fi
-    if [[ $used_pct -gt 90 ]]; then
-        error_exit "Disk usage critical: ${used_pct}% used — aborting backup to prevent disk full"
-    fi
-    if [[ $used_pct -gt 80 ]]; then
+    # Per-DB streaming writes nothing but log lines to local disk, so a full
+    # disk no longer blocks the backup — warn only. (The old hard-abort would
+    # have prevented a backup precisely when it was most needed.)
+    if [[ $free_kb -lt 524288 ]]; then  # < 512MB — only logs need space
+        log "WARNING: Very low disk space: ${free_gb}GB free — streaming backup will still run"
+    elif [[ $used_pct -gt 90 ]]; then
+        log "WARNING: Disk usage critical: ${used_pct}% used — backup streams to S3, but free space soon"
+    elif [[ $used_pct -gt 80 ]]; then
         log "WARNING: Disk usage high: ${used_pct}% used"
     fi
 }
@@ -275,13 +288,9 @@ fi
 log "CouchDB container is running"
 update_progress "Container status verified"
 
-# Create backup using CouchDB replication API
-log "Creating backup: ${BACKUP_NAME}"
-log "Using CouchDB replication API for safe backup"
-
-# Create temporary directory for backup
-TEMP_BACKUP_DIR="${BACKUP_DIR}/temp_$(date +%s)_$$"
-mkdir -p "${TEMP_BACKUP_DIR}"
+# Create backup using CouchDB _all_docs API, streamed per-database to S3
+log "Creating backup set: ${BACKUP_SET}"
+log "Streaming each database directly to S3 (no local temp/archive)"
 
 # Function to check if container is running
 check_container_health() {
@@ -337,164 +346,120 @@ else
     USE_HOST_API=false
 fi
 
+# Per-DB streaming requires S3 — there is no local-archive path (by design,
+# the dataset is too large to stage on the local disk).
+if [[ "${S3_UPLOAD_ENABLED}" != "true" ]]; then
+    error_exit "S3 must be configured — per-DB streaming backup writes no local archive. Set S3 credentials in .env."
+fi
+
+S3_SET_PREFIX="${S3_PREFIX}${BACKUP_SET}/"
+
+# Stream one database straight to S3: curl | gzip | upload. No temp file, so
+# peak local disk stays ~0 regardless of DB size (a 16GB DB does not touch the
+# disk). pipefail (set at top) + PIPESTATUS report which stage failed.
+stream_db_to_s3() {
+    local db="$1" timeout_s="$2" key="$3"
+    if [[ "${USE_HOST_API}" == "true" ]]; then
+        timeout "${timeout_s}" curl -fsS "${COUCHDB_HOST_URL}/${db}/_all_docs?include_docs=true" \
+            | gzip -${COMPRESSION_LEVEL} \
+            | nice -n ${NICE_LEVEL} ionice -c ${IONICE_CLASS} python3 "${S3_UPLOAD_SCRIPT}" --stdin "${key}"
+    else
+        timeout "${timeout_s}" docker exec "${COUCHDB_CONTAINER}" curl -fsS "${COUCHDB_URL}/${db}/_all_docs?include_docs=true" \
+            | gzip -${COMPRESSION_LEVEL} \
+            | nice -n ${NICE_LEVEL} ionice -c ${IONICE_CLASS} python3 "${S3_UPLOAD_SCRIPT}" --stdin "${key}"
+    fi
+    PIPE_RESULT=("${PIPESTATUS[@]}")
+}
+
 if [[ -z "${DBS}" ]]; then
     log "No user databases found to backup"
-    rmdir "${TEMP_BACKUP_DIR}"
 else
-    # Export each database with health checks and delays
     DB_COUNT=0
+    UPLOADED_DBS=0
+    FAILED_DBS=0
     TOTAL_DBS=$(echo "${DBS}" | wc -w)
     log "Found ${TOTAL_DBS} databases to backup"
-    
+    log "Streaming to s3://${S3_BUCKET_NAME}/${S3_SET_PREFIX}"
+
     for db in ${DBS}; do
         log "Backing up database: ${db}"
-        
+
         # Check container health periodically
         if (( DB_COUNT % BACKUP_BATCH_SIZE == 0 )); then
             check_container_health
         fi
-        
-        # Add small delay to reduce load
+
         sleep 0.5
-        
-        # Calculate adaptive timeout for this database
+
         DB_TIMEOUT=$(calculate_timeout "${db}" "${USE_HOST_API}")
-        
-        # Ensure timeout is a valid number
         if ! [[ "$DB_TIMEOUT" =~ ^[0-9]+$ ]]; then
             log "WARNING: Invalid timeout calculated for ${db} (got: '$DB_TIMEOUT'), using default"
             DB_TIMEOUT=$BASE_TIMEOUT
         fi
-        
-        # Use direct API or docker exec based on availability
-        if [[ "${USE_HOST_API}" == "true" ]]; then
-            # Direct API access
-            log "Starting backup of ${db} (timeout: ${DB_TIMEOUT}s)..."
-            if timeout ${DB_TIMEOUT} curl -s "${COUCHDB_HOST_URL}/${db}/_all_docs?include_docs=true" \
-                > "${TEMP_BACKUP_DIR}/${db}.json" 2>/dev/null; then
-                
-                if [[ ! -s "${TEMP_BACKUP_DIR}/${db}.json" ]]; then
-                    log "WARNING: Database ${db} appears to be empty"
-                else
-                    file_size=$(du -h "${TEMP_BACKUP_DIR}/${db}.json" | cut -f1)
-                    log "✓ Database ${db} backed up successfully (${file_size})"
-                fi
-            else
-                exit_code=$?
-                if [[ $exit_code -eq 124 ]]; then
-                    log "ERROR: Database ${db} backup timed out after ${DB_TIMEOUT}s"
-                else
-                    log "ERROR: Database ${db} backup failed (exit code: $exit_code)"
-                fi
-                log "Continuing with other databases..."
-            fi
+
+        db_key="${S3_SET_PREFIX}${db}.json.gz"
+        log "Streaming ${db} → s3://${S3_BUCKET_NAME}/${db_key} (timeout: ${DB_TIMEOUT}s)..."
+        stream_db_to_s3 "${db}" "${DB_TIMEOUT}" "${db_key}"
+
+        if [[ "${PIPE_RESULT[0]}" -eq 0 && "${PIPE_RESULT[1]}" -eq 0 && "${PIPE_RESULT[2]}" -eq 0 ]]; then
+            log "✓ Database ${db} streamed to S3"
+            ((UPLOADED_DBS++))
         else
-            # Docker exec method
-            log "Starting backup of ${db} via docker exec (timeout: ${DB_TIMEOUT}s)..."
-            if timeout ${DB_TIMEOUT} docker exec "${COUCHDB_CONTAINER}" curl -s "${COUCHDB_URL}/${db}/_all_docs?include_docs=true" \
-                > "${TEMP_BACKUP_DIR}/${db}.json" 2>/dev/null; then
-                
-                if [[ ! -s "${TEMP_BACKUP_DIR}/${db}.json" ]]; then
-                    log "WARNING: Database ${db} appears to be empty"
-                else
-                    file_size=$(du -h "${TEMP_BACKUP_DIR}/${db}.json" | cut -f1)
-                    log "✓ Database ${db} backed up successfully (${file_size})"
-                fi
+            if [[ "${PIPE_RESULT[0]}" -eq 124 ]]; then
+                log "ERROR: Database ${db} timed out after ${DB_TIMEOUT}s"
             else
-                exit_code=$?
-                if [[ $exit_code -eq 124 ]]; then
-                    log "ERROR: Database ${db} backup timed out after ${DB_TIMEOUT}s"
-                else
-                    log "ERROR: Database ${db} backup failed (exit code: $exit_code)"
-                fi
-                log "Continuing with other databases..."
+                log "ERROR: Database ${db} stream failed (curl=${PIPE_RESULT[0]} gzip=${PIPE_RESULT[1]} upload=${PIPE_RESULT[2]})"
             fi
+            # Remove any partial/incomplete object left in S3
+            python3 "${S3_UPLOAD_SCRIPT}" --delete "${db_key}" 2>&1 | tee -a "${LOG_FILE}" || true
+            ((FAILED_DBS++))
+            log "Continuing with other databases..."
         fi
-        
-        # Show database backup progress
-        db_progress=$(((DB_COUNT + 1) * 100 / TOTAL_DBS))
-        log "  └── Database progress: $((DB_COUNT + 1))/$TOTAL_DBS ($db_progress%) - $db"
-        
+
         ((DB_COUNT++))
+        log "  └── Database progress: ${DB_COUNT}/${TOTAL_DBS} - ${db}"
     done
-    
-    update_progress "Database export completed (${TOTAL_DBS} databases)"
-    
-    # Also backup global configuration
+
+    update_progress "Database streaming completed (${UPLOADED_DBS}/${TOTAL_DBS} uploaded)"
+
+    # Stream global configuration as its own object
     log "Backing up CouchDB configuration..."
     check_container_health
     sleep 0.5
-    
+    config_key="${S3_SET_PREFIX}_config.json.gz"
     if [[ "${USE_HOST_API}" == "true" ]]; then
-        # Direct API access
-        if timeout 30 curl -s "${COUCHDB_HOST_URL}/_node/_local/_config" \
-            > "${TEMP_BACKUP_DIR}/_config.json"; then
-            log "Configuration backed up successfully"
-        else
-            log "WARNING: Failed to backup configuration, but continuing"
-        fi
+        timeout 30 curl -fsS "${COUCHDB_HOST_URL}/_node/_local/_config" \
+            | gzip -${COMPRESSION_LEVEL} | python3 "${S3_UPLOAD_SCRIPT}" --stdin "${config_key}"
     else
-        # Docker exec method
-        if timeout 30 docker exec "${COUCHDB_CONTAINER}" curl -s "${COUCHDB_URL}/_node/_local/_config" \
-            > "${TEMP_BACKUP_DIR}/_config.json"; then
-            log "Configuration backed up successfully"
-        else
-            log "WARNING: Failed to backup configuration, but continuing"
-        fi
+        timeout 30 docker exec "${COUCHDB_CONTAINER}" curl -fsS "${COUCHDB_URL}/_node/_local/_config" \
+            | gzip -${COMPRESSION_LEVEL} | python3 "${S3_UPLOAD_SCRIPT}" --stdin "${config_key}"
     fi
-    
+    cfg_status=("${PIPESTATUS[@]}")
+    if [[ "${cfg_status[0]}" -eq 0 && "${cfg_status[1]}" -eq 0 && "${cfg_status[2]}" -eq 0 ]]; then
+        log "Configuration backed up successfully"
+    else
+        log "WARNING: Failed to backup configuration, but continuing"
+        python3 "${S3_UPLOAD_SCRIPT}" --delete "${config_key}" 2>/dev/null || true
+    fi
+
     update_progress "Configuration backup completed"
-    
-    # Create compressed archive
-    log "Creating compressed archive..."
-    cd "${BACKUP_DIR}"
-    if nice -n ${NICE_LEVEL} ionice -c ${IONICE_CLASS} \
-        tar czf "${BACKUP_NAME}" \
-        --transform "s|^temp_[0-9]*|couchdb|" \
-        "$(basename "${TEMP_BACKUP_DIR}")"; then
-        
-        log "Backup created successfully"
-        log "Backup size: $(du -h "${BACKUP_NAME}" | cut -f1)"
-        
-        update_progress "Archive created ($(du -h "${BACKUP_NAME}" | cut -f1))"
-        
-        # Clean up temporary directory
-        rm -rf "${TEMP_BACKUP_DIR}"
-    else
-        rm -rf "${TEMP_BACKUP_DIR}"
-        error_exit "Failed to create backup archive"
+
+    # Require at least one database to have made it to S3
+    if [[ "${UPLOADED_DBS}" -eq 0 ]]; then
+        error_exit "No databases uploaded to S3 — backup failed"
     fi
-fi
+    if [[ "${FAILED_DBS}" -gt 0 ]]; then
+        log "WARNING: ${FAILED_DBS} database(s) failed to upload (set is incomplete)"
+    fi
 
-# Verify backup was created
-if [[ ! -f "${BACKUP_NAME}" ]]; then
-    error_exit "Backup file was not created"
-fi
+    LOCAL_BACKUP_REMOVED=true
+    log "✅ Backup set ${BACKUP_SET} streamed to S3 (${UPLOADED_DBS}/${TOTAL_DBS} databases)"
+    update_progress "Backup streamed to S3"
 
-# Check backup integrity
-log "Verifying backup integrity..."
-if gzip -t "${BACKUP_NAME}" 2>/dev/null; then
-    log "Backup integrity check passed"
-else
-    error_exit "Backup file is corrupted"
-fi
-
-# Upload to S3 using boto3
-if [[ "${S3_UPLOAD_ENABLED}" == "true" ]]; then
-    log "Uploading backup to S3..."
-    file_size_mb=$(du -m "${BACKUP_NAME}" | cut -f1)
-    log "📤 File size: ${file_size_mb}MB"
-
-    upload_start_time=$(date +%s)
-
-    # Upload using Python script (with .env credentials)
-    if python3 "${S3_UPLOAD_SCRIPT}" "${BACKUP_DIR}/${BACKUP_NAME}" "${S3_PREFIX}" 2>&1 | tee -a "${LOG_FILE}"; then
-        upload_end_time=$(date +%s)
-        upload_duration=$((upload_end_time - upload_start_time))
-
-        log "✅ Upload completed in ${upload_duration} seconds"
-        update_progress "Backup uploaded to S3"
-
+    # Prune old S3 objects ONLY when this set is complete. Pruning on an
+    # incomplete set could delete the previous good backup while the current
+    # one is missing a database — leaving no valid copy at all.
+    if [[ "${FAILED_DBS}" -eq 0 ]]; then
         log "Cleaning up S3 objects older than ${RETENTION_DAYS} days..."
         if python3 "${S3_UPLOAD_SCRIPT}" --cleanup "${S3_PREFIX}" --days "${RETENTION_DAYS}" 2>&1 | tee -a "${LOG_FILE}"; then
             log "S3 cleanup completed"
@@ -502,15 +467,8 @@ if [[ "${S3_UPLOAD_ENABLED}" == "true" ]]; then
             log "WARNING: S3 cleanup failed (backup upload was successful)"
         fi
     else
-        log "❌ S3 upload failed"
-        log "WARNING: Backup is available locally: ${BACKUP_DIR}/${BACKUP_NAME}"
-        log "S3 upload can be retried manually:"
-        log "  python3 ${S3_UPLOAD_SCRIPT} ${BACKUP_DIR}/${BACKUP_NAME} ${S3_PREFIX}"
-        # Don't exit - local backup is still valid
+        log "Skipping S3 retention cleanup — set incomplete (${FAILED_DBS} failed), keeping older backups"
     fi
-else
-    log "ℹ️  S3 upload skipped (S3_UPLOAD_SCRIPT not found or disabled)"
-    log "Backup is available locally: ${BACKUP_DIR}/${BACKUP_NAME}"
 fi
 
 # Clean up local old backups
@@ -523,17 +481,26 @@ fi
 log "Cleaning up backups older than ${RETENTION_DAYS} days"
 find "${BACKUP_DIR}" -name "couchdb-*.tar.gz" -type f -mtime +$((RETENTION_DAYS-1)) -delete
 
+# Remove failed/empty backup archives (0-byte leftovers from aborted runs)
+find "${BACKUP_DIR}" -name "couchdb-*.tar.gz" -type f -size 0 -delete 2>/dev/null
+
+# System cleanup (journal/apt/logs) — reclaim OS-level disk after backup
+if [[ -x "${CLEANUP_SCRIPT}" ]] || [[ -f "${CLEANUP_SCRIPT}" ]]; then
+    log "Running system cleanup..."
+    bash "${CLEANUP_SCRIPT}" || log "WARNING: System cleanup reported errors"
+else
+    log "WARNING: Cleanup script not found: ${CLEANUP_SCRIPT}"
+fi
+
 update_progress "Cleanup completed - Backup process finished"
 
 echo ""
 echo "=========================================="
 log "🎉 BACKUP PROCESS COMPLETED SUCCESSFULLY 🎉"
-log "Backup file: ${BACKUP_NAME}"
-log "Backup size: $(du -h "${BACKUP_NAME}" | cut -f1)"
-log "Local path: ${BACKUP_DIR}/${BACKUP_NAME}"
-if [[ "${S3_UPLOAD_ENABLED}" == "true" ]]; then
-    log "S3 location: s3://${S3_BUCKET_NAME:-[bucket]}/${S3_PREFIX}${BACKUP_NAME}"
-fi
+log "Backup set: ${BACKUP_SET} (${UPLOADED_DBS:-0}/${TOTAL_DBS:-0} databases)"
+log "Local copy: none (streamed directly to S3)"
+log "S3 location: s3://${S3_BUCKET_NAME:-[bucket]}/${S3_SET_PREFIX:-${S3_PREFIX}}"
+log "Restore: download <db>.json.gz from the set prefix, gunzip, POST docs via _bulk_docs"
 echo "=========================================="
 
 # Final container health check

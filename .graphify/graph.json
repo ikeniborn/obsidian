@@ -33,121 +33,6 @@
   },
   "nodes": [
     {
-      "label": "s3_upload.py",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L1",
-      "community": 3,
-      "norm_label": "s3_upload.py",
-      "id": "s3_upload_py"
-    },
-    {
-      "label": "load_env_file()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L16",
-      "community": 3,
-      "norm_label": "load_env_file()",
-      "id": "scripts_s3_upload_load_env_file"
-    },
-    {
-      "label": "upload_to_s3()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L28",
-      "community": 3,
-      "norm_label": "upload_to_s3()",
-      "id": "scripts_s3_upload_upload_to_s3"
-    },
-    {
-      "label": "test_s3_connection()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L145",
-      "community": 3,
-      "norm_label": "test_s3_connection()",
-      "id": "scripts_s3_upload_test_s3_connection"
-    },
-    {
-      "label": "Load environment variables from .env file",
-      "file_type": "rationale",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L16",
-      "community": 3,
-      "norm_label": "load environment variables from .env file",
-      "id": "scripts_s3_upload_rationale_16"
-    },
-    {
-      "label": "Upload file to S3-compatible storage",
-      "file_type": "rationale",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L28",
-      "community": 3,
-      "norm_label": "upload file to s3-compatible storage",
-      "id": "scripts_s3_upload_rationale_28"
-    },
-    {
-      "label": "Test S3 connection without uploading",
-      "file_type": "rationale",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L82",
-      "community": 3,
-      "norm_label": "test s3 connection without uploading",
-      "id": "scripts_s3_upload_rationale_82"
-    },
-    {
-      "label": "upload_to_s3()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 28",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 1,
-      "norm_label": "upload_to_s3()",
-      "id": "s3_upload_upload_to_s3"
-    },
-    {
-      "label": "load_env_file()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 16",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 1,
-      "norm_label": "load_env_file()",
-      "id": "s3_upload_load_env_file"
-    },
-    {
-      "label": "test_s3_connection()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 145",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 1,
-      "norm_label": "test_s3_connection()",
-      "id": "s3_upload_test_s3_connection"
-    },
-    {
-      "label": "S3 Upload Script",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 0,
-      "norm_label": "s3 upload script",
-      "id": "s3_upload_script"
-    },
-    {
       "label": "ServerPeer Docker Compose Service",
       "file_type": "code",
       "source_file": "docker-compose.serverpeer.yml",
@@ -156,7 +41,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 2,
       "norm_label": "serverpeer docker compose service",
       "id": "compose_serverpeer_service"
     },
@@ -169,7 +54,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 2,
       "norm_label": "serverpeer personal docker compose service",
       "id": "compose_serverpeer_personal_service"
     },
@@ -182,7 +67,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 2,
       "norm_label": "nostr relay docker compose service",
       "id": "compose_nostr_relay_service"
     },
@@ -195,7 +80,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 2,
       "norm_label": "couchdb docker compose service",
       "id": "compose_couchdb_service"
     },
@@ -208,7 +93,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "architecture knowledge graph index",
       "id": "arch_index"
     },
@@ -221,7 +106,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "architecture documentation metadata",
       "id": "arch_metadata"
     },
@@ -234,7 +119,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "deployment orchestration system",
       "id": "component_deployment_system"
     },
@@ -247,7 +132,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "monitoring & health check system",
       "id": "component_monitoring_system"
     },
@@ -260,7 +145,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "backup orchestration system",
       "id": "component_backup_system"
     },
@@ -273,7 +158,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "s3-compatible backup storage",
       "id": "component_s3_storage"
     },
@@ -286,7 +171,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "ufw firewall",
       "id": "component_ufw_firewall"
     },
@@ -299,7 +184,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "nostr relay websocket server",
       "id": "component_nostr_relay"
     },
@@ -312,7 +197,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "docker network",
       "id": "component_docker_network"
     },
@@ -325,7 +210,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "certbot (let's encrypt ssl)",
       "id": "component_certbot"
     },
@@ -338,7 +223,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "serverpeer p2p client",
       "id": "component_serverpeer"
     },
@@ -351,7 +236,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "nginx reverse proxy",
       "id": "component_nginx"
     },
@@ -364,7 +249,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "couchdb optimization recommendations",
       "id": "couchdb_optimization_doc"
     },
@@ -377,7 +262,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "claude.md developer documentation",
       "id": "claude_md_doc"
     },
@@ -390,7 +275,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 2,
       "norm_label": "readme user guide",
       "id": "readme_doc"
     },
@@ -404,7 +289,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Three network modes (shared/isolated/custom) allow integration with existing Docker services or standalone deployment, avoiding single-mode constraint. Subnet auto-allocation (172.24-31.0.0/16) prevents conflicts.",
-      "community": 5,
+      "community": 0,
       "norm_label": "flexible network architecture pattern",
       "id": "pattern_flexible_network"
     },
@@ -418,7 +303,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Port 80 is kept closed by default and opened only transiently via certbot pre/post renewal hooks. This minimizes attack surface while enabling Let's Encrypt HTTP-01 validation.",
-      "community": 0,
+      "community": 2,
       "norm_label": "certbot ufw hook pattern",
       "id": "pattern_certbot_ufw_hooks"
     },
@@ -432,7 +317,7 @@
       "author": null,
       "contributor": null,
       "rationale": "CouchDB (5984) and ServerPeer (3000) bind to 127.0.0.1 only. All external access is routed through nginx reverse proxy. This eliminates direct external exposure of backend services.",
-      "community": 7,
+      "community": 2,
       "norm_label": "localhost-only backend port binding",
       "id": "pattern_localhost_only_binding"
     },
@@ -446,7 +331,7 @@
       "author": null,
       "contributor": null,
       "rationale": "A single shared Nostr Relay routes signaling messages by Room ID subscription, giving vault isolation without deploying separate relay instances per vault. Actual file data never passes through the relay.",
-      "community": 0,
+      "community": 2,
       "norm_label": "nostr room id vault isolation pattern",
       "id": "pattern_nostr_room_id_isolation"
     },
@@ -460,7 +345,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Official CouchDB nginx documentation lacks WebSocket upgrade support, breaking real-time _changes feed sync. The project adds Upgrade/Connection headers and HTTP/1.1 to fix this, exceeding official recommendations.",
-      "community": 0,
+      "community": 2,
       "norm_label": "nginx websocket support for couchdb changes feed",
       "id": "pattern_nginx_websocket_support"
     },
@@ -474,7 +359,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Image ID (Config.Digest) is used rather than manifest digest to detect needed updates, because manifest digests differ for multi-arch images while Image ID matches Docker's own pull-needed determination logic.",
-      "community": 11,
+      "community": 9,
       "norm_label": "docker image id comparison for update detection",
       "id": "pattern_image_id_comparison"
     },
@@ -488,7 +373,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Docker daemon proxy settings do not propagate to BuildKit's separate buildkitd daemon. Pre-pulling base images via docker pull (which respects daemon proxy) before docker build ensures images are available from cache without requiring BuildKit proxy configuration.",
-      "community": 12,
+      "community": 10,
       "norm_label": "pre-pull workaround for buildkit proxy limitation",
       "id": "pattern_prepull_buildkit_workaround"
     },
@@ -501,7 +386,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 2,
       "norm_label": "/opt/notes/.env configuration file",
       "id": "notes_env_file"
     },
@@ -514,7 +399,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 0,
       "norm_label": "couchdb database component",
       "id": "couchdb_component"
     },
@@ -528,7 +413,7 @@
       "author": null,
       "contributor": null,
       "rationale": "single_node=true simplifies deployment and eliminates cluster coordination overhead for a self-hosted single-server use case",
-      "community": 9,
+      "community": 0,
       "norm_label": "couchdb single-node mode",
       "id": "couchdb_single_node_mode"
     },
@@ -542,7 +427,7 @@
       "author": null,
       "contributor": null,
       "rationale": "require_valid_user=true ensures all HTTP endpoints require authentication, preventing unauthenticated access to the database",
-      "community": 9,
+      "community": 0,
       "norm_label": "couchdb require_valid_user security enforcement",
       "id": "couchdb_require_valid_user"
     },
@@ -555,7 +440,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 10,
+      "community": 0,
       "norm_label": "fail2ban intrusion prevention component",
       "id": "fail2ban_component"
     },
@@ -569,7 +454,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Using UFW as banaction lets fail2ban insert deny rules at position 1 (highest priority) without replacing static UFW rules, maintaining compatibility with certbot hooks",
-      "community": 10,
+      "community": 0,
       "norm_label": "fail2ban ufw dynamic rule injection",
       "id": "fail2ban_ufw_integration"
     },
@@ -583,7 +468,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Jails are conditionally created based on SYNC_BACKEND to avoid monitoring unavailable services and prevent false alarms",
-      "community": 10,
+      "community": 0,
       "norm_label": "fail2ban backend-aware jail configuration",
       "id": "fail2ban_backend_aware_jails"
     },
@@ -596,7 +481,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 0,
       "norm_label": "docker image prepull pattern",
       "id": "pattern_docker_image_prepull"
     },
@@ -610,7 +495,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Using Config.Digest (Image ID) instead of manifest digest for update detection because manifest LIST digest differs from platform-specific digest for multi-arch images, causing false positives",
-      "community": 5,
+      "community": 0,
       "norm_label": "image id vs manifest digest comparison strategy",
       "id": "prepull_image_id_comparison"
     },
@@ -624,7 +509,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Shared mode enables integration with existing nginx/services on the same Docker network without requiring a dedicated subnet",
-      "community": 5,
+      "community": 0,
       "norm_label": "shared network mode variant",
       "id": "flexible_network_shared_mode"
     },
@@ -638,7 +523,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Isolated mode creates a dedicated obsidian_network for maximum security, preventing lateral movement from other containers",
-      "community": 5,
+      "community": 0,
       "norm_label": "isolated network mode variant",
       "id": "flexible_network_isolated_mode"
     },
@@ -651,7 +536,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 0,
       "norm_label": "user request data flow",
       "id": "dataflow_user_request"
     },
@@ -664,7 +549,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 0,
       "norm_label": "environment configuration file /opt/notes/.env",
       "id": "config_env_file"
     },
@@ -678,7 +563,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Restricting .env to owner read/write prevents credential leakage from other system users or compromised processes",
-      "community": 5,
+      "community": 0,
       "norm_label": "env-file chmod 600 security design",
       "id": "env_file_chmod600"
     },
@@ -691,7 +576,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 0,
       "norm_label": "full production deployment workflow",
       "id": "workflow_deployment"
     },
@@ -704,7 +589,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 0,
       "norm_label": "isolated network mode topology",
       "id": "topology_isolated_mode"
     },
@@ -717,7 +602,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 0,
       "norm_label": "setup.sh interactive configuration script",
       "id": "script_setup"
     },
@@ -731,7 +616,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Dual mode uses separate S3 prefixes (COUCHDB_S3_BACKUP_PREFIX and SERVERPEER_S3_BACKUP_PREFIX) to prevent file conflicts when both backends upload to the same S3 bucket",
-      "community": 6,
+      "community": 0,
       "norm_label": "backend-aware s3 backup prefix configuration",
       "id": "setup_backend_aware_s3_prefix"
     },
@@ -745,7 +630,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Backend-specific variables are only written to .env when their backend is selected to avoid unbound variable errors in scripts that source .env",
-      "community": 6,
+      "community": 0,
       "norm_label": "conditional .env variable generation per backend",
       "id": "setup_conditional_env_generation"
     },
@@ -758,7 +643,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 0,
       "norm_label": "install.sh dependency installation script",
       "id": "script_install"
     },
@@ -772,7 +657,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Using apt-get install python3-boto3 instead of pip3 respects PEP 668 (externally-managed-environment) on Ubuntu 23.04+ which blocks pip from modifying system Python packages",
-      "community": 6,
+      "community": 0,
       "norm_label": "pep 668 compliant python dependency installation",
       "id": "install_pep668_compliance"
     },
@@ -785,7 +670,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 0,
       "norm_label": "deploy.sh production deployment script",
       "id": "script_deploy"
     },
@@ -798,7 +683,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 0,
       "norm_label": "couchdb-backup.sh backup script",
       "id": "script_couchdb_backup"
     },
@@ -811,7 +696,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 0,
       "norm_label": "ufw firewall rules security configuration",
       "id": "security_firewall_rules"
     },
@@ -825,7 +710,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Deny-by-default minimizes attack surface; only ports 22 (SSH) and 443 (HTTPS) are permanently open, with port 80 opened only transiently during certbot renewal",
-      "community": 8,
+      "community": 0,
       "norm_label": "deny-by-default firewall policy",
       "id": "firewall_deny_by_default"
     },
@@ -838,7 +723,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 0,
       "norm_label": "pattern schema template",
       "id": "schema_pattern"
     },
@@ -851,7 +736,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 11,
       "norm_label": "relationship types schema",
       "id": "schema_relationship_types"
     },
@@ -864,7 +749,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 0,
       "norm_label": "script schema template",
       "id": "schema_script"
     },
@@ -877,7 +762,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 0,
       "norm_label": "component schema template",
       "id": "schema_component"
     },
@@ -890,7 +775,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 0,
       "norm_label": "workflow schema template",
       "id": "schema_workflow"
     },
@@ -903,7 +788,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 0,
       "norm_label": "obsidian sync server prd",
       "id": "prd_obsidian_sync_server"
     },
@@ -917,7 +802,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Supporting both CouchDB (client-server) and ServerPeer (P2P/WebRTC) backends enables users to choose their sync topology based on requirements: reliability vs. P2P privacy",
-      "community": 8,
+      "community": 0,
       "norm_label": "dual backend support concept (couchdb + serverpeer)",
       "id": "prd_dual_backend_support"
     },
@@ -931,7 +816,7 @@
       "author": null,
       "contributor": null,
       "rationale": "P2P sync via WebRTC continues functioning even when ServerPeer is offline because clients connect directly; ServerPeer is only an always-on buffer",
-      "community": 8,
+      "community": 0,
       "norm_label": "graceful degradation (p2p works offline)",
       "id": "prd_graceful_degradation"
     },
@@ -944,214 +829,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 0,
       "norm_label": "python requirements (boto3)",
       "id": "requirements_txt"
-    },
-    {
-      "label": "cleanup_old_objects()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L82",
-      "community": 4,
-      "norm_label": "cleanup_old_objects()",
-      "id": "scripts_s3_upload_cleanup_old_objects"
-    },
-    {
-      "label": "run_cleanup()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L112",
-      "community": 3,
-      "norm_label": "run_cleanup()",
-      "id": "scripts_s3_upload_run_cleanup"
-    },
-    {
-      "label": "Load environment variables from .env file",
-      "file_type": "rationale",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L17",
-      "community": 3,
-      "norm_label": "load environment variables from .env file",
-      "id": "scripts_s3_upload_rationale_17"
-    },
-    {
-      "label": "Upload file to S3-compatible storage",
-      "file_type": "rationale",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L29",
-      "community": 3,
-      "norm_label": "upload file to s3-compatible storage",
-      "id": "scripts_s3_upload_rationale_29"
-    },
-    {
-      "label": "Delete S3 objects under prefix older than days. Returns count deleted.",
-      "file_type": "rationale",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L83",
-      "community": 4,
-      "norm_label": "delete s3 objects under prefix older than days. returns count deleted.",
-      "id": "scripts_s3_upload_rationale_83"
-    },
-    {
-      "label": "Load config, create S3 client, run cleanup. Returns True on success.",
-      "file_type": "rationale",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L113",
-      "community": 3,
-      "norm_label": "load config, create s3 client, run cleanup. returns true on success.",
-      "id": "scripts_s3_upload_rationale_113"
-    },
-    {
-      "label": "Test S3 connection without uploading",
-      "file_type": "rationale",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L146",
-      "community": 3,
-      "norm_label": "test s3 connection without uploading",
-      "id": "scripts_s3_upload_rationale_146"
-    },
-    {
-      "label": "test_s3_cleanup.py",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L1",
-      "community": 4,
-      "norm_label": "test_s3_cleanup.py",
-      "id": "test_s3_cleanup_py"
-    },
-    {
-      "label": "TestCleanupOldObjects",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L13",
-      "community": 4,
-      "norm_label": "testcleanupoldobjects",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects"
-    },
-    {
-      "label": "._make_client()",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L15",
-      "community": 4,
-      "norm_label": "._make_client()",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client"
-    },
-    {
-      "label": ".test_deletes_objects_older_than_days()",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L24",
-      "community": 4,
-      "norm_label": ".test_deletes_objects_older_than_days()",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days"
-    },
-    {
-      "label": ".test_keeps_objects_within_retention()",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L41",
-      "community": 4,
-      "norm_label": ".test_keeps_objects_within_retention()",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention"
-    },
-    {
-      "label": ".test_boundary_object_at_exactly_retention_is_kept()",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L53",
-      "community": 4,
-      "norm_label": ".test_boundary_object_at_exactly_retention_is_kept()",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept"
-    },
-    {
-      "label": ".test_empty_prefix_returns_zero()",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L68",
-      "community": 4,
-      "norm_label": ".test_empty_prefix_returns_zero()",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero"
-    },
-    {
-      "label": ".test_batches_large_deletions()",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L76",
-      "community": 4,
-      "norm_label": ".test_batches_large_deletions()",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions"
-    },
-    {
-      "label": ".test_partial_delete_errors_not_counted()",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L92",
-      "community": 4,
-      "norm_label": ".test_partial_delete_errors_not_counted()",
-      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted"
-    },
-    {
-      "label": "Return mock S3 client. Pass None to simulate empty prefix (no Contents key).",
-      "file_type": "rationale",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L16",
-      "community": 4,
-      "norm_label": "return mock s3 client. pass none to simulate empty prefix (no contents key).",
-      "id": "scripts_test_s3_cleanup_rationale_16"
-    },
-    {
-      "label": "cleanup_old_objects()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 82",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 1,
-      "norm_label": "cleanup_old_objects()",
-      "id": "s3_upload_cleanup_old_objects"
-    },
-    {
-      "label": "run_cleanup()",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 112",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 1,
-      "norm_label": "run_cleanup()",
-      "id": "s3_upload_run_cleanup"
-    },
-    {
-      "label": "s3_upload.py CLI entrypoint",
-      "file_type": "code",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 184",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 1,
-      "norm_label": "s3_upload.py cli entrypoint",
-      "id": "s3_upload_cli"
-    },
-    {
-      "label": "TestCleanupOldObjects",
-      "file_type": "code",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "line 13",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 1,
-      "norm_label": "testcleanupoldobjects",
-      "id": "test_s3_cleanup_testcleanupold"
     },
     {
       "label": "Backup Rotation Design Spec",
@@ -1162,7 +842,7 @@
       "captured_at": "2026-05-20",
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 6,
       "norm_label": "backup rotation design spec",
       "id": "spec_backup_rotation"
     },
@@ -1175,7 +855,7 @@
       "captured_at": "2026-05-21",
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 6,
       "norm_label": "couchdb userequestapi verification + backup fix design",
       "id": "spec_couchdb_backup_fix"
     },
@@ -1188,7 +868,7 @@
       "captured_at": "2026-05-20",
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 6,
       "norm_label": "backup rotation implementation plan",
       "id": "plan_backup_rotation"
     },
@@ -1201,7 +881,7 @@
       "captured_at": "2026-05-21",
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 6,
       "norm_label": "couchdb backup fix + nginx 500 fix implementation plan",
       "id": "plan_couchdb_backup_nginx_fix"
     },
@@ -1214,7 +894,7 @@
       "captured_at": "2026-05-20",
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 12,
       "norm_label": "s3 cleanup failure should not fail the backup run \u2014 upload success is more critical than rotation",
       "id": "rationale_s3_cleanup_non_failing"
     },
@@ -1227,7 +907,7 @@
       "captured_at": "2026-05-21",
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 6,
       "norm_label": "map variable for connection header prevents http 500: hardcoded 'upgrade' on non-websocket requests sends malformed headers to couchdb/cowboy",
       "id": "rationale_connection_upgrade_map"
     },
@@ -1240,7 +920,7 @@
       "captured_at": "2026-05-21",
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 6,
       "norm_label": "pre-flight auth check in couchdb-backup.sh prevents silently uploading corrupt 401-error json to s3 \u2014 fail-fast on credential mismatch",
       "id": "rationale_preflight_auth_check"
     },
@@ -1253,22 +933,9 @@
       "captured_at": "2026-05-20",
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 13,
       "norm_label": "s3 rotation added to s3_upload.py (not couchdb-backup.sh) to keep cleanup reusable across backends and testable in isolation",
       "id": "rationale_s3_rotation_design"
-    },
-    {
-      "label": "S3 delete_objects API max 1000 keys per request \u2014 batching required for large prefix cleanups",
-      "file_type": "rationale",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 94",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "community": 1,
-      "norm_label": "s3 delete_objects api max 1000 keys per request \u2014 batching required for large prefix cleanups",
-      "id": "rationale_batch_1000_delete"
     },
     {
       "label": "CouchDB Core Settings",
@@ -1280,9 +947,9 @@
       "author": null,
       "contributor": null,
       "rationale": "single_node=true for standalone deployment; max_document_size=50MB to support Obsidian attachments",
-      "id": "local_ini_couchdb_core",
-      "community": 2,
-      "norm_label": "couchdb core settings"
+      "community": 7,
+      "norm_label": "couchdb core settings",
+      "id": "local_ini_couchdb_core"
     },
     {
       "label": "Write Performance Optimization",
@@ -1294,9 +961,9 @@
       "author": null,
       "contributor": null,
       "rationale": "delayed_commits=true batches writes in 1s window (3-5x faster bulk writes); file_compression=snappy for fast compression with 20-30% space savings",
-      "id": "local_ini_write_optimization",
-      "community": 2,
-      "norm_label": "write performance optimization"
+      "community": 7,
+      "norm_label": "write performance optimization",
+      "id": "local_ini_write_optimization"
     },
     {
       "label": "Smoosh Automatic Compaction",
@@ -1308,9 +975,9 @@
       "author": null,
       "contributor": null,
       "rationale": "CouchDB 3.x uses smoosh daemon (replaces deprecated compaction_daemon); ratio_dbs triggers at 1.25 ratio (~20% fragmentation); slack_dbs triggers at 200MB wasted space",
-      "id": "local_ini_smoosh_compaction",
-      "community": 2,
-      "norm_label": "smoosh automatic compaction"
+      "community": 7,
+      "norm_label": "smoosh automatic compaction",
+      "id": "local_ini_smoosh_compaction"
     },
     {
       "label": "HTTP Security Settings",
@@ -1322,9 +989,9 @@
       "author": null,
       "contributor": null,
       "rationale": "require_valid_user=true enforces authentication; max_http_request_size=100MB (2x document size) prevents DoS; max_connections=200 limits resource exhaustion",
-      "id": "local_ini_chttpd_security",
-      "community": 2,
-      "norm_label": "http security settings"
+      "community": 7,
+      "norm_label": "http security settings",
+      "id": "local_ini_chttpd_security"
     },
     {
       "label": "CORS Configuration for Obsidian",
@@ -1336,9 +1003,9 @@
       "author": null,
       "contributor": null,
       "rationale": "Origins restricted to app://obsidian.md, capacitor://localhost, http://localhost \u2014 only Obsidian app origins allowed",
-      "id": "local_ini_cors_config",
-      "community": 2,
-      "norm_label": "cors configuration for obsidian"
+      "community": 7,
+      "norm_label": "cors configuration for obsidian",
+      "id": "local_ini_cors_config"
     },
     {
       "label": "Query Server Configuration",
@@ -1350,381 +1017,994 @@
       "author": null,
       "contributor": null,
       "rationale": "os_process_timeout=10000ms for complex views; os_process_soft_limit=50 concurrent processes",
-      "id": "local_ini_query_server",
       "community": 14,
-      "norm_label": "query server configuration"
+      "norm_label": "query server configuration",
+      "id": "local_ini_query_server"
     },
     {
-      "label": "CouchDB Backup Script",
+      "label": "couchdb-backup.sh",
       "file_type": "code",
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 1",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "Backs up all CouchDB databases to tar.gz, uploads to S3-compatible storage. Designed with resource limits to avoid impacting production CouchDB.",
-      "id": "couchdb_backup_main",
-      "community": 2,
-      "norm_label": "couchdb backup script"
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "id": "scripts_couchdb_backup_sh",
+      "community": 5,
+      "norm_label": "couchdb-backup.sh"
+    },
+    {
+      "label": "couchdb-backup.sh script",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "id": "scripts_couchdb_backup_sh__entry",
+      "community": 5,
+      "norm_label": "couchdb-backup.sh script"
     },
     {
       "label": "calculate_timeout()",
       "file_type": "code",
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 111",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "Adaptive timeout per database based on active data size (BASE_TIMEOUT + MB * 2s). Reports fragmentation: warns if >30% fragmentation.",
-      "id": "couchdb_backup_calculate_timeout",
-      "community": 2,
+      "source_location": "L111",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_couchdb_backup_calculate_timeout",
+      "community": 5,
       "norm_label": "calculate_timeout()"
     },
     {
-      "label": "check_container_health()",
+      "label": "show_progress()",
       "file_type": "code",
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 287",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "Three-method container health check: docker ps name match, docker inspect state, HTTP API connectivity. Retries after 10s sleep on failure.",
-      "id": "couchdb_backup_check_container_health",
-      "community": 2,
-      "norm_label": "check_container_health()"
+      "source_location": "L160",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_couchdb_backup_show_progress",
+      "community": 5,
+      "norm_label": "show_progress()"
+    },
+    {
+      "label": "update_progress()",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L187",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_couchdb_backup_update_progress",
+      "community": 5,
+      "norm_label": "update_progress()"
+    },
+    {
+      "label": "log()",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L197",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_couchdb_backup_log",
+      "community": 5,
+      "norm_label": "log()"
+    },
+    {
+      "label": "error_exit()",
+      "file_type": "code",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L202",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_couchdb_backup_error_exit",
+      "community": 5,
+      "norm_label": "error_exit()"
     },
     {
       "label": "check_disk_space()",
       "file_type": "code",
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 218",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "Aborts if <2GB free or >90% disk usage; warns at >80%. Prevents backup from filling disk.",
-      "id": "couchdb_backup_check_disk_space",
-      "community": 2,
+      "source_location": "L218",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_couchdb_backup_check_disk_space",
+      "community": 5,
       "norm_label": "check_disk_space()"
     },
     {
-      "label": "S3 Upload Step",
+      "label": "check_container_health()",
       "file_type": "code",
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 483",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "Uses s3_upload.py with COUCHDB_S3_BACKUP_PREFIX fallback chain: COUCHDB_S3_BACKUP_PREFIX > S3_BACKUP_PREFIX > couchdb-backups/",
-      "id": "couchdb_backup_s3_upload",
-      "community": 2,
-      "norm_label": "s3 upload step"
+      "source_location": "L287",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_couchdb_backup_check_container_health",
+      "community": 5,
+      "norm_label": "check_container_health()"
     },
     {
-      "label": "Local Backup Retention",
+      "label": "monitor-couchdb.sh",
       "file_type": "code",
-      "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 516-524",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "Deletes backup from exactly RETENTION_DAYS ago by name, then runs find -mtime +((RETENTION_DAYS-1)) for any missed files. BACKUP_RETENTION_DAYS env var configurable (default: 7).",
-      "id": "couchdb_backup_retention",
-      "community": 2,
-      "norm_label": "local backup retention"
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "id": "scripts_monitor_couchdb_sh",
+      "community": 8,
+      "norm_label": "monitor-couchdb.sh"
     },
     {
-      "label": "Environment Loading with Fallback",
+      "label": "monitor-couchdb.sh script",
       "file_type": "code",
-      "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 22-39",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "Primary: /opt/notes/.env; fallback to /opt/budget/.env for backward compatibility. Uses set -a / set +a to export all sourced variables.",
-      "id": "couchdb_backup_env_loading",
-      "community": 2,
-      "norm_label": "environment loading with fallback"
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "id": "scripts_monitor_couchdb_sh__entry",
+      "community": 8,
+      "norm_label": "monitor-couchdb.sh script"
     },
     {
-      "label": "Resource Limits Configuration",
+      "label": "info()",
+      "file_type": "code",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L21",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_monitor_couchdb_info",
+      "community": 8,
+      "norm_label": "info()"
+    },
+    {
+      "label": "warning()",
+      "file_type": "code",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L25",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_monitor_couchdb_warning",
+      "community": 8,
+      "norm_label": "warning()"
+    },
+    {
+      "label": "error()",
+      "file_type": "code",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L29",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_monitor_couchdb_error",
+      "community": 8,
+      "norm_label": "error()"
+    },
+    {
+      "label": "s3_upload.py",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L1",
+      "id": "scripts_s3_upload_py",
+      "community": 3,
+      "norm_label": "s3_upload.py"
+    },
+    {
+      "label": "load_env_file()",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L16",
+      "id": "scripts_s3_upload_load_env_file",
+      "community": 3,
+      "norm_label": "load_env_file()"
+    },
+    {
+      "label": "upload_to_s3()",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L28",
+      "id": "scripts_s3_upload_upload_to_s3",
+      "community": 3,
+      "norm_label": "upload_to_s3()"
+    },
+    {
+      "label": "cleanup_old_objects()",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L82",
+      "id": "scripts_s3_upload_cleanup_old_objects",
+      "community": 3,
+      "norm_label": "cleanup_old_objects()"
+    },
+    {
+      "label": "run_cleanup()",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L112",
+      "id": "scripts_s3_upload_run_cleanup",
+      "community": 3,
+      "norm_label": "run_cleanup()"
+    },
+    {
+      "label": "test_s3_connection()",
+      "file_type": "code",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L145",
+      "id": "scripts_s3_upload_test_s3_connection",
+      "community": 3,
+      "norm_label": "test_s3_connection()"
+    },
+    {
+      "label": "Load environment variables from .env file",
       "file_type": "rationale",
-      "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 91-98",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "nice -n 19 (lowest CPU priority), ionice -c 3 (idle I/O), CPU_LIMIT=50%, MEMORY_LIMIT=512MB. Batch size 10 dbs before health recheck.",
-      "id": "couchdb_backup_resource_limits",
-      "community": 2,
-      "norm_label": "resource limits configuration"
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L17",
+      "id": "scripts_s3_upload_rationale_17",
+      "community": 3,
+      "norm_label": "load environment variables from .env file"
     },
     {
-      "label": "Dual API Access Strategy",
+      "label": "Upload file to S3-compatible storage",
       "file_type": "rationale",
-      "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 323-338",
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "rationale": "Prefers direct host API (curl localhost:5984) over docker exec for efficiency. Falls back to docker exec when host API unreachable.",
-      "id": "couchdb_backup_dual_api_access",
-      "community": 2,
-      "norm_label": "dual api access strategy"
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L29",
+      "id": "scripts_s3_upload_rationale_29",
+      "community": 3,
+      "norm_label": "upload file to s3-compatible storage"
+    },
+    {
+      "label": "Delete S3 objects under prefix older than days. Returns count deleted.",
+      "file_type": "rationale",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L83",
+      "id": "scripts_s3_upload_rationale_83",
+      "community": 3,
+      "norm_label": "delete s3 objects under prefix older than days. returns count deleted."
+    },
+    {
+      "label": "Load config, create S3 client, run cleanup. Returns True on success.",
+      "file_type": "rationale",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L113",
+      "id": "scripts_s3_upload_rationale_113",
+      "community": 3,
+      "norm_label": "load config, create s3 client, run cleanup. returns true on success."
+    },
+    {
+      "label": "Test S3 connection without uploading",
+      "file_type": "rationale",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L146",
+      "id": "scripts_s3_upload_rationale_146",
+      "community": 3,
+      "norm_label": "test s3 connection without uploading"
+    },
+    {
+      "label": "ssl-setup.sh",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "id": "scripts_ssl_setup_sh",
+      "community": 4,
+      "norm_label": "ssl-setup.sh"
+    },
+    {
+      "label": "ssl-setup.sh script",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "id": "scripts_ssl_setup_sh__entry",
+      "community": 4,
+      "norm_label": "ssl-setup.sh script"
+    },
+    {
+      "label": "log()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L11",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_log",
+      "community": 4,
+      "norm_label": "log()"
+    },
+    {
+      "label": "info()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L12",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_info",
+      "community": 4,
+      "norm_label": "info()"
+    },
+    {
+      "label": "error()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L13",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_error",
+      "community": 4,
+      "norm_label": "error()"
+    },
+    {
+      "label": "success()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L14",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_success",
+      "community": 4,
+      "norm_label": "success()"
+    },
+    {
+      "label": "warning()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L15",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_warning",
+      "community": 4,
+      "norm_label": "warning()"
+    },
+    {
+      "label": "install_certbot()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L17",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_install_certbot",
+      "community": 4,
+      "norm_label": "install_certbot()"
+    },
+    {
+      "label": "create_ufw_hooks()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L34",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_create_ufw_hooks",
+      "community": 4,
+      "norm_label": "create_ufw_hooks()"
+    },
+    {
+      "label": "obtain_certificate()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L85",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_obtain_certificate",
+      "community": 4,
+      "norm_label": "obtain_certificate()"
+    },
+    {
+      "label": "verify_certificate()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L170",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_verify_certificate",
+      "community": 4,
+      "norm_label": "verify_certificate()"
+    },
+    {
+      "label": "test_renewal_dry_run()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L190",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_test_renewal_dry_run",
+      "community": 4,
+      "norm_label": "test_renewal_dry_run()"
+    },
+    {
+      "label": "setup_auto_renewal()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L200",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_setup_auto_renewal",
+      "community": 4,
+      "norm_label": "setup_auto_renewal()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L218",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "scripts_ssl_setup_main",
+      "community": 4,
+      "norm_label": "main()"
+    },
+    {
+      "label": "test_s3_cleanup.py",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L1",
+      "id": "scripts_test_s3_cleanup_py",
+      "community": 3,
+      "norm_label": "test_s3_cleanup.py"
+    },
+    {
+      "label": "TestCleanupOldObjects",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L13",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "community": 3,
+      "norm_label": "testcleanupoldobjects"
+    },
+    {
+      "label": "._make_client()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L15",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "community": 3,
+      "norm_label": "._make_client()"
+    },
+    {
+      "label": ".test_deletes_objects_older_than_days()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L24",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days",
+      "community": 3,
+      "norm_label": ".test_deletes_objects_older_than_days()"
+    },
+    {
+      "label": ".test_keeps_objects_within_retention()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L41",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention",
+      "community": 3,
+      "norm_label": ".test_keeps_objects_within_retention()"
+    },
+    {
+      "label": ".test_boundary_object_at_exactly_retention_is_kept()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L53",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept",
+      "community": 3,
+      "norm_label": ".test_boundary_object_at_exactly_retention_is_kept()"
+    },
+    {
+      "label": ".test_empty_prefix_returns_zero()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L68",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero",
+      "community": 3,
+      "norm_label": ".test_empty_prefix_returns_zero()"
+    },
+    {
+      "label": ".test_batches_large_deletions()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L76",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions",
+      "community": 3,
+      "norm_label": ".test_batches_large_deletions()"
+    },
+    {
+      "label": ".test_partial_delete_errors_not_counted()",
+      "file_type": "code",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L92",
+      "id": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted",
+      "community": 3,
+      "norm_label": ".test_partial_delete_errors_not_counted()"
+    },
+    {
+      "label": "Return mock S3 client. Pass None to simulate empty prefix (no Contents key).",
+      "file_type": "rationale",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L16",
+      "id": "scripts_test_s3_cleanup_rationale_16",
+      "community": 3,
+      "norm_label": "return mock s3 client. pass none to simulate empty prefix (no contents key)."
+    },
+    {
+      "label": "setup.sh",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "id": "setup_sh",
+      "community": 1,
+      "norm_label": "setup.sh"
+    },
+    {
+      "label": "setup.sh script",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "id": "setup_sh__entry",
+      "community": 1,
+      "norm_label": "setup.sh script"
+    },
+    {
+      "label": "print_message()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L45",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_print_message",
+      "community": 1,
+      "norm_label": "print_message()"
+    },
+    {
+      "label": "info()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L51",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_info",
+      "community": 1,
+      "norm_label": "info()"
+    },
+    {
+      "label": "success()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L55",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_success",
+      "community": 1,
+      "norm_label": "success()"
+    },
+    {
+      "label": "warning()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L59",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_warning",
+      "community": 1,
+      "norm_label": "warning()"
+    },
+    {
+      "label": "error()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L63",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_error",
+      "community": 1,
+      "norm_label": "error()"
+    },
+    {
+      "label": "command_exists()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L68",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_command_exists",
+      "community": 1,
+      "norm_label": "command_exists()"
+    },
+    {
+      "label": "check_notes_directory()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L76",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_check_notes_directory",
+      "community": 1,
+      "norm_label": "check_notes_directory()"
+    },
+    {
+      "label": "check_existing_env()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L83",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_check_existing_env",
+      "community": 1,
+      "norm_label": "check_existing_env()"
+    },
+    {
+      "label": "resolve_dns()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L101",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_resolve_dns",
+      "community": 1,
+      "norm_label": "resolve_dns()"
+    },
+    {
+      "label": "fix_docker_hub_dns()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L132",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_fix_docker_hub_dns",
+      "community": 1,
+      "norm_label": "fix_docker_hub_dns()"
+    },
+    {
+      "label": "configure_docker_proxy()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L221",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_configure_docker_proxy",
+      "community": 1,
+      "norm_label": "configure_docker_proxy()"
+    },
+    {
+      "label": "validate_network_config()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L343",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_validate_network_config",
+      "community": 1,
+      "norm_label": "validate_network_config()"
+    },
+    {
+      "label": "validate_config()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L359",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_validate_config",
+      "community": 1,
+      "norm_label": "validate_config()"
+    },
+    {
+      "label": "test_dns_resolution()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L395",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_test_dns_resolution",
+      "community": 1,
+      "norm_label": "test_dns_resolution()"
+    },
+    {
+      "label": "generate_password()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L443",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_generate_password",
+      "community": 1,
+      "norm_label": "generate_password()"
+    },
+    {
+      "label": "validate_email()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L453",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_validate_email",
+      "community": 1,
+      "norm_label": "validate_email()"
+    },
+    {
+      "label": "prompt_certbot_email()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L468",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_prompt_certbot_email",
+      "community": 1,
+      "norm_label": "prompt_certbot_email()"
+    },
+    {
+      "label": "prompt_notes_domain()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L493",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_prompt_notes_domain",
+      "community": 1,
+      "norm_label": "prompt_notes_domain()"
+    },
+    {
+      "label": "configure_network()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L523",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_configure_network",
+      "community": 1,
+      "norm_label": "configure_network()"
+    },
+    {
+      "label": "configure_nginx()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L553",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_configure_nginx",
+      "community": 1,
+      "norm_label": "configure_nginx()"
+    },
+    {
+      "label": "configure_couchdb()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L599",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_configure_couchdb",
+      "community": 1,
+      "norm_label": "configure_couchdb()"
+    },
+    {
+      "label": "prompt_sync_backend()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L608",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_prompt_sync_backend",
+      "community": 1,
+      "norm_label": "prompt_sync_backend()"
+    },
+    {
+      "label": "configure_serverpeer()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L674",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_configure_serverpeer",
+      "community": 1,
+      "norm_label": "configure_serverpeer()"
+    },
+    {
+      "label": "configure_turn_firewall()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L788",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_configure_turn_firewall",
+      "community": 1,
+      "norm_label": "configure_turn_firewall()"
+    },
+    {
+      "label": "prompt_s3_credentials()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L830",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_prompt_s3_credentials",
+      "community": 1,
+      "norm_label": "prompt_s3_credentials()"
+    },
+    {
+      "label": "create_env_file()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L892",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_create_env_file",
+      "community": 1,
+      "norm_label": "create_env_file()"
+    },
+    {
+      "label": "setup_backup_cron()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L1130",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_setup_backup_cron",
+      "community": 1,
+      "norm_label": "setup_backup_cron()"
+    },
+    {
+      "label": "setup_systemd_timer()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L1184",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_setup_systemd_timer",
+      "community": 1,
+      "norm_label": "setup_systemd_timer()"
+    },
+    {
+      "label": "setup_systemd_timer_for_backend()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L1222",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_setup_systemd_timer_for_backend",
+      "community": 1,
+      "norm_label": "setup_systemd_timer_for_backend()"
+    },
+    {
+      "label": "display_summary()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L1281",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_display_summary",
+      "community": 1,
+      "norm_label": "display_summary()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "setup.sh",
+      "source_location": "L1315",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "setup_main",
+      "community": 1,
+      "norm_label": "main()"
     }
   ],
   "links": [
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "s3_upload_py",
-      "target": "scripts_s3_upload_load_env_file"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "s3_upload_py",
-      "target": "scripts_s3_upload_upload_to_s3"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L145",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "s3_upload_py",
-      "target": "scripts_s3_upload_test_s3_connection"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L82",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "s3_upload_py",
-      "target": "scripts_s3_upload_cleanup_old_objects"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L112",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "s3_upload_py",
-      "target": "scripts_s3_upload_run_cleanup"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L32",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_load_env_file",
-      "target": "scripts_s3_upload_upload_to_s3"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L147",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_load_env_file",
-      "target": "scripts_s3_upload_test_s3_connection"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_load_env_file",
-      "target": "scripts_s3_upload_rationale_16"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L114",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_load_env_file",
-      "target": "scripts_s3_upload_run_cleanup"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_load_env_file",
-      "target": "scripts_s3_upload_rationale_17"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_upload_to_s3",
-      "target": "scripts_s3_upload_rationale_28"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L29",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_upload_to_s3",
-      "target": "scripts_s3_upload_rationale_29"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L82",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_test_s3_connection",
-      "target": "scripts_s3_upload_rationale_82"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L146",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_test_s3_connection",
-      "target": "scripts_s3_upload_rationale_146"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 32",
-      "weight": 1.0,
-      "source": "s3_upload_upload_to_s3",
-      "target": "s3_upload_load_env_file"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 133",
-      "weight": 1.0,
-      "source": "s3_upload_upload_to_s3",
-      "target": "s3_upload_script"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 216",
-      "weight": 1.0,
-      "source": "s3_upload_upload_to_s3",
-      "target": "s3_upload_cli"
-    },
-    {
-      "relation": "semantically_similar_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.75,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": null,
-      "weight": 0.75,
-      "source": "s3_upload_upload_to_s3",
-      "target": "s3_upload_run_cleanup"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 147",
-      "weight": 1.0,
-      "source": "s3_upload_load_env_file",
-      "target": "s3_upload_test_s3_connection"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 114",
-      "weight": 1.0,
-      "source": "s3_upload_load_env_file",
-      "target": "s3_upload_run_cleanup"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 127",
-      "weight": 1.0,
-      "source": "s3_upload_test_s3_connection",
-      "target": "s3_upload_script"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 192",
-      "weight": 1.0,
-      "source": "s3_upload_test_s3_connection",
-      "target": "s3_upload_cli"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/architecture/components/application/backup-system.yml",
-      "source_location": "files.scripts section",
-      "weight": 1.0,
-      "source": "s3_upload_script",
-      "target": "component_backup_system"
-    },
-    {
-      "relation": "implements",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "s3_upload_script",
-      "target": "component_s3_storage"
-    },
     {
       "relation": "references",
       "confidence": "EXTRACTED",
@@ -2626,359 +2906,6 @@
       "target": "prd_graceful_degradation"
     },
     {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L139",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_s3_upload_run_cleanup"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L83",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_s3_upload_rationale_83"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "test_s3_cleanup.py",
-      "source_location": "L33",
-      "weight": 1.0,
-      "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "test_s3_cleanup.py",
-      "source_location": "L48",
-      "weight": 1.0,
-      "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "test_s3_cleanup.py",
-      "source_location": "L63",
-      "weight": 1.0,
-      "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "test_s3_cleanup.py",
-      "source_location": "L71",
-      "weight": 1.0,
-      "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "test_s3_cleanup.py",
-      "source_location": "L84",
-      "weight": 1.0,
-      "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "test_s3_cleanup.py",
-      "source_location": "L104",
-      "weight": 1.0,
-      "source": "scripts_s3_upload_cleanup_old_objects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "L113",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_s3_upload_run_cleanup",
-      "target": "scripts_s3_upload_rationale_113"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "test_s3_cleanup_py",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects"
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client"
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days"
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L41",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention"
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L53",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept"
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L68",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero"
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L76",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions"
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L92",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L43",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L56",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L69",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L82",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L96",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
-      "target": "scripts_test_s3_cleanup_rationale_16"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 139",
-      "weight": 1.0,
-      "source": "s3_upload_cleanup_old_objects",
-      "target": "s3_upload_run_cleanup"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/test_s3_cleanup.py",
-      "source_location": "line 10",
-      "weight": 1.0,
-      "source": "s3_upload_cleanup_old_objects",
-      "target": "test_s3_cleanup_testcleanupold"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
-      "source_location": "\u00a7Design",
-      "weight": 1.0,
-      "source": "s3_upload_cleanup_old_objects",
-      "target": "spec_backup_rotation"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/superpowers/plans/2026-05-20-backup-rotation.md",
-      "source_location": "Task 2",
-      "weight": 1.0,
-      "source": "s3_upload_cleanup_old_objects",
-      "target": "plan_backup_rotation"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
-      "source_location": "\u00a7ErrorHandling",
-      "weight": 1.0,
-      "source": "s3_upload_cleanup_old_objects",
-      "target": "rationale_s3_cleanup_non_failing"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
-      "source_location": "\u00a7Design",
-      "weight": 1.0,
-      "source": "s3_upload_cleanup_old_objects",
-      "target": "rationale_s3_rotation_design"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 94",
-      "weight": 0.95,
-      "source": "s3_upload_cleanup_old_objects",
-      "target": "rationale_batch_1000_delete"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/s3_upload.py",
-      "source_location": "line 211",
-      "weight": 1.0,
-      "source": "s3_upload_run_cleanup",
-      "target": "s3_upload_cli"
-    },
-    {
-      "relation": "references",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "docs/superpowers/specs/2026-05-20-backup-rotation-design.md",
-      "source_location": "\u00a7Design \u2014 CLI extension",
-      "weight": 0.85,
-      "source": "s3_upload_run_cleanup",
-      "target": "spec_backup_rotation"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/superpowers/plans/2026-05-20-backup-rotation.md",
-      "source_location": "Task 1",
-      "weight": 1.0,
-      "source": "test_s3_cleanup_testcleanupold",
-      "target": "plan_backup_rotation"
-    },
-    {
       "relation": "references",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
@@ -3040,16 +2967,6 @@
     },
     {
       "relation": "references",
-      "confidence": "INFERRED",
-      "confidence_score": 0.75,
-      "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 126-127",
-      "weight": 0.75,
-      "source": "local_ini_couchdb_core",
-      "target": "couchdb_backup_calculate_timeout"
-    },
-    {
-      "relation": "references",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "local.ini",
@@ -3081,26 +2998,6 @@
     {
       "relation": "references",
       "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 63-65",
-      "weight": 0.85,
-      "source": "local_ini_couchdb_core",
-      "target": "couchdb_backup_main"
-    },
-    {
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 141",
-      "weight": 0.85,
-      "source": "local_ini_smoosh_compaction",
-      "target": "couchdb_backup_calculate_timeout"
-    },
-    {
-      "relation": "references",
-      "confidence": "INFERRED",
       "confidence_score": 0.75,
       "source_file": "local.ini",
       "source_location": "[cors]",
@@ -3109,94 +3006,2436 @@
       "target": "local_ini_cors_config"
     },
     {
-      "relation": "calls",
+      "relation": "contains",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 361",
+      "source_location": "L1",
       "weight": 1.0,
-      "source": "couchdb_backup_main",
-      "target": "couchdb_backup_calculate_timeout"
+      "source": "scripts_couchdb_backup_sh",
+      "target": "scripts_couchdb_backup_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L111",
+      "weight": 1.0,
+      "source": "scripts_couchdb_backup_sh",
+      "target": "scripts_couchdb_backup_calculate_timeout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L160",
+      "weight": 1.0,
+      "source": "scripts_couchdb_backup_sh",
+      "target": "scripts_couchdb_backup_show_progress",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L187",
+      "weight": 1.0,
+      "source": "scripts_couchdb_backup_sh",
+      "target": "scripts_couchdb_backup_update_progress",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L197",
+      "weight": 1.0,
+      "source": "scripts_couchdb_backup_sh",
+      "target": "scripts_couchdb_backup_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L202",
+      "weight": 1.0,
+      "source": "scripts_couchdb_backup_sh",
+      "target": "scripts_couchdb_backup_error_exit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L218",
+      "weight": 1.0,
+      "source": "scripts_couchdb_backup_sh",
+      "target": "scripts_couchdb_backup_check_disk_space",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L287",
+      "weight": 1.0,
+      "source": "scripts_couchdb_backup_sh",
+      "target": "scripts_couchdb_backup_check_container_health",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 320",
+      "source_location": "L68",
       "weight": 1.0,
-      "source": "couchdb_backup_main",
-      "target": "couchdb_backup_check_container_health"
+      "context": "call",
+      "source": "scripts_couchdb_backup_sh__entry",
+      "target": "scripts_couchdb_backup_error_exit",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 239",
+      "source_location": "L239",
       "weight": 1.0,
-      "source": "couchdb_backup_main",
-      "target": "couchdb_backup_check_disk_space"
+      "context": "call",
+      "source": "scripts_couchdb_backup_sh__entry",
+      "target": "scripts_couchdb_backup_check_disk_space",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 491",
+      "source_location": "L243",
       "weight": 1.0,
-      "source": "couchdb_backup_main",
-      "target": "couchdb_backup_s3_upload"
+      "context": "call",
+      "source": "scripts_couchdb_backup_sh__entry",
+      "target": "scripts_couchdb_backup_log",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 22",
+      "source_location": "L254",
       "weight": 1.0,
-      "source": "couchdb_backup_main",
-      "target": "couchdb_backup_env_loading"
+      "context": "call",
+      "source": "scripts_couchdb_backup_sh__entry",
+      "target": "scripts_couchdb_backup_update_progress",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 517",
+      "source_location": "L320",
       "weight": 1.0,
-      "source": "couchdb_backup_main",
-      "target": "couchdb_backup_retention"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 91-98",
-      "weight": 1.0,
-      "source": "couchdb_backup_main",
-      "target": "couchdb_backup_resource_limits"
-    },
-    {
-      "relation": "implements",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 323-338",
-      "weight": 1.0,
-      "source": "couchdb_backup_main",
-      "target": "couchdb_backup_dual_api_access"
+      "context": "call",
+      "source": "scripts_couchdb_backup_sh__entry",
+      "target": "scripts_couchdb_backup_check_container_health",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "scripts/couchdb-backup.sh",
-      "source_location": "line 499",
+      "source_location": "L189",
       "weight": 1.0,
-      "source": "couchdb_backup_s3_upload",
-      "target": "couchdb_backup_retention"
+      "context": "call",
+      "source": "scripts_couchdb_backup_show_progress",
+      "target": "scripts_couchdb_backup_update_progress",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L193",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_couchdb_backup_update_progress",
+      "target": "scripts_couchdb_backup_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L203",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_couchdb_backup_log",
+      "target": "scripts_couchdb_backup_error_exit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L226",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_couchdb_backup_log",
+      "target": "scripts_couchdb_backup_check_disk_space",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L304",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_couchdb_backup_log",
+      "target": "scripts_couchdb_backup_check_container_health",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L229",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_couchdb_backup_error_exit",
+      "target": "scripts_couchdb_backup_check_disk_space",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/couchdb-backup.sh",
+      "source_location": "L313",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_couchdb_backup_error_exit",
+      "target": "scripts_couchdb_backup_check_container_health",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "scripts_monitor_couchdb_sh",
+      "target": "scripts_monitor_couchdb_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "scripts_monitor_couchdb_sh",
+      "target": "scripts_monitor_couchdb_info",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "scripts_monitor_couchdb_sh",
+      "target": "scripts_monitor_couchdb_warning",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "scripts_monitor_couchdb_sh",
+      "target": "scripts_monitor_couchdb_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_monitor_couchdb_sh__entry",
+      "target": "scripts_monitor_couchdb_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L53",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_monitor_couchdb_sh__entry",
+      "target": "scripts_monitor_couchdb_info",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/monitor-couchdb.sh",
+      "source_location": "L68",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_monitor_couchdb_sh__entry",
+      "target": "scripts_monitor_couchdb_warning",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_py",
+      "target": "scripts_s3_upload_load_env_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_py",
+      "target": "scripts_s3_upload_upload_to_s3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L82",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_py",
+      "target": "scripts_s3_upload_cleanup_old_objects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L112",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_py",
+      "target": "scripts_s3_upload_run_cleanup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L145",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_py",
+      "target": "scripts_s3_upload_test_s3_connection",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_upload_to_s3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L114",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_run_cleanup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L147",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_test_s3_connection",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_load_env_file",
+      "target": "scripts_s3_upload_rationale_17",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_upload_to_s3",
+      "target": "scripts_s3_upload_rationale_29",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L139",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_s3_upload_run_cleanup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_s3_upload_rationale_83",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L104",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_cleanup_old_objects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_run_cleanup",
+      "target": "scripts_s3_upload_rationale_113",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/s3_upload.py",
+      "source_location": "L146",
+      "weight": 1.0,
+      "source": "scripts_s3_upload_test_s3_connection",
+      "target": "scripts_s3_upload_rationale_146",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_info",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_success",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_warning",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_install_certbot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_create_ufw_hooks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L85",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_obtain_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L170",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_verify_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L190",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_test_renewal_dry_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L200",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_setup_auto_renewal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L218",
+      "weight": 1.0,
+      "source": "scripts_ssl_setup_sh",
+      "target": "scripts_ssl_setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L236",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_sh__entry",
+      "target": "scripts_ssl_setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L12",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_log",
+      "target": "scripts_ssl_setup_info",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_log",
+      "target": "scripts_ssl_setup_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_log",
+      "target": "scripts_ssl_setup_success",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_log",
+      "target": "scripts_ssl_setup_warning",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L19",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_info",
+      "target": "scripts_ssl_setup_install_certbot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_info",
+      "target": "scripts_ssl_setup_create_ufw_hooks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L102",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_info",
+      "target": "scripts_ssl_setup_obtain_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L179",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_info",
+      "target": "scripts_ssl_setup_verify_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L191",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_info",
+      "target": "scripts_ssl_setup_test_renewal_dry_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L201",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_info",
+      "target": "scripts_ssl_setup_setup_auto_renewal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L219",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_info",
+      "target": "scripts_ssl_setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L30",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_error",
+      "target": "scripts_ssl_setup_install_certbot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L81",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_error",
+      "target": "scripts_ssl_setup_create_ufw_hooks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L87",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_error",
+      "target": "scripts_ssl_setup_obtain_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L176",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_error",
+      "target": "scripts_ssl_setup_verify_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L196",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_error",
+      "target": "scripts_ssl_setup_test_renewal_dry_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L28",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_success",
+      "target": "scripts_ssl_setup_install_certbot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L79",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_success",
+      "target": "scripts_ssl_setup_create_ufw_hooks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L167",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_success",
+      "target": "scripts_ssl_setup_obtain_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L183",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_success",
+      "target": "scripts_ssl_setup_verify_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L194",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_success",
+      "target": "scripts_ssl_setup_test_renewal_dry_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L204",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_success",
+      "target": "scripts_ssl_setup_setup_auto_renewal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L227",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_success",
+      "target": "scripts_ssl_setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L108",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_warning",
+      "target": "scripts_ssl_setup_obtain_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L185",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_warning",
+      "target": "scripts_ssl_setup_verify_certificate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L214",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_warning",
+      "target": "scripts_ssl_setup_setup_auto_renewal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L221",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_install_certbot",
+      "target": "scripts_ssl_setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L222",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_create_ufw_hooks",
+      "target": "scripts_ssl_setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L223",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_obtain_certificate",
+      "target": "scripts_ssl_setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L224",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_verify_certificate",
+      "target": "scripts_ssl_setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ssl-setup.sh",
+      "source_location": "L225",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_ssl_setup_setup_auto_renewal",
+      "target": "scripts_ssl_setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_py",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_deletes_objects_older_than_days",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L43",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_keeps_objects_within_retention",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_boundary_object_at_exactly_retention_is_kept",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_empty_prefix_returns_zero",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L82",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_batches_large_deletions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_testcleanupoldobjects_test_partial_delete_errors_not_counted",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/test_s3_cleanup.py",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "scripts_test_s3_cleanup_testcleanupoldobjects_make_client",
+      "target": "scripts_test_s3_cleanup_rationale_16",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L45",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_print_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_info",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L55",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_success",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_warning",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_command_exists",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_check_notes_directory",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_check_existing_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_resolve_dns",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L132",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_fix_docker_hub_dns",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L221",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_configure_docker_proxy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L343",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_validate_network_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L359",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_validate_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L395",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_test_dns_resolution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L443",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_generate_password",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L453",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_validate_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L468",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_prompt_certbot_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L493",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_prompt_notes_domain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L523",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_configure_network",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L553",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_configure_nginx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L599",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_configure_couchdb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L608",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_prompt_sync_backend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L674",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_configure_serverpeer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L788",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_configure_turn_firewall",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L830",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_prompt_s3_credentials",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L892",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_create_env_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1130",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_setup_backup_cron",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1184",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_setup_systemd_timer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1222",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_setup_systemd_timer_for_backend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1281",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_display_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1315",
+      "weight": 1.0,
+      "source": "setup_sh",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1467",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_sh__entry",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L52",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_print_message",
+      "target": "setup_info",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L56",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_print_message",
+      "target": "setup_success",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L60",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_print_message",
+      "target": "setup_warning",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L64",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_print_message",
+      "target": "setup_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L90",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_check_existing_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L134",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_fix_docker_hub_dns",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L223",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_configure_docker_proxy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L360",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_validate_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L396",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_test_dns_resolution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L470",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_prompt_certbot_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L495",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_prompt_notes_domain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L525",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_configure_network",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L555",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_configure_nginx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L601",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_configure_couchdb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L610",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_prompt_sync_backend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L678",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_configure_serverpeer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L792",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_configure_turn_firewall",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L832",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_prompt_s3_credentials",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L893",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_create_env_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1131",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_setup_backup_cron",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1185",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_setup_systemd_timer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1278",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_setup_systemd_timer_for_backend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1306",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_display_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1316",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_info",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L96",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_check_existing_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L181",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_fix_docker_hub_dns",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L292",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_configure_docker_proxy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L356",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_validate_network_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L392",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_validate_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L429",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_test_dns_resolution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L485",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_prompt_certbot_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L515",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_prompt_notes_domain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L581",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_configure_nginx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L605",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_configure_couchdb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L626",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_prompt_sync_backend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L692",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_configure_serverpeer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L814",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_configure_turn_firewall",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L886",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_prompt_s3_credentials",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L910",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_create_env_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1155",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_setup_backup_cron",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1208",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_setup_systemd_timer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1283",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_display_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1374",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_success",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L85",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_check_existing_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L157",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_fix_docker_hub_dns",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L260",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_configure_docker_proxy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L376",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_validate_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L404",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_test_dns_resolution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L480",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_prompt_certbot_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L502",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_prompt_notes_domain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L668",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_prompt_sync_backend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L688",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_configure_serverpeer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L796",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_configure_turn_firewall",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L846",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_prompt_s3_credentials",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L914",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_create_env_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1445",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_warning",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L78",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_error",
+      "target": "setup_check_notes_directory",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L177",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_error",
+      "target": "setup_fix_docker_hub_dns",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L239",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_error",
+      "target": "setup_configure_docker_proxy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L345",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_error",
+      "target": "setup_validate_network_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L365",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_error",
+      "target": "setup_validate_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L585",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_error",
+      "target": "setup_configure_nginx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L926",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_error",
+      "target": "setup_create_env_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1213",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_error",
+      "target": "setup_setup_systemd_timer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L403",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_command_exists",
+      "target": "setup_test_dns_resolution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L446",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_command_exists",
+      "target": "setup_generate_password",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1321",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_check_notes_directory",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1322",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_check_existing_env",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L335",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_fix_docker_hub_dns",
+      "target": "setup_configure_docker_proxy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1325",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_configure_docker_proxy",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L390",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_validate_network_config",
+      "target": "setup_validate_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1352",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_validate_config",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1353",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_test_dns_resolution",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L484",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_validate_email",
+      "target": "setup_prompt_certbot_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1332",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_prompt_certbot_email",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1331",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_prompt_notes_domain",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1327",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_configure_network",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1328",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_configure_nginx",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1339",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_configure_couchdb",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1335",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_prompt_sync_backend",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1340",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_configure_serverpeer",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1341",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_configure_turn_firewall",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1349",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_prompt_s3_credentials",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1356",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_create_env_file",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1369",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_setup_backup_cron",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1206",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_setup_systemd_timer",
+      "target": "setup_setup_systemd_timer_for_backend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1367",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_setup_systemd_timer",
+      "target": "setup_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "setup.sh",
+      "source_location": "L1357",
+      "weight": 1.0,
+      "context": "call",
+      "source": "setup_display_summary",
+      "target": "setup_main",
+      "confidence_score": 1.0
     }
   ],
   "hyperedges": [
@@ -3227,5 +5466,5 @@
       "source_file": "scripts/couchdb-backup.sh"
     }
   ],
-  "built_at_commit": "ebc96093f835f5226aaf33e727950051e10fbed0"
+  "built_at_commit": "b75f0b1abce9ceb046be77ff32e1818637ae48bd"
 }
