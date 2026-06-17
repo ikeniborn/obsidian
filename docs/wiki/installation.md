@@ -1,12 +1,12 @@
 # Installation
 
-System bootstrap performed by `install.sh`. It validates Docker prerequisites, installs Python/boto3, rsync, and coturn, optionally configures UFW, and creates the `/opt/notes` directory tree. Must run as root. Followed by [[setup#Environment Generation]].
+System bootstrap performed by `install.sh`. It validates Docker prerequisites, installs Python/boto3, rsync, and coturn, ensures a swap cushion on low-RAM hosts, optionally configures UFW, and creates the `/opt/notes` directory tree. Must run as root. Followed by [[setup#Environment Generation]].
 
 ## Dependency Installation
 
 `install.sh` is the first script in the deployment chain. It runs with `set -e`/`set -u`, requires root (`check_root` aborts if `$EUID != 0`), and logs every step to `/var/log/notes_install.log`. Its job is to make a fresh host ready for `setup.sh` and `deploy.sh`.
 
-The `main()` flow (lines 294-351) executes in order: root check, Docker validation, Docker Compose validation, then non-fatal environment checks (UFW, nginx detection, port availability), directory creation, Python dependency install, coturn install, and an optional UFW prompt. Validation failures (Docker missing/stopped, Compose missing) call `error()` which prints guidance and exits 1; environment checks only emit `warning()`.
+The `main()` flow executes in order: root check, Docker validation, Docker Compose validation, then non-fatal environment checks (UFW, nginx detection, port availability), directory creation, Python dependency install, coturn install, `ensure_swap`, and an optional UFW prompt. Validation failures (Docker missing/stopped, Compose missing) call `error()` which prints guidance and exits 1; environment checks only emit `warning()`.
 
 Python dependencies are installed by `install_python_deps()` (lines 245-269): it ensures `python3` is present, installs `python3-boto3` via apt **only if** `python3 -c "import boto3"` fails, and installs `rsync`. boto3 comes from the system package (not pip) to comply with PEP 668 externally-managed environments. boto3 backs the S3 backup uploads, and rsync is used for deployment synchronization.
 
@@ -27,6 +27,10 @@ Two further non-fatal checks run after the core validations: `detect_nginx()` (l
 After install it enables the service in `/etc/default/coturn` by uncommenting `TURNSERVER_ENABLED=1` via `sed`. coturn is left unconfigured at this stage — `install.sh` only installs and enables the package; credential generation, `/etc/turnserver.conf`, and the firewall ports are handled later by `setup.sh` (TURN credentials) and `deploy.sh`/`coturn-setup.sh`. See [[turn-stun-p2p#Credential Generation]].
 
 Note: coturn is installed unconditionally for every host, even though it is only relevant when the ServerPeer backend is selected during [[setup#Backend Selection]].
+
+## Swap Cushion
+
+`ensure_swap()` creates a swap file on low-RAM hosts so CouchDB's Erlang VM does not get hard OOM-killed under heavy sync load (the cause of the HTTP 502 crash loop — see [[troubleshooting#HTTP 502 — CouchDB OOM crash loop]]). It is idempotent and conservative: it returns early if swap is already active or if total RAM ≥ 1536MB, and skips (with a warning) if free disk is insufficient. Otherwise it creates a 2GB `/swapfile` (`fallocate`, falling back to `dd`), `chmod 600`, `mkswap`, `swapon`, and persists it in `/etc/fstab`. Pairs with the 512M CouchDB memory limit in [[couchdb-backend#Container Definition]].
 
 ## UFW Bootstrap
 

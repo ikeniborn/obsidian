@@ -287,6 +287,44 @@ install_coturn() {
     info "Coturn will be configured during setup.sh"
 }
 
+ensure_swap() {
+    # CouchDB (Erlang beam.smp) can spike memory under heavy LiveSync load
+    # (large _bulk_docs, view indexing). On low-RAM hosts with no swap, the
+    # cgroup OOM-killer hard-kills the container in a restart loop (502s).
+    # A swap file is the cushion. Idempotent; only acts on low-RAM hosts.
+    info "Checking swap (OOM cushion for low-RAM hosts)..."
+
+    if [[ -n "$(swapon --show --noheadings 2>/dev/null)" ]]; then
+        success "Swap already active — skipping"
+        return 0
+    fi
+
+    local total_ram_mb
+    total_ram_mb=$(free -m | awk '/^Mem:/{print $2}')
+    if [[ "${total_ram_mb:-9999}" -ge 1536 ]]; then
+        info "RAM ${total_ram_mb}MB sufficient — skipping swap creation"
+        return 0
+    fi
+
+    local swapfile="/swapfile" size_mb=2048 free_disk_mb
+    free_disk_mb=$(df -m / | awk 'NR==2{print $4}')
+    if [[ "${free_disk_mb:-0}" -lt $((size_mb + 2048)) ]]; then
+        warning "Low disk (${free_disk_mb}MB free) — skipping swap. Create manually if CouchDB OOMs."
+        return 0
+    fi
+
+    info "Low RAM (${total_ram_mb}MB), no swap — creating ${size_mb}MB swapfile..."
+    if [[ ! -f "$swapfile" ]]; then
+        fallocate -l ${size_mb}M "$swapfile" 2>/dev/null \
+            || dd if=/dev/zero of="$swapfile" bs=1M count=${size_mb} status=none
+        chmod 600 "$swapfile"
+        mkswap "$swapfile" >/dev/null
+    fi
+    swapon "$swapfile"
+    grep -q "$swapfile" /etc/fstab || echo "$swapfile none swap sw 0 0" >> /etc/fstab
+    success "Swap enabled ($(free -m | awk '/^Swap:/{print $2}')MB)"
+}
+
 # =============================================================================
 # MAIN INSTALLATION
 # =============================================================================
@@ -314,6 +352,9 @@ main() {
 
     echo ""
     install_coturn
+
+    echo ""
+    ensure_swap
 
     echo ""
     if [[ ! -f "$SCRIPT_DIR/scripts/ufw-setup.sh" ]]; then

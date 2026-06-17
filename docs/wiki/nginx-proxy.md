@@ -41,7 +41,7 @@ Leads with template selection: `generate_nginx_config()` reads `SYNC_BACKEND` fr
 
 ## CouchDB Template
 
-Leads with the design stance: `templates/couchdb.conf.template` is an HTTP reverse proxy that intentionally **exceeds** the official CouchDB nginx recommendation — adding `keepalive 32`, WebSocket upgrade, HTTP/1.1, `client_max_body_size 50M`, and forwarding headers. Do NOT blindly apply the official CouchDB docs. Backend config: [[couchdb-backend#CouchDB Configuration]].
+Leads with the design stance: `templates/couchdb.conf.template` is an HTTP reverse proxy that intentionally **exceeds** the official CouchDB nginx recommendation — adding `keepalive 32`, WebSocket upgrade, HTTP/1.1, `client_max_body_size 1024M`, and forwarding headers. Do NOT blindly apply the official CouchDB docs. Backend config: [[couchdb-backend#CouchDB Configuration]].
 
 Key elements of `templates/couchdb.conf.template`:
 
@@ -51,7 +51,7 @@ Key elements of `templates/couchdb.conf.template`:
 - **Location `${COUCHDB_LOCATION}`** — strips the prefix (`rewrite ^${COUCHDB_LOCATION}(.*)$ /$1 break;`), then `proxy_pass http://couchdb_backend`.
 - **WebSocket** — a `map $http_upgrade $connection_upgrade` block plus `proxy_http_version 1.1` and `Upgrade`/`Connection` headers. This is **critical** for the CouchDB `_changes` feed real-time sync; the official CouchDB config lacks it and breaks live sync.
 - **Headers** — `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`; `proxy_buffering off`; `proxy_redirect off`.
-- **`client_max_body_size 50M`** — matches CouchDB `max_document_size`; the official config omits it, causing 413 errors on large attachments.
+- **`client_max_body_size 1024M`** — raised from 50M: LiveSync sends large `_bulk_docs` batches during initial sync/rebuild that exceed 50M, producing nginx `413` (the official config omits the directive entirely). CouchDB itself allows up to `chttpd/max_http_request_size` (~4G); the per-document cap is `max_document_size` (50M). See [[troubleshooting#HTTP 413 — Request Entity Too Large]].
 
 ## ServerPeer Template
 
@@ -74,7 +74,7 @@ Elements of `templates/unified.conf.template`:
 
 - **Two upstreams** — `couchdb_backend` on `${COUCHDB_UPSTREAM}:5984` and `nostr_relay_backend` on `${NOSTR_RELAY_UPSTREAM}:7000`, both `keepalive 32`.
 - **Single TLS server** on port 443 (`http2 on`, TLSv1.2/1.3, HSTS) sharing the `${NOTES_DOMAIN}` certificate.
-- **`location ${COUCHDB_LOCATION}`** (default `/couchdb`) — CouchDB HTTP proxy with the `map`-driven `$connection_upgrade`, forwarding headers, and `client_max_body_size 50M`.
+- **`location ${COUCHDB_LOCATION}`** (default `/couchdb`) — CouchDB HTTP proxy with the `map`-driven `$connection_upgrade`, forwarding headers, and `client_max_body_size 1024M`.
 - **`location ${SERVERPEER_LOCATION}`** (default `/serverpeer`) — proxies to the **Nostr relay** (not ServerPeer directly), used as the WebSocket signaling channel for P2P WebRTC, with 7-day timeouts.
 - **`location = /`** — returns a `200` plain-text info page listing the available backends and their paths.
 

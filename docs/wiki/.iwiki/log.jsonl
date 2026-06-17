@@ -12,3 +12,8 @@
 {"op":"init","source":"scripts/couchdb-backup.sh,scripts/serverpeer-backup.sh,scripts/s3_upload.py","page":"backup-system.md","date":"2026-06-17"}
 {"op":"init","source":"scripts/run-all-tests.sh","page":"testing.md","date":"2026-06-17"}
 {"op":"ingest","source":"scripts/cleanup-system.sh","page":"backup-system.md","date":"2026-06-17"}
+{"op":"ingest","source":"templates/couchdb.conf.template,unified.conf.template","page":"nginx-proxy.md","date":"2026-06-17"}
+{"op":"ingest","source":"docker-compose.notes.yml","page":"couchdb-backend.md","date":"2026-06-17"}
+{"op":"ingest","source":"install.sh","page":"installation.md","date":"2026-06-17"}
+{"op":"ingest","source":"docs/troubleshooting.md","page":"troubleshooting.md","date":"2026-06-17"}
+{"op":"ingest","source":"scripts/couchdb-backup.sh,s3_upload.py","page":"backup-system.md","date":"2026-06-17"}

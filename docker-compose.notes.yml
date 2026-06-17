@@ -38,9 +38,12 @@ services:
     deploy:
       resources:
         limits:
-          # Priority 5: Optimized from 512M to 384M (current usage ~60MB)
+          # 512M required: 384M caused beam.smp OOM-kill loop under heavy sync
+          # load (large _bulk_docs, view indexing) on the 891MB-RAM host. See
+          # docs/troubleshooting.md "CouchDB 502 / OOM crash loop". Host also
+          # needs a swap file as a cushion.
           cpus: '0.5'
-          memory: 384M
+          memory: 512M
         reservations:
           cpus: '0.1'
           memory: 128M

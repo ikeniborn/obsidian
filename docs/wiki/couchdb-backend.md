@@ -13,7 +13,7 @@ Key settings:
 - **Port**: `127.0.0.1:${COUCHDB_PORT:-5984}:5984` — localhost-only bind.
 - **Network**: `notes-network`, with `external: ${NETWORK_EXTERNAL:-false}` and `name: ${NETWORK_NAME}` — switched between shared/isolated/custom via `NETWORK_MODE` in `.env` ([[architecture#Configuration & Secrets]]).
 - **Healthcheck**: `curl -f -u $COUCHDB_USER:$COUCHDB_PASSWORD http://localhost:5984/_up` every 30s (timeout 10s, 3 retries, 30s start period).
-- **Resources** (optimized 2026-01-11): limits `cpus: 0.5` / `memory: 384M`; reservations `cpus: 0.1` / `memory: 128M` (current usage ~60MB).
+- **Resources**: limits `cpus: 0.5` / `memory: 512M`; reservations `cpus: 0.1` / `memory: 128M`. The limit was raised from a 384M "optimization" back to 512M after 384M caused a `beam.smp` OOM-kill crash loop (HTTP 502) under heavy sync load on the 891MB-RAM host; a host swap file is also required as a cushion. See [[troubleshooting#HTTP 502 — CouchDB OOM crash loop]].
 
 The proxy in front of this container is documented in [[nginx-proxy#CouchDB Template]]. Backups of these databases are covered in [[backup-system#CouchDB Backup]].
 
@@ -35,7 +35,7 @@ These map to the Obsidian LiveSync client expectations and to the credentials in
 
 - **Automatic compaction (smoosh, CouchDB 3.x)**: `[smoosh]` runs `ratio_dbs,slack_dbs` (and view equivalents). `[smoosh.ratio_dbs]` triggers when file/active ratio > `1.25` (~20% fragmentation); `[smoosh.slack_dbs]` triggers when wasted space > `209715200` (200MB); both with `wait = 30`. (Note: the 2.x `[compaction_daemon]`/`[compactions]` syntax is ignored in 3.x.)
 - **Write optimization**: `delayed_commits = true` (batched writes, 3-5x faster bulk) and `file_compression = snappy`.
-- **Request protection**: `max_http_request_size = 104857600` (100MB, down from 4GB default — 2× max_document_size) and `max_connections = 200`.
+- **Request protection**: `max_http_request_size = 1073741824` (1GB) and `max_connections = 200`. Raised from 100MB because LiveSync initial-sync/rebuild `_bulk_docs` batches exceed 100MB and CouchDB rejected them with 413 — it must match the nginx `client_max_body_size`, or the 413 just moves from nginx to CouchDB. Run it lower only after reducing the LiveSync client batch size. See [[troubleshooting#HTTP 413 — Request Entity Too Large]].
 - **Query / connection tuning**: `max_dbs_open = 1000`, `attachment_compression_level = 6`, `[query_server_config] os_process_timeout = 10000` (10s) and `os_process_soft_limit = 50`.
 - **HTTP / logging**: `compression = true` (gzip responses), `[log] level = warning` (reduced noise, `writer = stderr`), `[stats] interval = 10`.
 

@@ -220,6 +220,73 @@ def run_cleanup(prefix, days=7):
         print(f"ERROR: S3 cleanup failed: {e}")
         return False
 
+def prune_old_sets(s3_client, bucket, prefix, keep, protect=None):
+    """Keep the newest `keep` dated set-folders under prefix; delete objects in
+    older folders. A set-folder is the first path segment after prefix (e.g.
+    couchdb-20260616). `protect` is a folder always kept and not counted toward
+    `keep` (used for the in-progress set). Folder names are couchdb-YYYYMMDD so
+    lexical order == chronological. Returns count of objects deleted."""
+    sets = {}
+    paginator = s3_client.get_paginator('list_objects_v2')
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for obj in page.get('Contents', []):
+            rel = obj['Key'][len(prefix):]
+            folder = rel.split('/', 1)[0]
+            if folder:
+                sets.setdefault(folder, []).append(obj['Key'])
+
+    ordered = sorted((f for f in sets if f != protect), reverse=True)
+    keep_set = set(ordered[:max(0, keep)])
+    if protect:
+        keep_set.add(protect)
+
+    to_delete = [{'Key': k} for folder, keys in sets.items()
+                 if folder not in keep_set for k in keys]
+
+    deleted_count = 0
+    for i in range(0, len(to_delete), 1000):
+        batch = to_delete[i:i + 1000]
+        resp = s3_client.delete_objects(Bucket=bucket, Delete={'Objects': batch})
+        errors = {e['Key'] for e in resp.get('Errors', [])}
+        for obj in batch:
+            if obj['Key'] not in errors:
+                print(f"Deleted: {obj['Key']}")
+        for err in resp.get('Errors', []):
+            print(f"WARNING: Failed to delete {err['Key']}: {err['Code']} {err['Message']}")
+        deleted_count += len(batch) - len(errors)
+
+    kept = sorted(keep_set & set(sets), reverse=True)
+    print(f"Prune: kept {len(kept)} set(s) {kept}, deleted {deleted_count} objects under {prefix}")
+    return deleted_count
+
+def run_prune_sets(prefix, keep, protect=None):
+    """Load config, create S3 client, keep newest `keep` set-folders. True on success."""
+    env = load_env_file()
+
+    access_key = env.get('S3_ACCESS_KEY_ID') or os.getenv('S3_ACCESS_KEY_ID')
+    secret_key = env.get('S3_SECRET_ACCESS_KEY') or os.getenv('S3_SECRET_ACCESS_KEY')
+    bucket_name = env.get('S3_BUCKET_NAME') or os.getenv('S3_BUCKET_NAME')
+    endpoint_url = env.get('S3_ENDPOINT_URL') or os.getenv('S3_ENDPOINT_URL')
+    region = env.get('S3_REGION', 'ru-central1')
+
+    if not all([access_key, secret_key, bucket_name]):
+        print("ERROR: S3 credentials not configured in .env")
+        return False
+
+    try:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            endpoint_url=endpoint_url,
+            region_name=region
+        )
+        prune_old_sets(s3_client, bucket_name, prefix, keep, protect)
+        return True
+    except ClientError as e:
+        print(f"ERROR: S3 prune failed: {e}")
+        return False
+
 def test_s3_connection():
     """Test S3 connection without uploading"""
     env = load_env_file()
@@ -266,6 +333,7 @@ if __name__ == "__main__":
         print("       s3_upload.py --delete <s3_key>")
         print("       s3_upload.py --test")
         print("       s3_upload.py --cleanup <prefix> [--days N]")
+        print("       s3_upload.py --prune-sets <prefix> [--keep N] [--protect <folder>]")
         sys.exit(1)
 
     if sys.argv[1] == "--test":
@@ -303,6 +371,32 @@ if __name__ == "__main__":
                 print(f"ERROR: --days must be an integer, got: {sys.argv[idx + 1]!r}")
                 sys.exit(1)
         success = run_cleanup(prefix, days)
+        sys.exit(0 if success else 1)
+
+    if sys.argv[1] == "--prune-sets":
+        if len(sys.argv) < 3:
+            print("Usage: s3_upload.py --prune-sets <prefix> [--keep N] [--protect <folder>]")
+            sys.exit(1)
+        prefix = sys.argv[2]
+        keep = 2
+        protect = None
+        if "--keep" in sys.argv[3:]:
+            idx = sys.argv.index("--keep", 3)
+            if idx + 1 >= len(sys.argv):
+                print("ERROR: --keep requires a value")
+                sys.exit(1)
+            try:
+                keep = int(sys.argv[idx + 1])
+            except ValueError:
+                print(f"ERROR: --keep must be an integer, got: {sys.argv[idx + 1]!r}")
+                sys.exit(1)
+        if "--protect" in sys.argv[3:]:
+            idx = sys.argv.index("--protect", 3)
+            if idx + 1 >= len(sys.argv):
+                print("ERROR: --protect requires a value")
+                sys.exit(1)
+            protect = sys.argv[idx + 1]
+        success = run_prune_sets(prefix, keep, protect)
         sys.exit(0 if success else 1)
 
     file_path = sys.argv[1]

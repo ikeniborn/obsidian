@@ -586,7 +586,10 @@ CouchDB configuration (optimized 2026-01-11):
   - `delayed_commits = true` - batch writes (1s window)
   - `file_compression = snappy` - fast compression (20-30% savings)
 - ✅ **Request protection** - DoS prevention
-  - `max_http_request_size = 104857600` - 100MB limit (was 4GB)
+  - `max_http_request_size = 1073741824` - 1GB (raised from 100MB: LiveSync
+    initial-sync `_bulk_docs` batches exceed 100MB → CouchDB 413. Matches nginx
+    `client_max_body_size`. Lower it only after reducing the LiveSync client
+    batch size. See `docs/troubleshooting.md`.)
   - `max_connections = 200` - connection pooling
 
 **Query optimization (Priority 4):**
@@ -610,7 +613,10 @@ See `docs/couchdb-optimization-recommendations.md` for full analysis
   - `${NETWORK_SUBNET}` - подсеть (опционально)
 - Volumes: `/opt/notes/data`, `./local.ini`
 - Port: `127.0.0.1:5984:5984` (localhost only)
-- Resources: CPU 0.1-0.5, Memory 128MB-384MB (optimized from 512MB, 2026-01-11)
+- Resources: CPU 0.1-0.5, Memory 128MB-512MB
+  - **512M limit required** (reverted from a 384M "optimization"): 384M caused
+    a `beam.smp` OOM-kill crash loop (HTTP 502) under heavy sync load on the
+    891MB-RAM host. Pair with a host swap file. See `docs/troubleshooting.md`.
 
 ### Nginx Configuration Templates
 
@@ -623,7 +629,10 @@ The project uses optimized nginx configurations that **EXCEED** official CouchDB
 - ✅ **keepalive 32** - Connection pooling (~5% latency reduction)
 - ✅ **WebSocket support** - CRITICAL for CouchDB _changes feed real-time sync
 - ✅ **HTTP/1.1** - Required for keep-alive and WebSocket
-- ✅ **client_max_body_size 50M** - Matches CouchDB max_document_size
+- ✅ **client_max_body_size 1024M** - Large LiveSync `_bulk_docs` batches during
+  initial sync/rebuild exceed 50M → nginx 413. Must be matched by CouchDB
+  `[chttpd] max_http_request_size` (also raised to 1GB) or the 413 just moves to
+  CouchDB. (Per-doc cap is CouchDB `max_document_size` 50M.)
 - ✅ **Enhanced headers** - X-Real-IP, X-Forwarded-Proto for security/logging
 - ❌ **Removed Accept-Encoding ""** - Enables nginx↔CouchDB compression (+2-3% performance)
 
@@ -1048,9 +1057,13 @@ crontab -l | grep couchdb-backup
 
 ## Version Information
 
-- **Version:** 5.4.0
-- **Last Updated:** 2026-01-11
-- **Changes:** CouchDB performance optimizations (automatic compaction, write optimization, request protection, monitoring)
+- **Version:** 5.5.0
+- **Last Updated:** 2026-06-17
+- **Changes:** Stability fixes from the 2026-06-17 production incident — nginx
+  `client_max_body_size` 50M→1024M (fix 413), CouchDB memory limit 384M→512M +
+  host swap (fix 502 OOM crash loop), disk-full/compaction-loop recovery, and a
+  full incident playbook in `docs/troubleshooting.md`. Also documented LiveSync
+  document-count reduction (Eden, chunk size, orphaned-chunk maintenance).
 - **CouchDB Version:** 3.3
 - **Docker Compose Version:** v2+
 - **Coturn Version:** 4.6+ (installed via apt)

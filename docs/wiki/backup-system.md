@@ -48,7 +48,7 @@ Credentials: `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, optio
 
 ## Retention Policy
 
-Retention is enforced both in S3 and locally, with backend-aware key prefixes. CouchDB retention is S3-side via `s3_upload.py --cleanup`; ServerPeer retention is local-file `find -mtime`. The CouchDB default is configurable via `BACKUP_RETENTION_DAYS` (default 7).
+CouchDB retention is **count-based**, enforced S3-side via `s3_upload.py --prune-sets`: it keeps the `BACKUP_KEEP_SETS` (default 2) most-recent dated set-folders and deletes older ones. This replaced age-based `--cleanup`, which let two overlapping sets coexist and overflow a size-capped bucket. ServerPeer retention is local-file `find -mtime`.
 
 **Backend-aware S3 prefixes** (fallback chains):
 - CouchDB: `COUCHDB_S3_BACKUP_PREFIX` → `S3_BACKUP_PREFIX` → `couchdb-backups/`
@@ -56,9 +56,9 @@ Retention is enforced both in S3 and locally, with backend-aware key prefixes. C
 
 Separate prefixes keep dual-mode backups isolated in the same bucket.
 
-**CouchDB cleanup safety**: S3 retention prune runs **only when the current backup set is complete** (`FAILED_DBS == 0`). On an incomplete set the prune is skipped, so older good backups are never deleted while the new set is missing a database — guaranteeing at least one valid copy always remains. A recent fix corrected an off-by-one in the retention window (local `find` uses `-mtime +$((RETENTION_DAYS-1))`).
+**CouchDB cleanup safety**: the S3 prune runs **only when the current backup set is complete** (`FAILED_DBS == 0`). On an incomplete set the prune is skipped, so older good backups are never deleted while the new set is missing a database. For buckets too small to hold two full sets, `BACKUP_PRUNE_BEFORE=true` prunes old sets *before* upload (keeping the current set + `BACKUP_KEEP_SETS-1` historical) to free room — at the cost of briefly leaving no previous set. See [[troubleshooting#Database bloat / huge document count]] and the capacity caveat there.
 
-**Local cleanup**: stray/0-byte `couchdb-*.tar.gz` leftovers from aborted legacy runs are removed; ServerPeer prunes its own dated `tar.gz` files.
+**Local cleanup**: none — CouchDB backups stream straight to S3 (`curl | gzip | upload`), writing no local archive, so there is nothing to prune on disk. ServerPeer (legacy) still prunes its own dated `tar.gz` files.
 
 ## Systemd Timers
 

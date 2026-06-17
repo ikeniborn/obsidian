@@ -56,7 +56,10 @@ server {
         proxy_buffering off;
         proxy_redirect off;
 
-        client_max_body_size 50M;
+        # 1024M: large LiveSync _bulk_docs batches exceed 50M → nginx 413.
+        # CouchDB allows up to chttpd/max_http_request_size (4G). See
+        # docs/troubleshooting.md.
+        client_max_body_size 1024M;
     }
 
     # Nostr Relay WebSocket endpoint for P2P signaling

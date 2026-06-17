@@ -41,14 +41,20 @@ fi
 # Configuration (with .env fallback to defaults)
 BACKUP_DIR="${NOTES_BACKUP_DIR:-/opt/notes/backups}"
 LOG_FILE="${NOTES_LOG_DIR:-/opt/notes/logs}/backup.log"
-RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
 DATE_FORMAT="+%Y%m%d"
 # Per-DB streaming layout: each database is a separate object under a dated
 # "set" folder, e.g. couchdb-backups/couchdb-20260616/work.json.gz
 BACKUP_SET="couchdb-$(date -u ${DATE_FORMAT})"
-# Legacy single-archive names kept only for stray local cleanup globs
-BACKUP_NAME="couchdb-$(date -u ${DATE_FORMAT}).tar.gz"
-OLD_BACKUP_NAME="couchdb-$(date -d "${RETENTION_DAYS} days ago" ${DATE_FORMAT}).tar.gz"
+
+# S3 retention is COUNT-based (number of dated set-folders to keep), not
+# age-based: age retention let two overlapping sets coexist and overflow a
+# size-capped bucket. BACKUP_KEEP_SETS sets are retained after each run.
+BACKUP_KEEP_SETS="${BACKUP_KEEP_SETS:-2}"
+# On a bucket too small to hold two full sets, set BACKUP_PRUNE_BEFORE=true:
+# old sets are pruned BEFORE upload to free room (keeps the current set plus
+# BACKUP_KEEP_SETS-1 historical). Off by default — pruning before upload
+# narrows the window in which a previous good set exists.
+BACKUP_PRUNE_BEFORE="${BACKUP_PRUNE_BEFORE:-false}"
 
 # Docker configuration
 # Use container name from .env (default: notes-couchdb)
@@ -274,12 +280,6 @@ cd "${BACKUP_DIR}" || error_exit "Failed to change to backup directory"
 log "Starting CouchDB backup process"
 update_progress "Initializing backup process"
 
-# Remove existing backup if present
-if [[ -f "${BACKUP_NAME}" ]]; then
-    log "Removing existing backup: ${BACKUP_NAME}"
-    rm -f "${BACKUP_NAME}" || error_exit "Failed to remove existing backup"
-fi
-
 # Check if CouchDB is running (initial check)
 log "Checking if CouchDB container is running..."
 if ! docker ps --format "{{.Names}}" | grep -q "^${COUCHDB_CONTAINER}$" && \
@@ -373,6 +373,16 @@ stream_db_to_s3() {
     PIPE_RESULT=("${PIPESTATUS[@]}")
 }
 
+# Optional pre-upload prune (for buckets too small to hold two full sets):
+# free room by keeping only BACKUP_KEEP_SETS-1 historical sets + the current
+# one, BEFORE writing the new set.
+if [[ "${BACKUP_PRUNE_BEFORE}" == "true" && -n "${S3_ACCESS_KEY_ID}" ]]; then
+    log "Pre-upload prune: keeping $((BACKUP_KEEP_SETS - 1)) historical set(s) + current ${BACKUP_SET}..."
+    python3 "${S3_UPLOAD_SCRIPT}" --prune-sets "${S3_PREFIX}" \
+        --keep "$((BACKUP_KEEP_SETS - 1))" --protect "${BACKUP_SET}" >> "${LOG_FILE}" 2>&1 \
+        || log "WARNING: pre-upload prune failed (continuing)"
+fi
+
 if [[ -z "${DBS}" ]]; then
     log "No user databases found to backup"
 else
@@ -458,33 +468,23 @@ else
     log "✅ Backup set ${BACKUP_SET} streamed to S3 (${UPLOADED_DBS}/${TOTAL_DBS} databases)"
     update_progress "Backup streamed to S3"
 
-    # Prune old S3 objects ONLY when this set is complete. Pruning on an
-    # incomplete set could delete the previous good backup while the current
-    # one is missing a database — leaving no valid copy at all.
+    # Prune to BACKUP_KEEP_SETS most-recent set-folders, ONLY when this set is
+    # complete. Pruning on an incomplete set could delete the previous good
+    # backup while the current one is missing a database — leaving no valid copy.
     if [[ "${FAILED_DBS}" -eq 0 ]]; then
-        log "Cleaning up S3 objects older than ${RETENTION_DAYS} days..."
-        if python3 "${S3_UPLOAD_SCRIPT}" --cleanup "${S3_PREFIX}" --days "${RETENTION_DAYS}" >> "${LOG_FILE}" 2>&1; then
-            log "S3 cleanup completed"
+        log "Pruning S3 to the ${BACKUP_KEEP_SETS} most-recent backup set(s)..."
+        if python3 "${S3_UPLOAD_SCRIPT}" --prune-sets "${S3_PREFIX}" --keep "${BACKUP_KEEP_SETS}" >> "${LOG_FILE}" 2>&1; then
+            log "S3 prune completed"
         else
-            log "WARNING: S3 cleanup failed (backup upload was successful)"
+            log "WARNING: S3 prune failed (backup upload was successful)"
         fi
     else
-        log "Skipping S3 retention cleanup — set incomplete (${FAILED_DBS} failed), keeping older backups"
+        log "Skipping S3 retention prune — set incomplete (${FAILED_DBS} failed), keeping older backups"
     fi
 fi
 
-# Clean up local old backups
-if [[ -f "${OLD_BACKUP_NAME}" ]]; then
-    log "Removing old local backup: ${OLD_BACKUP_NAME}"
-    rm -f "${OLD_BACKUP_NAME}" || log "WARNING: Failed to remove old local backup"
-fi
-
-# Clean up any backups older than retention period
-log "Cleaning up backups older than ${RETENTION_DAYS} days"
-find "${BACKUP_DIR}" -name "couchdb-*.tar.gz" -type f -mtime +$((RETENTION_DAYS-1)) -delete
-
-# Remove failed/empty backup archives (0-byte leftovers from aborted runs)
-find "${BACKUP_DIR}" -name "couchdb-*.tar.gz" -type f -size 0 -delete 2>/dev/null
+# No local archive to clean up: backups stream straight to S3 (curl|gzip|upload),
+# so nothing is written under BACKUP_DIR. Retention is handled S3-side above.
 
 # System cleanup (journal/apt/logs) — reclaim OS-level disk after backup
 if [[ -x "${CLEANUP_SCRIPT}" ]] || [[ -f "${CLEANUP_SCRIPT}" ]]; then
