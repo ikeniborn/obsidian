@@ -1,0 +1,14 @@
+{"op":"init","source":"scripts/ufw-setup.sh,scripts/fail2ban-setup.sh","page":"firewall-security.md","date":"2026-06-17"}
+{"op":"init","source":"install.sh","page":"installation.md","date":"2026-06-17"}
+{"op":"init","source":"scripts/coturn-setup.sh,docker-compose.nostr-relay.yml","page":"turn-stun-p2p.md","date":"2026-06-17"}
+{"op":"init","source":"scripts/ssl-setup.sh","page":"ssl-tls.md","date":"2026-06-17"}
+{"op":"init","source":"README.md,CLAUDE.md,docker-compose","page":"architecture.md","date":"2026-06-17"}
+{"op":"init","source":"deploy.sh,scripts/deploy-helpers.sh","page":"deployment.md","date":"2026-06-17"}
+{"op":"init","source":"scripts/nginx-setup.sh,templates","page":"nginx-proxy.md","date":"2026-06-17"}
+{"op":"init","source":"scripts/network-manager.sh,scripts/configure-docker-proxy.sh","page":"networking.md","date":"2026-06-17"}
+{"op":"init","source":"serverpeer/,docker-compose.serverpeer.yml","page":"serverpeer-backend.md","date":"2026-06-17"}
+{"op":"init","source":"docker-compose.notes.yml,local.ini,scripts/monitor-couchdb.sh","page":"couchdb-backend.md","date":"2026-06-17"}
+{"op":"init","source":"setup.sh","page":"setup.md","date":"2026-06-17"}
+{"op":"init","source":"scripts/couchdb-backup.sh,scripts/serverpeer-backup.sh,scripts/s3_upload.py","page":"backup-system.md","date":"2026-06-17"}
+{"op":"init","source":"scripts/run-all-tests.sh","page":"testing.md","date":"2026-06-17"}
+{"op":"ingest","source":"scripts/cleanup-system.sh","page":"backup-system.md","date":"2026-06-17"}
