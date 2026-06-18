@@ -206,17 +206,18 @@ create_couchdb_filter() {
     cat > "$filter_file" << 'EOF'
 # Fail2Ban filter for CouchDB API authentication failures
 #
-# Matches HTTP 401 responses on /couchdb location
-# Ignores health check endpoints (/_up, /_session)
+# CouchDB is reverse-proxied at the ROOT location ("/"), so auth failures appear
+# as 401 on any path (e.g. "PUT /work/... 401", scanner probes "GET /mapi/ 401").
+# Matches any HTTP 401 in the nginx access log; ignores the unauthenticated
+# health endpoint (/_up) so monitoring probes are never banned.
 
 [Definition]
 
-# Match 401 Unauthorized on CouchDB endpoints
-failregex = ^<HOST> .* "(GET|POST|PUT|DELETE) /couchdb.* HTTP/.*" 401 .*$
+# Match 401 Unauthorized on any method/path (CouchDB served at root)
+failregex = ^<HOST> -[^"]*"(GET|POST|PUT|DELETE|HEAD|OPTIONS|PROPFIND|PATCH|CONNECT) /[^"]* HTTP/[0-9.]+" 401
 
-# Ignore health checks and session endpoints
-ignoreregex = ^<HOST> .* "(GET|HEAD) /couchdb/_up .*$
-              ^<HOST> .* "(GET|POST) /couchdb/_session .*$
+# Ignore the public health-check endpoint
+ignoreregex = ^<HOST> -[^"]*"(GET|HEAD) /_up[^"]* HTTP/[0-9.]+"
 
 datepattern = %%d/%%b/%%Y:%%H:%%M:%%S
 EOF
@@ -363,48 +364,41 @@ create_nginx_jails() {
         return 0
     fi
 
-    cat > "$jail_file" << EOF
-# Nginx HTTP protection jails
-#
-# Protects against HTTP scanning, DoS, and authentication abuse
-# 10 failures in 10 minutes → 1 hour ban
+    # Only emit jails whose filter exists on this host. fail2ban 1.0+ removed
+    # nginx-noscript/nginx-noproxy and deprecated nginx-badbots, so referencing
+    # them prevents the service from starting. nginx-bad-request and
+    # nginx-botsearch both read the access log and exist across versions.
+    # backend = polling: [DEFAULT] inherits backend=systemd on Debian/ALT, which
+    # ignores logpath and reads the journal — useless for a bind-mounted Docker
+    # nginx access log. Polling tails the file directly.
+    : > "$jail_file"
+    {
+        echo "# Nginx HTTP protection jails"
+        echo "#"
+        echo "# Protects against malformed-request scanning and bot path probing"
+        echo "# 5 failures in 10 minutes → 1 hour ban"
+        echo ""
+    } >> "$jail_file"
 
-[nginx-http-auth]
+    local nginx_filter
+    for nginx_filter in nginx-bad-request nginx-botsearch; do
+        if [[ ! -f "$FAIL2BAN_CONF_DIR/filter.d/${nginx_filter}.conf" ]]; then
+            warning "Filter ${nginx_filter} not found, skipping its jail"
+            continue
+        fi
+        cat >> "$jail_file" << EOF
+[${nginx_filter}]
 enabled = true
+backend = polling
 port = http,https
-filter = nginx-http-auth
+filter = ${nginx_filter}
 logpath = $NGINX_LOG_ACCESS
-maxretry = 10
+maxretry = 5
 findtime = 600
 bantime = 3600
 
-[nginx-noscript]
-enabled = true
-port = http,https
-filter = nginx-noscript
-logpath = $NGINX_LOG_ACCESS
-maxretry = 10
-findtime = 600
-bantime = 3600
-
-[nginx-badbots]
-enabled = true
-port = http,https
-filter = nginx-badbots
-logpath = $NGINX_LOG_ACCESS
-maxretry = 10
-findtime = 600
-bantime = 3600
-
-[nginx-noproxy]
-enabled = true
-port = http,https
-filter = nginx-noproxy
-logpath = $NGINX_LOG_ACCESS
-maxretry = 10
-findtime = 600
-bantime = 3600
 EOF
+    done
 
     success "Created nginx jails"
 }
@@ -433,6 +427,7 @@ create_couchdb_jail() {
 
 [notes-couchdb]
 enabled = true
+backend = polling
 port = http,https
 filter = notes-couchdb
 logpath = $NGINX_LOG_ACCESS
@@ -468,6 +463,7 @@ create_serverpeer_jail() {
 
 [notes-serverpeer]
 enabled = true
+backend = polling
 port = http,https
 filter = notes-serverpeer
 logpath = $NGINX_LOG_ACCESS

@@ -44,7 +44,9 @@ The global `[DEFAULT]` block in `/etc/fail2ban/jail.local` (`create_jail_local()
 
 Service lifecycle: `enable_fail2ban()` (line 526) runs `systemctl enable` + `restart`; `validate_fail2ban()` (line 547) confirms the service is active, counts loaded jails, and verifies `fail2ban-client get sshd banaction` returns `ufw`.
 
-**Docker nginx requirement:** `detect_nginx_logs()` (line 122) inspects a running Docker nginx container's mounts for `/var/log/nginx`. If no host-side volume mount exists, nginx-dependent jails are skipped with a warning to add `/opt/notes/logs/nginx:/var/log/nginx` to the compose file. fail2ban cannot read logs inside an unmounted container.
+**Docker nginx requirement:** `detect_nginx_logs()` (line 122) inspects a running Docker nginx container's mounts for `/var/log/nginx`. If no host-side volume mount exists, nginx-dependent jails are skipped with a warning to add `/opt/notes/logs/nginx:/var/log/nginx` to the compose file. fail2ban cannot read logs inside an unmounted container. Because this check runs against a *running* container, deploying fail2ban before nginx is up (or before it has produced logs) silently skips the nginx and CouchDB jails — re-run `fail2ban-setup.sh` once nginx logs exist.
+
+**`backend = polling` (mandatory for the file-based jails):** Debian/ALT ship `/etc/fail2ban/jail.d/defaults-debian.conf` with `backend = systemd` in `[DEFAULT]`. With the systemd backend fail2ban reads the journal and **ignores `logpath`**, so a jail pointed at the bind-mounted nginx access log never sees any lines and never bans. The `notes-couchdb`, `notes-serverpeer`, and nginx jails therefore set `backend = polling` explicitly to tail the file. Symptom of the bug: `fail2ban-client status <jail>` shows `Journal matches:` and `Total failed: 0` while the access log clearly contains matching 401s.
 
 ## Jail Configuration
 
@@ -53,8 +55,8 @@ Four jail families protect SSH, HTTP, and the backend APIs. SSH and nginx jails 
 Created by `create_jails()` (line 511):
 
 - **`[sshd]`** (`create_sshd_jail()`, line 312) — `/etc/fail2ban/jail.d/sshd.local`. Reads `logpath = /var/log/auth.log`, SSH port auto-detected, `maxretry=5`, `findtime=600`, `bantime=3600`.
-- **Nginx jails** (`create_nginx_jails()`, line 350) — `/etc/fail2ban/jail.d/nginx.local`. Four built-in filters: `nginx-http-auth`, `nginx-noscript`, `nginx-badbots`, `nginx-noproxy`. Each `maxretry=10`, `findtime=600`, `bantime=3600`, `port=http,https`. Skipped if nginx logs are not accessible.
-- **`[notes-couchdb]`** (`create_couchdb_jail()`, line 412) — `/etc/fail2ban/jail.d/notes-couchdb.local`. Uses the custom `notes-couchdb` filter, `maxretry=3` (`API_MAXRETRY`), `findtime=300`, `bantime=7200`.
+- **Nginx jails** (`create_nginx_jails()`, line 350) — `/etc/fail2ban/jail.d/nginx.local`. Emits only jails whose filter exists on the host: `nginx-bad-request` and `nginx-botsearch` (both read the access log and ship across versions). fail2ban 1.0+ removed `nginx-noscript`/`nginx-noproxy` and deprecated `nginx-badbots`, so the old four-filter set prevented the service from starting — those are gone. Each `maxretry=5`, `findtime=600`, `bantime=3600`, `port=http,https`, `backend=polling`. Skipped if nginx logs are not accessible.
+- **`[notes-couchdb]`** (`create_couchdb_jail()`, line 412) — `/etc/fail2ban/jail.d/notes-couchdb.local`. Uses the custom `notes-couchdb` filter, `maxretry=3` (`API_MAXRETRY`), `findtime=300`, `bantime=7200`, `backend=polling`.
 - **`[notes-serverpeer]`** (`create_serverpeer_jail()`, line 447) — `/etc/fail2ban/jail.d/notes-serverpeer.local`. Same 2-hour API tier.
 
 **Backend-aware enabling** — `create_backend_aware_jails()` (line 482) sources `.env`, reads `SYNC_BACKEND` (default `couchdb`):
@@ -66,14 +68,14 @@ ServerPeer/WSS is a [[serverpeer-backend#Legacy Status]] backend; the correspond
 
 ## Filter Testing
 
-Two custom filters are written to `/etc/fail2ban/filter.d/` and validated with `fail2ban-regex`. `notes-couchdb.conf` bans HTTP 401 on `/couchdb`; `notes-serverpeer.conf` bans 401/403 on `/serverpeer` while ignoring successful WebSocket upgrades (HTTP 101). Both match nginx access-log lines — see [[nginx-proxy#ServerPeer Template]].
+Two custom filters are written to `/etc/fail2ban/filter.d/` and validated with `fail2ban-regex`. `notes-couchdb.conf` bans HTTP 401 on **any path** (CouchDB is reverse-proxied at the root location `/`, not `/couchdb`); `notes-serverpeer.conf` bans 401/403 on `/serverpeer` while ignoring successful WebSocket upgrades (HTTP 101). Both match nginx access-log lines — see [[nginx-proxy#ServerPeer Template]].
 
 Filters are created unconditionally by `create_custom_filters()` (line 261) — they are harmless when their jail is disabled.
 
 **`notes-couchdb.conf`** (`create_couchdb_filter()`, line 196):
-- `failregex` matches `<HOST> ... "(GET|POST|PUT|DELETE) /couchdb... HTTP/..." 401 ...`
-- `ignoreregex` exempts `/couchdb/_up` (health) and `/couchdb/_session`.
-- `datepattern = %%d/%%b/%%Y:%%H:%%M:%%S` (nginx combined log format).
+- `failregex` matches `<HOST> ... "(GET|POST|PUT|DELETE|HEAD|OPTIONS|PROPFIND|PATCH|CONNECT) /... HTTP/..." 401` — any method/path, since CouchDB is served at root. Catches both DB brute-force (`PUT /work/... 401`) and scanner probes (`GET /mapi/ 401`).
+- `ignoreregex` exempts the public `/_up` health endpoint.
+- `datepattern = %%d/%%b/%%Y:%%H:%%M:%%S` — the `%%` is mandatory: fail2ban's configparser treats a lone `%` as interpolation and rejects the filter (`InterpolationSyntaxError`). `%%` unescapes to the real `%d/%b/%Y` pattern.
 
 **`notes-serverpeer.conf`** (`create_serverpeer_filter()`, line 227):
 - ServerPeer uses WSS over HTTPS (port 443). `failregex` matches `(GET|POST) /serverpeer... HTTP/..." (401|403)` — failed auth before the WebSocket upgrade.
