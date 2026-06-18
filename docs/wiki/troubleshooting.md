@@ -15,6 +15,14 @@ temporarily empty `smoosh` `db_channels`/`view_channels`, restore free space,
 then re-enable. Never compact manually on a near-full disk. Compaction tuning:
 [[couchdb-backend#Performance Optimization]].
 
+**As of 2026-06-18 smoosh is disabled by default** (`local.ini` ships empty
+`db_channels`/`view_channels`) to prevent this loop on the constrained host.
+Runtime channel edits race with already-queued jobs, so apply the change in
+`local.ini` and **restart** the container (boot config has no race), then delete
+any orphan `*.compact.*`. Note a restart frees space the running process pinned
+via deleted-but-open file handles. Re-enable only after DB bloat is reset and
+the disk has >2x the largest db free.
+
 ## HTTP 413 — Request Entity Too Large
 
 LiveSync sends large `_bulk_docs` batches (initial sync/rebuild) that exceed the
